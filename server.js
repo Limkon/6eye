@@ -68,6 +68,10 @@ async function destroyRoom(roomId) {
     if (chatRooms[roomId]) {
         wss.clients.forEach(client => {
             if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                    type: 'roomDestroyed',
+                    message: `房间 ${roomId} 已被销毁`
+                }));
                 client.close();
             }
         });
@@ -135,7 +139,6 @@ wss.on('connection', (ws, req) => {
                 saveMessages(roomId);
             } else if (data.type === 'destroy') {
                 destroyRoom(roomId);
-                broadcast(roomId, { type: 'roomDestroyed', message: `房间 ${roomId} 已被销毁` });
             }
         } catch (error) {
             console.error(`消息处理错误: 房间 ${roomId}, 错误:`, error.message);
