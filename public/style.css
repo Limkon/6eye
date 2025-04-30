@@ -1,0 +1,170 @@
+/* 基础布局 */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+header {
+    background: #4CAF50;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+}
+
+.controls button {
+    margin-left: 10px;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+#chat {
+    flex: 3;
+    padding: 10px;
+    overflow-y: auto;
+    background: #f9f9f9;
+}
+
+#userlist {
+    flex: 1;
+    padding: 10px;
+    border-left: 1px solid #ccc;
+    overflow-y: auto;
+    background: #fff;
+}
+
+#userlist.hidden {
+    display: none;
+}
+
+footer {
+    display: flex;
+    padding: 10px;
+    background: #eee;
+    align-items: center;
+}
+
+footer label {
+    margin-right: 10px;
+    font-size: 14px;
+}
+
+footer input[type="text"] {
+    padding: 8px;
+    margin-right: 10px;
+}
+
+footer #username {
+    width: 150px; /* 缩短用户名输入框 */
+}
+
+footer #message {
+    flex: 1; /* 消息输入框占据剩余空间，相对延长 */
+}
+
+footer button {
+    padding: 8px 16px;
+}
+
+/* 消息气泡 */
+.message-left {
+    background: #e0f7fa;
+    color: #333;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    text-align: left;
+}
+
+.message-right {
+    background: #c8e6c9;
+    color: #333;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    text-align: right;
+}
+
+/* 深色模式 */
+body.dark-mode {
+    background: #121212;
+    color: #e0e0e0;
+}
+
+body.dark-mode header {
+    background: #333;
+}
+
+body.dark-mode #chat {
+    background: #1e1e1e;
+}
+
+body.dark-mode #userlist {
+    background: #2c2c2c;
+}
+
+body.dark-mode footer {
+    background: #333;
+}
+
+body.dark-mode .message-left {
+    background: #4a636e; /* 更深的青色背景，提高对比度 */
+    color: #f0f0f0; /* 浅灰色文字，清晰可读 */
+}
+
+body.dark-mode .message-right {
+    background: #4a704a; /* 更深的绿色背景，提高对比度 */
+    color: #f0f0f0; /* 浅灰色文字，清晰可读 */
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+    footer {
+        flex-wrap: wrap; /* 允许换行 */
+        gap: 8px; /* 元素间距 */
+    }
+
+    footer label {
+        width: 100%; /* 标签独占一行 */
+        margin-right:
+
+ 0;
+        text-align: left;
+    }
+
+    footer #username {
+        width: 100%; /* 用户名输入框占满一行 */
+        max-width: 200px; /* 限制最大宽度 */
+    }
+
+    footer #message {
+        width: 100%; /* 消息输入框占满一行 */
+        flex: none; /* 移除 flex: 1，避免拉伸 */
+    }
+
+    footer button {
+        padding: 8px 12px; /* 缩小按钮 */
+        width: auto; /* 按钮自适应内容 */
+    }
+
+    footer #join,
+    footer #send {
+        flex: 1; /* 按钮均分剩余空间 */
+        min-width: 80px; /* 确保按钮有最小宽度 */
+    }
+}
