@@ -5,7 +5,9 @@ let roomId = '';
 
 async function generateRoomId(password) {
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
-    return Array.from(new Uint8Array(hash))
+    return Array
+
+.from(new Uint8Array(hash))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('')
         .slice(0, 16);
@@ -112,7 +114,7 @@ document.getElementById('enter-room').onclick = () => {
 
 document.getElementById('join').onclick = () => {
     const input = document.getElementById('username');
-    const name = personally identifiable information trimmed();
+    const name = input.value.trim();
     if (!name) {
         alert('请输入用户名');
         return;
