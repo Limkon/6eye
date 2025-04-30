@@ -1,4 +1,3 @@
-/* 基础布局 */
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -104,7 +103,6 @@ footer button {
     padding: 8px 16px;
 }
 
-/* 消息气泡 */
 .message-left {
     background: #e0f7fa;
     color: #333;
@@ -123,7 +121,6 @@ footer button {
     text-align: right;
 }
 
-/* 深色模式 */
 body.dark-mode {
     background: #121212;
     color: #e0e0e0;
@@ -159,7 +156,6 @@ body.dark-mode .message-right {
     color: #f0f0f0;
 }
 
-/* 移动端适配 */
 @media (max-width: 600px) {
     footer {
         flex-wrap: wrap;
