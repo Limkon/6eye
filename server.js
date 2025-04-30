@@ -18,7 +18,7 @@ const chatRooms = {};
 const ENCRYPTION_KEY = crypto.randomBytes(32);
 const IV_LENGTH = 16;
 const CHATROOM_DIR = path.join(__dirname, 'chatroom'); // 与 server.js 同级目录
-const MAX_DIR_SIZE_MB = 50; // 50MB
+const MAX_DIR_SIZE_MB = 70; // 70MB
 
 process.on('uncaughtException', (error) => {
     console.error('未捕获异常:', error);
@@ -220,6 +220,6 @@ function broadcast(roomId, data) {
 
 // 初始化 chatroom 目录
 ensureChatroomDir().then(() => {
-    const PORT = process.env.PORT || 25800;
+    const PORT = process.env.PORT || 8100;
     server.listen(PORT, () => console.log(`服务器运行在端口 ${PORT}`));
 });
