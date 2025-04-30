@@ -17,7 +17,7 @@ app.get('*', (req, res) => {
 const chatRooms = {};
 const ENCRYPTION_KEY = crypto.randomBytes(32);
 const IV_LENGTH = 16;
-const CHATROOM_DIR = path.join(__dirname, '../chatroom'); // 与 server.js 同级目录
+const CHATROOM_DIR = path.join(__dirname, 'chatroom'); // 与 server.js 同级目录
 const MAX_DIR_SIZE_MB = 50; // 50MB
 
 process.on('uncaughtException', (error) => {
