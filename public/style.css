@@ -69,6 +69,7 @@ main {
     flex: 1;
     display: flex;
     overflow: hidden;
+    min-height: calc(100vh - 60px - 60px); /* 减去 header 和 footer 的高度 */
 }
 
 #chat {
@@ -84,6 +85,7 @@ main {
     border-left: 1px solid #ccc;
     overflow-y: auto;
     background: #fff;
+    min-height: 100%; /* 确保背景延伸到 main 底部 */
 }
 
 #userlist.hidden {
@@ -100,6 +102,7 @@ footer {
     width: 100%;
     box-sizing: border-box;
     z-index: 1000;
+    min-height: 60px; /* 固定 footer 高度 */
 }
 
 footer label {
@@ -219,5 +222,21 @@ body.dark-mode .message-right {
         margin-right: 0;
         width: 100%;
         max-width: 200px;
+    }
+
+    main {
+        flex-direction: column;
+    }
+
+    #chat {
+        flex: none;
+        height: 50%;
+    }
+
+    #userlist {
+        flex: none;
+        height: 50%;
+        border-left: none;
+        border-top: 1px solid #ccc;
     }
 }
