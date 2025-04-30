@@ -220,6 +220,6 @@ function broadcast(roomId, data) {
 
 // 初始化 chatroom 目录
 ensureChatroomDir().then(() => {
-    const PORT = process.env.PORT || 8100;
+    const PORT = process.env.PORT || 25800;
     server.listen(PORT, () => console.log(`服务器运行在端口 ${PORT}`));
 });
