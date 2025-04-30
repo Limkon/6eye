@@ -1,79 +1,80 @@
 #!/bin/bash
 set -e
-set -x  # 开启调试输出
 
-echo -e "\e[1;34m🚀 开始安装项目...\e[0m"
+echo "🚀 开始安装 TCR 项目..."
 
-# 获取当前项目目录
-PROJECT_DIR=$(pwd)
-echo "📁 项目目录: $PROJECT_DIR"
+# 直接定义 GitHub 仓库信息
+GITHUB_USER="Limkon"
+REPO_NAME="liuyanshi"
+BRANCH="master"
 
-# 获取当前 GitHub 仓库地址
-echo "🔍 获取 GitHub 仓库地址..."
-GIT_URL=$(git config --get remote.origin.url)
+echo "👤 GitHub 用户名: $GITHUB_USER"
+echo "📦 仓库名: $REPO_NAME"
+echo "🌿 分支: $BRANCH"
 
-if [[ -z "$GIT_URL" ]]; then
-    echo -e "\e[1;31m❌ 没有检测到 git 仓库，请先执行 git init 并添加 remote。\e[0m"
+# 构造下载地址
+TAR_URL="https://github.com/$GITHUB_USER/$REPO_NAME/archive/refs/heads/$BRANCH.tar.gz"
+echo "📦 下载链接: $TAR_URL"
+
+# 验证 TAR_URL 是否有效
+if ! curl -fsSL --head "$TAR_URL" >/dev/null 2>&1; then
+    echo "❌ 错误：无法访问 $TAR_URL，可能是网络问题"
     exit 1
 fi
 
-if [[ "$GIT_URL" == git@* ]]; then
-  GIT_URL="https://github.com/$(echo "$GIT_URL" | sed 's/git@github.com:\(.*\)\.git/\1/')"
-else
-  GIT_URL="${GIT_URL%.git}"
+# 获取当前目录
+PROJECT_DIR=$(pwd)
+echo "📁 项目目录: $PROJECT_DIR"
+
+# 创建临时目录并解压项目文件
+TEMP_DIR=$(mktemp -d)
+echo "📂 临时目录: $TEMP_DIR"
+if ! curl -fsSL "$TAR_URL" | tar -xz -C "$TEMP_DIR" --strip-components=1; then
+    echo "❌ 错误：下载或解压 $TAR_URL 失败"
+    rm -rf "$TEMP_DIR"
+    exit 1
 fi
 
-# 获取当前分支（默认为 master）
-BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "master")
-TAR_URL="$GIT_URL/archive/refs/heads/$BRANCH.tar.gz"
-echo "🌐 下载链接: $TAR_URL"
-
-# 创建临时目录并拉取压缩包
-TEMP_DIR=$(mktemp -d)
-curl -L "$TAR_URL" | tar -xz -C "$TEMP_DIR" --strip-components=1
-
-# 清理 .github 等不需要的内容
+# 删除不需要的 .github 目录并复制文件
 rm -rf "$TEMP_DIR/.github"
-
-# 拷贝内容覆盖到当前目录
-cp -rf "$TEMP_DIR"/. "$PROJECT_DIR"
+if ! cp -rf "$TEMP_DIR"/. "$PROJECT_DIR"; then
+    echo "❌ 错误：复制文件到 $PROJECT_DIR 失败"
+    rm -rf "$TEMP_DIR"
+    exit 1
+fi
 rm -rf "$TEMP_DIR"
 
-# 检查 Node.js 和 npm
-if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
-    echo -e "\e[1;33m🔧 Node.js 未检测到，正在安装 nvm 和 Node.js...\e[0m"
+# 检查 Node.js 是否安装
+if ! command -v node &> /dev/null; then
+    echo "📦 安装 Node.js（通过 nvm）..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | NVM_DIR="$PROJECT_DIR/.nvm" bash
     export NVM_DIR="$PROJECT_DIR/.nvm"
-    mkdir -p "$NVM_DIR"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
     nvm install 18
-    nvm use 18
 else
-    echo "✅ Node.js 已安装，版本：$(node -v)"
+    echo "✅ Node.js 已安装：$(node -v)"
 fi
 
-# 确保 nvm 环境可用
+# 加载 nvm
 export NVM_DIR="$PROJECT_DIR/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
 # 安装依赖
 echo "📦 安装依赖..."
-npm install
+if ! npm install; then
+    echo "⚠️ npm install 失败，继续安装 axios"
+fi
 
 # 安装 axios
 echo "📦 安装 axios..."
-npm install axios --save
+npm install axios
 
-# 自动启动配置
-AUTOSTART_DIR="$HOME/.config/autostart"
-mkdir -p "$AUTOSTART_DIR"
-AUTOSTART_FILE="$AUTOSTART_DIR/tcr-startup.desktop"
-
-echo "⚙️ 配置开机自启..."
-cat > "$AUTOSTART_FILE" <<EOF
+# 创建开机启动项
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/tcr-startup.desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Exec=bash -c "cd \"$PROJECT_DIR\" && source \"$PROJECT_DIR/.nvm/nvm.sh\" && node server.js >> server.log 2>&1"
+Exec=bash -c "cd $PROJECT_DIR && source $PROJECT_DIR/.nvm/nvm.sh && node server.js"
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
@@ -81,10 +82,4 @@ Name=Chatroom Server
 Comment=Start Server automatically
 EOF
 
-chmod +x "$AUTOSTART_FILE"
-
-# 启动一次服务
-echo "🚀 启动服务器（后台运行）..."
-nohup bash -c "cd \"$PROJECT_DIR\" && source \"$PROJECT_DIR/.nvm/nvm.sh\" && node server.js" > "$PROJECT_DIR/server.log" 2>&1 &
-
-echo -e "\e[1;32m✅ 安装完成！服务器将自动启动，日志位于：$PROJECT_DIR/server.log\e[0m"
+echo "✅ TCR 项目安装完成！系统重启后将自动启动服务器。"
