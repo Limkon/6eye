@@ -64,7 +64,12 @@ function connect(roomId) {
                     document.getElementById('chat').innerHTML = '';
                     updateUserList([]);
                     alert(data.message);
-                    window.location.reload();
+                    document.getElementById('chat-container').style.display = 'none';
+                    document.getElementById('entry').style.display = 'block';
+                    document.getElementById('room-password').value = '';
+                    document.getElementById('room-id-display').style.display = 'none';
+                    joined = false;
+                    username = '';
                     break;
                 default:
                     console.warn('未知消息类型:', data);
@@ -107,7 +112,7 @@ document.getElementById('enter-room').onclick = () => {
 
 document.getElementById('join').onclick = () => {
     const input = document.getElementById('username');
-    const name = input.value.trim();
+    const name = personally identifiable information trimmed();
     if (!name) {
         alert('请输入用户名');
         return;
