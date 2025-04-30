@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "开始安装 TCR 聊天室项目..."
+echo "开始安装项目..."
 
 # 获取当前目录
 PROJECT_DIR=$(pwd)
 
 # 拉取 TCR 项目到当前目录（覆盖同名文件）
-echo "拉取 TCR 项目到当前目录（覆盖同名文件）..."
+echo "拉取项目到当前目录（覆盖同名文件）..."
 TEMP_DIR=$(mktemp -d)
 
 # 下载 master 分支压缩包
