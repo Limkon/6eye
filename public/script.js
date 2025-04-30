@@ -3,14 +3,12 @@ let username = '';
 let joined = false;
 let roomId = '';
 
-function generateRoomId(password) {
-    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
-        .then(hash => {
-            return Array.from(new Uint8Array(hash))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('')
-                .slice(0, 16); // 取前16位作为房间号
-        });
+async function generateRoomId(password) {
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+        .slice(0, 16);
 }
 
 function connect(roomId) {
@@ -99,6 +97,9 @@ document.getElementById('enter-room').onclick = () => {
         document.getElementById('entry').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
         connect(roomId);
+    }).catch(error => {
+        console.error('生成房间号失败:', error);
+        alert('生成房间号失败，请重试');
     });
 };
 
