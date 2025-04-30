@@ -55,6 +55,7 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-height: 60px; /* 固定 header 高度 */
 }
 
 header h1 {
@@ -69,7 +70,9 @@ main {
     flex: 1;
     display: flex;
     overflow: hidden;
-    min-height: calc(100vh - 60px - 60px); /* 减去 header 和 footer 的高度 */
+    height: calc(100vh - 60px); /* 视口高度减去 header */
+    padding-bottom: 60px; /* 预留 footer 空间 */
+    box-sizing: border-box;
 }
 
 #chat {
@@ -77,9 +80,7 @@ main {
     padding: 10px;
     overflow-y: auto;
     background: #f9f9f9;
-    display: flex; /* 确保内容区域可拉伸 */
-    flex-direction: column;
-    min-height: 100%; /* 强制拉伸到 main 底部 */
+    height: 100%; /* 强制填满 main 高度 */
 }
 
 #userlist {
@@ -88,9 +89,7 @@ main {
     border-left: 1px solid #ccc;
     overflow-y: auto;
     background: #fff;
-    display: flex; /* 确保内容区域可拉伸 */
-    flex-direction: column;
-    min-height: 100%; /* 强制拉伸到 main 底部 */
+    height: 100%; /* 强制填满 main 高度 */
 }
 
 #userlist.hidden {
@@ -231,19 +230,18 @@ body.dark-mode .message-right {
 
     main {
         flex-direction: column;
-        min-height: calc(100vh - 60px - 60px); /* 保持移动端高度 */
+        height: calc(100vh - 60px); /* 视口高度减去 header */
+        padding-bottom: 60px; /* 预留 footer 空间 */
     }
 
     #chat {
         flex: none;
         height: calc(50% - 5px); /* 均分空间，留小间隙 */
-        min-height: 0; /* 允许缩小 */
     }
 
     #userlist {
         flex: none;
         height: calc(50% - 5px); /* 均分空间，留小间隙 */
-        min-height: 0; /* 允许缩小 */
         border-left: none;
         border-top: 1px solid #ccc;
     }
