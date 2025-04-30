@@ -6,12 +6,27 @@ echo "开始安装项目..."
 # 获取当前目录
 PROJECT_DIR=$(pwd)
 
-# 拉取 TCR 项目到当前目录（覆盖同名文件）
+# 拉取当前 GitHub 项目的 master 分支为压缩包
 echo "拉取项目到当前目录（覆盖同名文件）..."
 TEMP_DIR=$(mktemp -d)
 
-# 下载 master 分支压缩包
-curl -L https://github.com/Limkon/liuyanshi/refs/heads/master.tar.gz | tar -xz -C "$TEMP_DIR" --strip-components=1
+# 获取当前 Git 项目远程地址
+REPO_URL=$(git config --get remote.origin.url)
+
+# 提取 GitHub 用户名和仓库名
+if [[ "$REPO_URL" =~ github\.com[:/](.+)/(.+)\.git ]]; then
+    USER="${BASH_REMATCH[1]}"
+    REPO="${BASH_REMATCH[2]}"
+else
+    echo "无法识别的 GitHub 地址：$REPO_URL"
+    exit 1
+fi
+
+# 拼接 master 分支 tar.gz 下载链接
+TAR_URL="https://github.com/$USER/$REPO/archive/refs/heads/master.tar.gz"
+
+echo "从仓库下载：$TAR_URL"
+curl -L "$TAR_URL" | tar -xz -C "$TEMP_DIR" --strip-components=1
 
 # 删除 .github 目录
 rm -rf "$TEMP_DIR/.github"
