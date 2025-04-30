@@ -58,5 +58,5 @@ Name=TCR Chatroom Server
 Comment=Start TCR Server automatically
 EOF
 
-echo "安装完成！下次开机登录后会自动启动 TCR 聊天室服务器！"
+echo "安装完成！下次开机登录后会自动启动服务器！"
 echo "项目目录: $PROJECT_DIR"
