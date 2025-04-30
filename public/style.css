@@ -22,6 +22,12 @@ body {
     margin-bottom: 20px;
 }
 
+#entry form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 #entry input[type="password"] {
     padding: 8px;
     width: 200px;
@@ -194,5 +200,16 @@ body.dark-mode .message-right {
     footer #send {
         flex: 1;
         min-width: 80px;
+    }
+
+    #entry form {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #entry input[type="password"] {
+        margin-right: 0;
+        width: 100%;
+        max-width: 200px;
     }
 }
