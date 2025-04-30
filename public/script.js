@@ -12,163 +12,340 @@ async function generateRoomId(password) {
 }
 
 function connect(roomId) {
-    ws =YPTION_KEY = crypto.randomBytes(32);
-const IV_LENGTH = 16;
-
-process.on('uncaughtException', (error) => {
-    console.error('未捕获异常:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('未处理拒绝:', promise, '原因:', reason);
-});
-
-function encryptMessage(message) {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(message, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return { iv: iv.toString('hex'), encrypted: encrypted };
-}
-
-function decryptMessage(encryptedData) {
-    const iv = Buffer.from(encryptedData.iv, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-}
-
-async function saveMessages(roomId) {
-    const room = chatRooms[roomId];
-    if (room && room.messages.length > 0) {
+    ws = new WebSocket(`wss://${location.host}/${roomId}`);
+    ws.onopen = () => {
+        console.log('连接成功');
+    };
+    ws.onmessage = (event) => {
         try {
-            await fs.writeFile(`chat_${roomId}.json`, JSON.stringify(room.messages));
-            console.log(`保存消息成功: 房间 ${roomId}`);
-        } catch (error) {
-            console.error(`保存消息失败: 房间 ${roomId}, 错误:`, error);
-        }
-    }
-}
-
-async function loadMessages(roomId) {
-    try {
-        const data = await fs.readFile(`chat_${roomId}.json`, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.log(`无历史消息: 房间 ${roomId}`);
-        return [];
-    }
-}
-
-async function destroyRoom(roomId) {
-    if (chatRooms[roomId]) {
-        wss.clients.forEach(client => {
-            if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                    type: 'roomDestroyed',
-                    message: `房间 ${roomId} 已被销毁`
-                }));
-                client.close();
-            }
-        });
-        delete chatRooms[roomId];
-        try {
-            await fs.unlink(`chat_${roomId}.json`);
-            console.log(`删除聊天记录成功: 房间 ${roomId}`);
-        } catch (error) {
-            console.log(`无聊天记录可删除: 房间 ${roomId}`);
-        }
-        console.log(`房间 ${roomId} 已销毁`);
-    }
-}
-
-wss.on('connection', (ws, req) => {
-    const roomId = req.url.split('/')[1] || 'default';
-    console.log(`新连接至房间: ${roomId}`);
-
-    if (!chatRooms[roomId]) {
-        chatRooms[roomId] = {
-            users: [],
-            messages: []
-        };
-        loadMessages(roomId).then(messages => {
-            chatRooms[roomId].messages = messages;
-            messages.forEach(msg => {
-                try {
-                    const decryptedMessage = decryptMessage(msg.message);
-                    ws.send(JSON.stringify({
-                        type: 'message',
-                        username: msg.username,
-                        message: decryptedMessage
-                    }));
-                } catch (error) {
-                    console.error(`解密消息失败: 房间 ${roomId}, 错误:`, error);
-                }
-            });
-        });
-    }
-    const room = chatRooms[roomId];
-
-    ws.on('message', (message) => {
-        try {
-            console.log(`收到消息事件: 房间 ${roomId}`);
-            const data = JSON.parse(message);
-            if (data.type === 'join') {
-                if (room.users.includes(data.username)) {
-                    console.log(`错误: 用户名 ${data.username} 在房间 ${roomId} 中已被占用`);
-                    ws.send(JSON.stringify({ type: 'joinError', message: '用户名已被占用' }));
-                } else {
-                    room.users = room.users.filter(user => user !== null);
-                    room.users.push(data.username);
-                    ws.username = data.username;
-                    ws.roomId = roomId;
-                    console.log(`用户 ${data.username} 加入房间 ${roomId}, 当前用户列表: ${room.users}`);
-                    broadcast(roomId, { type: 'userList', users: room.users });
-                    console.log(`发送 joinSuccess 给 ${data.username}`);
-                    ws.send(JSON.stringify({ type: 'joinSuccess', message: '加入成功' }));
-                }
-            } else if (data.type === 'message') {
-                const encryptedMessage = encryptMessage(data.message);
-                room.messages.push({ username: ws.username, message: encryptedMessage });
-                console.log(`来自 ${ws.username} 在房间 ${roomId} 的消息事件`);
-                broadcast(roomId, { type: 'message', username: ws.username, message: data.message });
-                saveMessages(roomId);
-            } else if (data.type === 'destroy') {
-                destroyRoom(roomId);
+            const data = JSON.parse(event.data);
+            console.log('收到消息:', data);
+            switch (data.type) {
+                case 'userList':
+                    console.log('更新用户列表:', data.users);
+                    updateUserList(data.users);
+                    if (!joined && data.users.includes(username)) {
+                        console.log('通过 userList 确认加入成功，启用消息输入框');
+                        joined = true;
+                        document.getElementById('message').disabled = false;
+                        document.getElementById('send').disabled = false;
+                        document.getElementById('username-label').style.display = 'none';
+                        document.getElementById('username').style.display = 'none';
+                        document.getElementById('join').style.display = 'none';
+                    }
+                    break;
+                case 'message':
+                    console.log('收到聊天消息:', data.message);
+                    addMessage(data.username, data.message);
+                    break;
+                case 'joinSuccess':
+                    console.log('收到 joinSuccess，启用消息输入框');
+                    joined = true;
+                    document.getElementById('message').disabled = false;
+                    document.getElementById('send').disabled = false;
+                    document.getElementById('username-label').style.display = 'none';
+                    document.getElementById('username').style.display = 'none';
+                    document.getElementById('join').style.display = 'none';
+                    break;
+                case 'joinError':
+                    console.log('加入失败:', data.message);
+                    alert(data.message || '用户名已存在，请重新输入');
+                    joined = false;
+                    username = '';
+                    document.getElementById('username').value = '';
+                    document.getElementById('username-label').style.display = 'block';
+                    document.getElementById('username').style.display = 'block';
+                    document.getElementById('join').style.display = 'block';
+                    document.getElementById('message').disabled = true;
+                    document.getElementById('send').disabled = true;
+                    break;
+                case 'roomDestroyed':
+                    console.log('房间被销毁:', roomId);
+                    document.getElementById('chat').innerHTML = '';
+                    updateUserList([]);
+                    alert(data.message);
+                    window.location.reload();
+                    break;
+                default:
+                    console.warn('未知消息类型:', data);
+                    break;
             }
         } catch (error) {
-            console.error(`消息处理错误: 房间 ${roomId}, 错误:`, error.message);
+            console.error('消息解析失败:', error);
         }
+    };
+    ws.onclose = () => {
+        console.log('连接关闭');
+        joined = false;
+        username = '';
+        document.getElementById('message').disabled = true;
+        document.getElementById('send').disabled = true;
+        document.getElementById('username-label').style.display = 'block';
+        document.getElementById('username').style.display = 'block';
+        document.getElementById('join').style.display = 'block';
+    };
+}
+
+document.getElementById('enter-room').onclick = () => {
+    const password = document.getElementById('room-password').value.trim();
+    if (!password) {
+        alert('请输入密码');
+        return;
+    }
+    generateRoomId(password).then(id => {
+        roomId = id;
+        document.getElementById('room-id').textContent = roomId;
+        document.getElementById('room-id-display').style.display = 'block';
+        document.getElementById('entry').style.display = 'none';
+        document.getElementById('chat-container').style.display = 'block';
+        connect(roomId);
+    }).catch(error => {
+        console.error('生成房间号失败:', error);
+        alert('生成房间号失败，请重试');
     });
+};
 
-    ws.on('close', () => {
-        console.log(`用户 ${ws.username} 在房间 ${ws.roomId} 的连接关闭`);
-        if (ws.username && ws.roomId) {
-            const room = chatRooms[ws.roomId];
-            room.users = room.users.filter(user => user !== ws.username && user !== null);
-            console.log(`用户 ${ws.username} 离开，更新用户列表: ${room.users}`);
-            broadcast(ws.roomId, { type: 'userList', users: room.users });
-            if (room.users.length === 0) {
-                delete chatRooms[ws.roomId];
-                console.log(`房间 ${ws.roomId} 已销毁（无用户）`);
-            }
-        }
-    });
+document.getElementById('join').onclick = () => {
+    const input = document.getElementById('username');
+    const name = input.value.trim();
+    if (!name) {
+        alert('请输入用户名');
+        return;
+    }
+    if (joined) {
+        alert('已加入聊天室');
+        return;
+    }
+    console.log('尝试加入，用户名:', name);
+    username = name;
+    ws.send(JSON.stringify({ type: 'join', username }));
+    document.getElementById('username-label').style.display = 'none';
+    document.getElementById('username').style.display = 'none';
+    document.getElementById('join').style.display = 'none';
+};
+
+document.getElementById('send').onclick = () => {
+    const input = document.getElementById('message');
+    const msg = input.value.trim();
+    if (!msg) return;
+    ws.send(JSON.stringify({ type: 'message', message: msg }));
+    input.value = '';
+};
+
+document.getElementById('message').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('send').click();
+    }
 });
 
-function broadcast(roomId, data) {
-    console.log(`广播至房间 ${roomId}: 类型 ${data.type}`);
-    if (data && typeof data === 'object') {
-        wss.clients.forEach(client => {
-            if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(data));
-            }
-        });
-    } else {
-        console.error('无效广播数据');
+document.getElementById('theme-toggle').onclick = () => {
+    document.body.classList.toggle('dark-mode');
+    document.body.classList.toggle('light-mode');
+};
+
+document.getElementById('userlist-toggle').onclick = () => {
+    document.getElementById('userlist').classList.toggle('hidden');
+};
+
+document.getElementById('destroy-room').onclick = () => {
+    if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
+        ws.send(JSON.stringify({ type: 'destroy' }));
     }
+};
+
+function addMessage(user, message) {
+    const chat = document.get completing the server-side logic for WebSocket connections, message handling, and room destruction.
+
+### public/style.css
+```css
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-const PORT = process.env.PORT || 8100;
-server.listen(PORT, () => console.log(`服务器运行在端口 ${PORT}`));
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+#entry {
+    text-align: center;
+    padding: 50px;
+}
+
+#entry h2 {
+    margin-bottom: 20px;
+}
+
+#entry input[type="password"] {
+    padding: 8px;
+    width: 200px;
+    margin-right: 10px;
+}
+
+#entry button {
+    padding: 8px 16px;
+}
+
+#room-id-display {
+    margin-top: 10px;
+}
+
+header {
+    background: #4CAF50;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+}
+
+.controls button {
+    margin-left: 10px;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+#chat {
+    flex: 3;
+    padding: 10px;
+    overflow-y: auto;
+    background: #f9f9f9;
+}
+
+#userlist {
+    flex: 1;
+    padding: 10px;
+    border-left: 1px solid #ccc;
+    overflow-y: auto;
+    background: #fff;
+}
+
+#userlist.hidden {
+    display: none;
+}
+
+footer {
+    display: flex;
+    padding: 10px;
+    background: #eee;
+    align-items: center;
+}
+
+footer label {
+    margin-right: 10px;
+    font-size: 14px;
+}
+
+footer input[type="text"] {
+    padding: 8px;
+    margin-right: 10px;
+}
+
+footer #username {
+    width: 150px;
+}
+
+footer #message {
+    flex: 1;
+}
+
+footer button {
+    padding: 8px 16px;
+}
+
+.message-left {
+    background: #e0f7fa;
+    color: #333;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    text-align: left;
+}
+
+.message-right {
+    background: #c8e6c9;
+    color: #333;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    text-align: right;
+}
+
+body.dark-mode {
+    background: #121212;
+    color: #e0e0e0;
+}
+
+body.dark-mode #entry {
+    background: #1e1e1e;
+}
+
+body.dark-mode header {
+    background: #333;
+}
+
+body.dark-mode #chat {
+    background: #1e1e1e;
+}
+
+body.dark-mode #userlist {
+    background: #2c2c2c;
+}
+
+body.dark-mode footer {
+    background: #333;
+}
+
+body.dark-mode .message-left {
+    background: #4a636e;
+    color: #f0f0f0;
+}
+
+body.dark-mode .message-right {
+    background: #4a704a;
+    color: #f0f0f0;
+}
+
+@media (max-width: 600px) {
+    footer {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    footer label {
+        width: 100%;
+        margin-right: 0;
+        text-align: left;
+    }
+
+    footer #username {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    footer #message {
+        width: 100%;
+        flex: none;
+    }
+
+    footer button {
+        padding: 8px 12px;
+        width: auto;
+    }
+
+    footer #join,
+    footer #send {
+        flex: 1;
+        min-width: 80px;
+    }
+}
