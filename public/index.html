@@ -10,8 +10,10 @@
     <div id="app">
         <div id="entry" style="display: block;">
             <h2>请输入房间密码</h2>
-            <input type="password" id="room-password" placeholder="输入密码...">
-            <button id="enter-room">进入房间</button>
+            <form id="room-form" onsubmit="event.preventDefault(); document.getElementById('enter-room').click();">
+                <input type="password" id="room-password" placeholder="输入密码..." autocomplete="current-password">
+                <button type="submit" id="enter-room">进入房间</button>
+            </form>
             <p id="room-id-display" style="display: none;">房间号: <span id="room-id"></span></p>
         </div>
         <div id="chat-container" style="display: none;">
