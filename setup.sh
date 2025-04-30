@@ -1,31 +1,38 @@
 #!/bin/bash
 set -e
+set -x  # 开启调试模式，显示每一步执行的命令
 
 echo "开始安装项目..."
 
 # 获取当前目录
 PROJECT_DIR=$(pwd)
+echo "项目目录: $PROJECT_DIR"
 
 # 拉取当前 GitHub 项目的 master 分支为压缩包
 echo "拉取项目到当前目录（覆盖同名文件）..."
 TEMP_DIR=$(mktemp -d)
 
 # 获取当前 Git 项目远程地址
-REPO_URL=$(git config --get remote.origin.url)
+REPO_URL=$(git config --get remote.origin.url || true)
+echo "获取到的 Git 远程地址: $REPO_URL"
 
 # 提取 GitHub 用户名和仓库名
 if [[ "$REPO_URL" =~ github\.com[:/](.+)/(.+)\.git ]]; then
     USER="${BASH_REMATCH[1]}"
     REPO="${BASH_REMATCH[2]}"
+    echo "用户名: $USER"
+    echo "仓库名: $REPO"
 else
-    echo "无法识别的 GitHub 地址：$REPO_URL"
+    echo "❌ 无法识别的 GitHub 地址：$REPO_URL"
+    echo "请确保当前目录是 Git 项目，并已设置 remote.origin.url"
     exit 1
 fi
 
 # 拼接 master 分支 tar.gz 下载链接
 TAR_URL="https://github.com/$USER/$REPO/archive/refs/heads/master.tar.gz"
+echo "生成的下载链接: $TAR_URL"
 
-echo "从仓库下载：$TAR_URL"
+# 下载并解压到临时目录
 curl -L "$TAR_URL" | tar -xz -C "$TEMP_DIR" --strip-components=1
 
 # 删除 .github 目录
@@ -73,5 +80,4 @@ Name=TCR Chatroom Server
 Comment=Start TCR Server automatically
 EOF
 
-echo "安装完成！下次开机登录后会自动启动服务器！"
-echo "项目目录: $PROJECT_DIR"
+echo "✅ 安装完成！下次开机登录后会自动启动服务器！"
