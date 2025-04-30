@@ -17,6 +17,8 @@ app.get('*', (req, res) => {
 const chatRooms = {};
 const ENCRYPTION_KEY = crypto.randomBytes(32);
 const IV_LENGTH = 16;
+const CHATROOM_DIR = path.join(__dirname, '../chatroom'); // 与 server.js 同级目录
+const MAX_DIR_SIZE_MB = 50; // 50MB
 
 process.on('uncaughtException', (error) => {
     console.error('未捕获异常:', error);
@@ -25,6 +27,45 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
     console.error('未处理拒绝:', promise, '原因:', reason);
 });
+
+// 确保 chatroom 目录存在
+async function ensureChatroomDir() {
+    try {
+        await fs.mkdir(CHATROOM_DIR, { recursive: true });
+        console.log(`chatroom 目录已确认: ${CHATROOM_DIR}`);
+    } catch (error) {
+        console.error(`创建 chatroom 目录失败: ${error.message}`);
+    }
+}
+
+// 检查 chatroom 目录大小并在超过 50MB 时清空
+async function checkAndClearChatroomDir() {
+    try {
+        const files = await fs.readdir(CHATROOM_DIR);
+        let totalSize = 0;
+
+        for (const file of files) {
+            const filePath = path.join(CHATROOM_DIR, file);
+            const stats = await fs.stat(filePath);
+            totalSize += stats.size;
+        }
+
+        const totalSizeMB = totalSize / (1024 * 1024); // 转换为 MB
+        console.log(`chatroom 目录大小: ${totalSizeMB.toFixed(2)} MB`);
+
+        if (totalSizeMB > MAX_DIR_SIZE_MB) {
+            console.log('chatroom 目录超过 50MB，正在清空...');
+            for (const file of files) {
+                const filePath = path.join(CHATROOM_DIR, file);
+                await fs.unlink(filePath);
+                console.log(`删除文件: ${filePath}`);
+            }
+            console.log('chatroom 目录已清空');
+        }
+    } catch (error) {
+        console.error(`检查或清空 chatroom 目录失败: ${error.message}`);
+    }
+}
 
 function encryptMessage(message) {
     const iv = crypto.randomBytes(IV_LENGTH);
@@ -45,9 +86,11 @@ function decryptMessage(encryptedData) {
 async function saveMessages(roomId) {
     const room = chatRooms[roomId];
     if (room && room.messages.length > 0) {
+        const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
         try {
-            await fs.writeFile(`chat_${roomId}.json`, JSON.stringify(room.messages));
+            await fs.writeFile(filePath, JSON.stringify(room.messages));
             console.log(`保存消息成功: 房间 ${roomId}`);
+            await checkAndClearChatroomDir(); // 保存后检查目录大小
         } catch (error) {
             console.error(`保存消息失败: 房间 ${roomId}, 错误:`, error);
         }
@@ -55,8 +98,9 @@ async function saveMessages(roomId) {
 }
 
 async function loadMessages(roomId) {
+    const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
     try {
-        const data = await fs.readFile(`chat_${roomId}.json`, 'utf8');
+        const data = await fs.readFile(filePath, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.log(`无历史消息: 房间 ${roomId}`);
@@ -76,8 +120,9 @@ async function destroyRoom(roomId) {
             }
         });
         delete chatRooms[roomId];
+        const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
         try {
-            await fs.unlink(`chat_${roomId}.json`);
+            await fs.unlink(filePath);
             console.log(`删除聊天记录成功: 房间 ${roomId}`);
         } catch (error) {
             console.log(`无聊天记录可删除: 房间 ${roomId}`);
@@ -173,5 +218,8 @@ function broadcast(roomId, data) {
     }
 }
 
-const PORT = process.env.PORT || 8100;
-server.listen(PORT, () => console.log(`服务器运行在端口 ${PORT}`));
+// 初始化 chatroom 目录
+ensureChatroomDir().then(() => {
+    const PORT = process.env.PORT || 8100;
+    server.listen(PORT, () => console.log(`服务器运行在端口 ${PORT}`));
+});
