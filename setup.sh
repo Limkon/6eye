@@ -57,8 +57,8 @@ Exec=bash -c "cd $PROJECT_DIR && source $PROJECT_DIR/.nvm/nvm.sh && node server.
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Name=TCR Chatroom Server
-Comment=Start TCR Server automatically
+Name=Chatroom Server
+Comment=Start Server automatically
 EOF
 
 echo "✅ 安装完成！下次开机登录后会自动启动服务器！"
