@@ -2,8 +2,8 @@ const express = require('express');
 const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
-const crypto = require('crypto'); // 用于密码哈希和消息加密
-const fs = require('fs').promises; // 用于文件存储聊天记录
+const crypto = require('crypto');
+const fs = require('fs').promises;
 
 const app = express();
 const server = http.createServer(app);
@@ -15,10 +15,17 @@ app.get('*', (req, res) => {
 });
 
 const chatRooms = {};
-const ENCRYPTION_KEY = crypto.randomBytes(32); // 32字节密钥用于AES-256加密
-const IV_LENGTH = 16; // AES CBC模式初始化向量长度
+const ENCRYPTION_KEY = crypto.randomBytes(32);
+const IV_LENGTH = 16;
 
-// 加密消息
+process.on('uncaughtException', (error) => {
+    console.error('未捕获异常:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('未处理拒绝:', promise, '原因:', reason);
+});
+
 function encryptMessage(message) {
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
@@ -27,7 +34,6 @@ function encryptMessage(message) {
     return { iv: iv.toString('hex'), encrypted: encrypted };
 }
 
-// 解密消息
 function decryptMessage(encryptedData) {
     const iv = Buffer.from(encryptedData.iv, 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
@@ -36,25 +42,28 @@ function decryptMessage(encryptedData) {
     return decrypted;
 }
 
-// 保存聊天记录到文件
 async function saveMessages(roomId) {
     const room = chatRooms[roomId];
     if (room && room.messages.length > 0) {
-        await fs.writeFile(`chat_${roomId}.json`, JSON.stringify(room.messages));
+        try {
+            await fs.writeFile(`chat_${roomId}.json`, JSON.stringify(room.messages));
+            console.log(`保存消息成功: 房间 ${roomId}`);
+        } catch (error) {
+            console.error(`保存消息失败: 房间 ${roomId}, 错误:`, error);
+        }
     }
 }
 
-// 加载聊天记录
 async function loadMessages(roomId) {
     try {
         const data = await fs.readFile(`chat_${roomId}.json`, 'utf8');
         return JSON.parse(data);
     } catch (error) {
+        console.log(`无历史消息: 房间 ${roomId}`);
         return [];
     }
 }
 
-// 销毁房间数据
 async function destroyRoom(roomId) {
     if (chatRooms[roomId]) {
         wss.clients.forEach(client => {
@@ -65,8 +74,9 @@ async function destroyRoom(roomId) {
         delete chatRooms[roomId];
         try {
             await fs.unlink(`chat_${roomId}.json`);
+            console.log(`删除聊天记录成功: 房间 ${roomId}`);
         } catch (error) {
-            // 文件可能不存在，忽略
+            console.log(`无聊天记录可删除: 房间 ${roomId}`);
         }
         console.log(`房间 ${roomId} 已销毁`);
     }
@@ -76,31 +86,32 @@ wss.on('connection', (ws, req) => {
     const roomId = req.url.split('/')[1] || 'default';
     console.log(`新连接至房间: ${roomId}`);
 
-    // 初始化房间
     if (!chatRooms[roomId]) {
         chatRooms[roomId] = {
             users: [],
             messages: []
         };
-        // 加载历史消息
         loadMessages(roomId).then(messages => {
             chatRooms[roomId].messages = messages;
-            // 发送历史消息给新连接
             messages.forEach(msg => {
-                const decryptedMessage = decryptMessage(msg.message);
-                ws.send(JSON.stringify({
-                    type: 'message',
-                    username: msg.username,
-                    message: decryptedMessage
-                }));
+                try {
+                    const decryptedMessage = decryptMessage(msg.message);
+                    ws.send(JSON.stringify({
+                        type: 'message',
+                        username: msg.username,
+                        message: decryptedMessage
+                    }));
+                } catch (error) {
+                    console.error(`解密消息失败: 房间 ${roomId}, 错误:`, error);
+                }
             });
         });
     }
     const room = chatRooms[roomId];
 
     ws.on('message', (message) => {
-        console.log(`收到消息事件: 房间 ${roomId}`);
         try {
+            console.log(`收到消息事件: 房间 ${roomId}`);
             const data = JSON.parse(message);
             if (data.type === 'join') {
                 if (room.users.includes(data.username)) {
@@ -121,13 +132,13 @@ wss.on('connection', (ws, req) => {
                 room.messages.push({ username: ws.username, message: encryptedMessage });
                 console.log(`来自 ${ws.username} 在房间 ${roomId} 的消息事件`);
                 broadcast(roomId, { type: 'message', username: ws.username, message: data.message });
-                saveMessages(roomId); // 保存消息
+                saveMessages(roomId);
             } else if (data.type === 'destroy') {
                 destroyRoom(roomId);
                 broadcast(roomId, { type: 'roomDestroyed', message: `房间 ${roomId} 已被销毁` });
             }
         } catch (error) {
-            console.error('消息解析错误:', error.message);
+            console.error(`消息处理错误: 房间 ${roomId}, 错误:`, error.message);
         }
     });
 
@@ -159,5 +170,5 @@ function broadcast(roomId, data) {
     }
 }
 
-const PORT = process.env PORT || 8100;
+const PORT = process.env.PORT || 8100;
 server.listen(PORT, () => console.log(`服务器运行在端口 ${PORT}`));
