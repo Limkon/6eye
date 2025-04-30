@@ -11,7 +11,7 @@ echo "拉取项目到当前目录（覆盖同名文件）..."
 TEMP_DIR=$(mktemp -d)
 
 # 下载 master 分支压缩包
-curl -L https://github.com/Limkon/Limkon/liuyanshi/refs/heads/master.tar.gz | tar -xz -C "$TEMP_DIR" --strip-components=1
+curl -L https://github.com/Limkon/liuyanshi/refs/heads/master.tar.gz | tar -xz -C "$TEMP_DIR" --strip-components=1
 
 # 删除 .github 目录
 rm -rf "$TEMP_DIR/.github"
