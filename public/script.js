@@ -3,15 +3,11 @@ let username = '';
 let joined = false;
 let roomId = '';
 
-function generateRoomId(password) {
-    const hash = btoa(password); // 简单示例，实际可用更安全哈希
-    return hash.substring(0, 8);
-}
-
 function connect() {
     ws = new WebSocket(`wss://${location.host}/${roomId}`);
     ws.onopen = () => {
         console.log('连接成功');
+        document.getElementById('destroy-room').disabled = false;
     };
     ws.onmessage = (event) => {
         try {
@@ -69,14 +65,15 @@ function connect() {
                     alert(data.message);
                     joined = false;
                     username = '';
-                    document.getElementById('entry').classList.remove('hidden');
-                    document.getElementById('chat-container').classList.add('hidden');
-                    document.getElementById('password').value = '';
+                    roomId = '';
+                    document.getElementById('room-id').value = '';
+                    document.getElementById('current-room-id').textContent = '';
                     document.getElementById('username-label').style.display = 'block';
                     document.getElementById('username').style.display = 'block';
                     document.getElementById('join').style.display = 'block';
                     document.getElementById('message').disabled = true;
                     document.getElementById('send').disabled = true;
+                    document.getElementById('destroy-room').disabled = true;
                     ws.close();
                     break;
                 case 'inactive':
@@ -84,16 +81,17 @@ function connect() {
                     alert(data.message);
                     joined = false;
                     username = '';
+                    roomId = '';
+                    document.getElementById('room-id').value = '';
+                    document.getElementById('current-room-id').textContent = '';
                     document.getElementById('chat').innerHTML = '';
                     updateUserList([]);
-                    document.getElementById('entry').classList.remove('hidden');
-                    document.getElementById('chat-container').classList.add('hidden');
-                    document.getElementById('password').value = '';
                     document.getElementById('username-label').style.display = 'block';
                     document.getElementById('username').style.display = 'block';
                     document.getElementById('join').style.display = 'block';
                     document.getElementById('message').disabled = true;
                     document.getElementById('send').disabled = true;
+                    document.getElementById('destroy-room').disabled = true;
                     ws.close();
                     break;
                 default:
@@ -115,75 +113,80 @@ function connect() {
         document.getElementById('join').style.display = 'block';
         document.getElementById('chat').innerHTML = '';
         updateUserList([]);
-        document.getElementById('entry').classList.remove('hidden');
-        document.getElementById('chat-container').classList.add('hidden');
-        document.getElementById('password').value = '';
+        document.getElementById('destroy-room').disabled = true;
         if (event.code === 1000 && event.reason === 'Inactive') {
             // 已在 inactive 消息中处理
         } else {
             alert('连接断开，请重新加入');
+            roomId = '';
+            document.getElementById('room-id').value = '';
+            document.getElementById('current-room-id').textContent = '';
         }
     };
 }
 
-document.getElementById('password-form').onsubmit = (e) => {
-    e.preventDefault();
-    const password = document.getElementById('password').value.trim();
-    if (!password) {
-        alert('请输入密码');
-        return;
-    }
-    roomId = generateRoomId(password);
-    document.getElementById('room-id-display').textContent = `房间 ID: ${roomId}`;
-    document.getElementById('entry').classList.add('hidden');
-    document.getElementById('chat-container').classList.remove('hidden');
-    connect();
-};
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('join-room').onclick = () => {
+        const input = document.getElementById('room-id');
+        const id = input.value.trim();
+        if (!id) {
+            alert('请输入房间 ID');
+            return;
+        }
+        roomId = id;
+        document.getElementById('current-room-id').textContent = `当前房间: ${roomId}`;
+        connect();
+    };
 
-document.getElementById('join').onclick = () => {
-    const input = document.getElementById('username');
-    const name = input.value.trim();
-    if (!name) {
-        alert('请输入用户名');
-        return;
-    }
-    if (joined) {
-        alert('已加入聊天室');
-        return;
-    }
-    console.log('尝试加入，用户名:', name);
-    username = name;
-    ws.send(JSON.stringify({ type: 'join', username }));
-};
+    document.getElementById('join').onclick = () => {
+        const input = document.getElementById('username');
+        const name = input.value.trim();
+        if (!name) {
+            alert('请输入用户名');
+            return;
+        }
+        if (joined) {
+            alert('已加入聊天室');
+            return;
+        }
+        if (!roomId) {
+            alert('请先进入一个房间');
+            return;
+        }
+        console.log('尝试加入，用户名:', name);
+        username = name;
+        ws.send(JSON.stringify({ type: 'join', username }));
+    };
 
-document.getElementById('send').onclick = () => {
-    const input = document.getElementById('message');
-    const msg = input.value.trim();
-    if (!msg) return;
-    ws.send(JSON.stringify({ type: 'message', message: msg }));
-    input.value = '';
-};
+    document.getElementById('send').onclick = () => {
+        const input = document.getElementById('message');
+        const msg = input.value.trim();
+        if (!msg) return;
+        ws.send(JSON.stringify({ type: 'message', message: msg }));
+        input.value = '';
+    };
 
-document.getElementById('message').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('send').click();
-    }
+    document.getElementById('message').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('send').click();
+        }
+    });
+
+    document.getElementById('theme-toggle').onclick = () => {
+        document.body.classList.toggle('dark-mode');
+        document.body.classList.toggle('light-mode');
+    };
+
+    document.getElementById('userlist-toggle').onclick = () => {
+        document.getElementById('userlist').classList.toggle('hidden');
+    };
+
+    document.getElementById('destroy-room').onclick = () => {
+        if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
+            ws.send(JSON.stringify({ type: 'destroy' }));
+        }
+    };
 });
-
-document.getElementById('theme-toggle').onclick = () => {
-    document.body.classList.toggle('dark-mode');
-    document.body.classList.toggle('light-mode');
-};
-
-document.getElementById('userlist-toggle').onclick = () => {
-    document.getElementById('userlist').classList.toggle('hidden');
-};
-
-document.getElementById('destroy-room').onclick = () => {
-    if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
-        ws.send(JSON.stringify({ type: 'destroy' }));
-    }
-};
 
 function addMessage(user, message) {
     const chat = document.getElementById('chat');
