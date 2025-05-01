@@ -13,10 +13,10 @@
             <div class="controls">
                 <span id="current-room-id" style="margin-right: 10px;"></span>
                 <input type="text" id="room-id" placeholder="输入房间 ID...">
-                <button id="join-room">进入房间</button>
-                <button id="theme-toggle">🌗 主题切换</button>
-                <button id="userlist-toggle">👥 用户列表</button>
-                <button id="destroy-room" disabled>🗑️ 销毁房间</button>
+                <button id="join-room" ontouchstart="">进入房间</button>
+                <button id="theme-toggle" ontouchstart="">🌗 主题切换</button>
+                <button id="userlist-toggle" ontouchstart="">👥 用户列表</button>
+                <button id="destroy-room" disabled ontouchstart="">🗑️ 销毁房间</button>
             </div>
         </header>
         <main>
@@ -26,9 +26,9 @@
         <footer>
             <label id="username-label" for="username">请输入用户名：</label>
             <input type="text" id="username" placeholder="输入用户名...">
-            <button id="join">加入</button>
+            <button id="join" ontouchstart="">加入</button>
             <input type="text" id="message" placeholder="输入消息..." disabled>
-            <button id="send" disabled>发送</button>
+            <button id="send" disabled ontouchstart="">发送</button>
         </footer>
     </div>
     <script src="script.js"></script>
