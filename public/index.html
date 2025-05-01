@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>留言室</title>
+    <title>聊天室</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="light-mode">
     <div id="app">
-        <div id="entry" style="display: block;">
-            <h2>请输入房间密码</h2>
-            <form id="room-form" onsubmit="event.preventDefault(); document.getElementById('enter-room').click();">
-                <input type="password" id="room-password" placeholder="输入密码..." autocomplete="current-password">
-                <button type="submit" id="enter-room">进入房间</button>
+        <div id="entry">
+            <h2>请输入密码</h2>
+            <form id="password-form">
+                <input type="password" id="password" placeholder="输入密码...">
+                <button type="submit">进入聊天室</button>
             </form>
-            <p id="room-id-display" style="display: none;">房间号: <span id="room-id"></span></p>
+            <div id="room-id-display"></div>
         </div>
-        <div id="chat-container" style="display: none;">
+        <div id="chat-container" class="hidden">
             <header>
-                <h1>MO留言室</h1>
+                <h1>聊天室</h1>
                 <div class="controls">
                     <button id="theme-toggle">🌗 主题切换</button>
                     <button id="userlist-toggle">👥 用户列表</button>
