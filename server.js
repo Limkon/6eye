@@ -18,7 +18,7 @@ const chatRooms = {};
 const ENCRYPTION_KEY = crypto.randomBytes(32);
 const IV_LENGTH = 16;
 const CHATROOM_DIR = path.join(__dirname, 'chatroom');
-const MAX_DIR_SIZE_MB = 50;
+const MAX_DIR_SIZE_MB = 80;
 const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
 const messagesCache = new Map();
 
