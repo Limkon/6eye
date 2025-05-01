@@ -2,6 +2,7 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    touch-action: manipulation; /* 防止移动端双击缩放 */
 }
 
 #app {
@@ -26,6 +27,7 @@ header h1 {
 .controls {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .controls #current-room-id {
@@ -35,19 +37,22 @@ header h1 {
 
 .controls input[type="text"] {
     padding: 6px;
-    margin-left: 10px;
+    margin: 0 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 14px;
 }
 
 .controls button {
-    margin-left: 10px;
+    margin: 0 10px;
     padding: 6px 12px;
     background: #fff;
     color: #333;
     border: 1px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 .controls button:hover {
@@ -99,6 +104,7 @@ footer label {
 footer input[type="text"] {
     padding: 8px;
     margin-right: 10px;
+    font-size: 14px;
 }
 
 footer #username {
@@ -111,6 +117,9 @@ footer #message {
 
 footer button {
     padding: 8px 16px;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 /* 消息气泡 */
@@ -199,23 +208,25 @@ body.dark-mode .message-right {
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 10px;
+        width: 100%;
     }
 
     .controls #current-room-id {
         width: 100%;
-        margin-right: 0;
+        margin: 0;
         text-align: left;
+        padding-left: 10px;
     }
 
     .controls input[type="text"] {
-        width: 100%;
-        max-width: 200px;
-        margin-left: 0;
+        width: calc(100% - 20px);
+        margin: 5px 10px;
     }
 
     .controls button {
-        margin-left: 0;
+        margin: 5px 10px;
         width: auto;
+        min-width: 80px;
     }
 
     footer {
@@ -225,28 +236,24 @@ body.dark-mode .message-right {
 
     footer label {
         width: 100%;
-        margin-right: 0;
+        margin: 0 10px;
         text-align: left;
     }
 
     footer #username {
-        width: 100%;
-        max-width: 200px;
+        width: calc(100% - 20px);
+        margin: 5px 10px;
     }
 
     footer #message {
-        width: 100%;
-        flex: none;
+        width: calc(100% - 20px);
+        margin: 5px 10px;
     }
 
     footer button {
         padding: 8px 12px;
+        margin: 5px 10px;
         width: auto;
-    }
-
-    footer #join,
-    footer #send {
-        flex: 1;
         min-width: 80px;
     }
 
