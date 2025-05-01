@@ -4,6 +4,9 @@ let joined = false;
 let roomId = '';
 
 function connect() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+    }
     ws = new WebSocket(`wss://${location.host}/${roomId}`);
     ws.onopen = () => {
         console.log('连接成功');
@@ -17,15 +20,6 @@ function connect() {
                 case 'userList':
                     console.log('更新用户列表:', data.users);
                     updateUserList(data.users);
-                    if (!joined && data.users.includes(username)) {
-                        console.log('通过 userList 确认加入成功，启用消息输入框');
-                        joined = true;
-                        document.getElementById('message').disabled = false;
-                        document.getElementById('send').disabled = false;
-                        document.getElementById('username-label').style.display = 'none';
-                        document.getElementById('username').style.display = 'none';
-                        document.getElementById('join').style.display = 'none';
-                    }
                     break;
                 case 'message':
                     console.log('收到聊天消息:', data.message);
@@ -116,7 +110,7 @@ function connect() {
         document.getElementById('destroy-room').disabled = true;
         if (event.code === 1000 && event.reason === 'Inactive') {
             // 已在 inactive 消息中处理
-        } else {
+        } else if (event.code !== 1000 || event.reason !== 'RoomDestroyed') {
             alert('连接断开，请重新加入');
             roomId = '';
             document.getElementById('room-id').value = '';
@@ -135,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         roomId = id;
         document.getElementById('current-room-id').textContent = `当前房间: ${roomId}`;
+        input.value = ''; // 清空房间 ID 输入框
         connect();
     };
 
@@ -152,6 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!roomId) {
             alert('请先进入一个房间');
             return;
+        }
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            connect();
         }
         console.log('尝试加入，用户名:', name);
         username = name;
