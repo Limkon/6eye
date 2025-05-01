@@ -120,7 +120,9 @@ function connect() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('join-room').onclick = () => {
+    const joinRoomButton = document.getElementById('join-room');
+    const handleJoinRoom = () => {
+        console.log('join-room 按钮触发');
         const input = document.getElementById('room-id');
         const id = input.value.trim();
         if (!id) {
@@ -132,8 +134,16 @@ document.addEventListener('DOMContentLoaded', () => {
         input.value = ''; // 清空房间 ID 输入框
         connect();
     };
+    joinRoomButton.addEventListener('click', handleJoinRoom);
+    joinRoomButton.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // 防止默认触摸行为
+        console.log('join-room 触摸触发');
+        handleJoinRoom();
+    });
 
-    document.getElementById('join').onclick = () => {
+    const joinButton = document.getElementById('join');
+    const handleJoin = () => {
+        console.log('join 按钮触发');
         const input = document.getElementById('username');
         const name = input.value.trim();
         if (!name) {
@@ -151,39 +161,76 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             connect();
         }
-        console.log('尝试加入，用户名:', name);
         username = name;
         ws.send(JSON.stringify({ type: 'join', username }));
     };
+    joinButton.addEventListener('click', handleJoin);
+    joinButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        console.log('join 触摸触发');
+        handleJoin();
+    });
 
-    document.getElementById('send').onclick = () => {
+    const sendButton = document.getElementById('send');
+    const handleSend = () => {
+        console.log('send 按钮触发');
         const input = document.getElementById('message');
         const msg = input.value.trim();
         if (!msg) return;
         ws.send(JSON.stringify({ type: 'message', message: msg }));
         input.value = '';
     };
+    sendButton.addEventListener('click', handleSend);
+    sendButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        console.log('send 触摸触发');
+        handleSend();
+    });
 
     document.getElementById('message').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-            document.getElementById('send').click();
+            handleSend();
         }
     });
 
-    document.getElementById('theme-toggle').onclick = () => {
+    const themeToggleButton = document.getElementById('theme-toggle');
+    const handleThemeToggle = () => {
+        console.log('theme-toggle 按钮触发');
         document.body.classList.toggle('dark-mode');
         document.body.classList.toggle('light-mode');
     };
+    themeToggleButton.addEventListener('click', handleThemeToggle);
+    themeToggleButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        console.log('theme-toggle 触摸触发');
+        handleThemeToggle();
+    });
 
-    document.getElementById('userlist-toggle').onclick = () => {
+    const userlistToggleButton = document.getElementById('userlist-toggle');
+    const handleUserlistToggle = () => {
+        console.log('userlist-toggle 按钮触发');
         document.getElementById('userlist').classList.toggle('hidden');
     };
+    userlistToggleButton.addEventListener('click', handleUserlistToggle);
+    userlistToggleButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        console.log('userlist-toggle 触摸触发');
+        handleUserlistToggle();
+    });
 
-    document.getElementById('destroy-room').onclick = () => {
+    const destroyRoomButton = document.getElementById('destroy-room');
+    const handleDestroyRoom = () => {
+        console.log('destroy-room 按钮触发');
         if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
             ws.send(JSON.stringify({ type: 'destroy' }));
         }
     };
+    destroyRoomButton.addEventListener('click', handleDestroyRoom);
+    destroyRoomButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        console.log('destroy-room 触摸触发');
+        handleDestroyRoom();
+    });
 });
 
 function addMessage(user, message) {
