@@ -1,9 +1,14 @@
 let ws;
 let username = '';
 let joined = false;
+let roomId = '';
+
+function generateRoomId(password) {
+    const hash = btoa(password); // 简单示例，实际可用更安全哈希
+    return hash.substring(0, 8);
+}
 
 function connect() {
-    const roomId = 'default';
     ws = new WebSocket(`wss://${location.host}/${roomId}`);
     ws.onopen = () => {
         console.log('连接成功');
@@ -64,13 +69,15 @@ function connect() {
                     alert(data.message);
                     joined = false;
                     username = '';
+                    document.getElementById('entry').classList.remove('hidden');
+                    document.getElementById('chat-container').classList.add('hidden');
+                    document.getElementById('password').value = '';
                     document.getElementById('username-label').style.display = 'block';
                     document.getElementById('username').style.display = 'block';
                     document.getElementById('join').style.display = 'block';
                     document.getElementById('message').disabled = true;
                     document.getElementById('send').disabled = true;
                     ws.close();
-                    connect();
                     break;
                 case 'inactive':
                     console.log('因不活跃被断开:', data.message);
@@ -79,13 +86,15 @@ function connect() {
                     username = '';
                     document.getElementById('chat').innerHTML = '';
                     updateUserList([]);
+                    document.getElementById('entry').classList.remove('hidden');
+                    document.getElementById('chat-container').classList.add('hidden');
+                    document.getElementById('password').value = '';
                     document.getElementById('username-label').style.display = 'block';
                     document.getElementById('username').style.display = 'block';
                     document.getElementById('join').style.display = 'block';
                     document.getElementById('message').disabled = true;
                     document.getElementById('send').disabled = true;
                     ws.close();
-                    connect();
                     break;
                 default:
                     console.warn('未知消息类型:', data);
@@ -106,17 +115,30 @@ function connect() {
         document.getElementById('join').style.display = 'block';
         document.getElementById('chat').innerHTML = '';
         updateUserList([]);
+        document.getElementById('entry').classList.remove('hidden');
+        document.getElementById('chat-container').classList.add('hidden');
+        document.getElementById('password').value = '';
         if (event.code === 1000 && event.reason === 'Inactive') {
             // 已在 inactive 消息中处理
         } else {
             alert('连接断开，请重新加入');
-            connect();
         }
     };
 }
 
-// 初始连接
-connect();
+document.getElementById('password-form').onsubmit = (e) => {
+    e.preventDefault();
+    const password = document.getElementById('password').value.trim();
+    if (!password) {
+        alert('请输入密码');
+        return;
+    }
+    roomId = generateRoomId(password);
+    document.getElementById('room-id-display').textContent = `房间 ID: ${roomId}`;
+    document.getElementById('entry').classList.add('hidden');
+    document.getElementById('chat-container').classList.remove('hidden');
+    connect();
+};
 
 document.getElementById('join').onclick = () => {
     const input = document.getElementById('username');
