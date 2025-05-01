@@ -244,7 +244,7 @@ function addMessage(user, message) {
 
 function updateUserList(users) {
     const list = document.getElementById('userlist');
-    list.innerHTML = '<h3>在线用户</h3>';
+    list.innerHTML = '<h3>当前在线用户：</h3>';
     users.filter(user => user !== null).forEach(user => {
         const div = document.createElement('div');
         div.textContent = user;
