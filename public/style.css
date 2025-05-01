@@ -28,6 +28,11 @@ header h1 {
     align-items: center;
 }
 
+.controls #current-room-id {
+    color: white;
+    font-size: 14px;
+}
+
 .controls input[type="text"] {
     padding: 6px;
     margin-left: 10px;
@@ -137,6 +142,10 @@ body.dark-mode header {
     background: #333;
 }
 
+body.dark-mode .controls #current-room-id {
+    color: #e0e0e0;
+}
+
 body.dark-mode .controls input[type="text"] {
     background: #444;
     color: #e0e0e0;
@@ -190,6 +199,12 @@ body.dark-mode .message-right {
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 10px;
+    }
+
+    .controls #current-room-id {
+        width: 100%;
+        margin-right: 0;
+        text-align: left;
     }
 
     .controls input[type="text"] {
