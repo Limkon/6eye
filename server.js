@@ -130,16 +130,18 @@ wss.on('connection', (ws, req) => {
     }
     const room = chatRooms[roomId];
 
-    // 加载并发送历史消息给新用户
+    // 加载历史消息并发送给新用户
     loadMessages(roomId).then(messages => {
         if (messages.length > 0) {
             ws.send(JSON.stringify({ type: 'history', messages }));
         }
-        // 更新房间消息（加密格式）
-        room.messages = messages.map(msg => ({
-            username: msg.username,
-            message: encryptMessage(msg.message)
-        }));
+        // 更新房间消息（加密格式），仅当房间消息为空时
+        if (!room.messages.length) {
+            room.messages = messages.map(msg => ({
+                username: msg.username,
+                message: encryptMessage(msg.message)
+            }));
+        }
     });
 
     ws.on('message', (message) => {
@@ -177,8 +179,9 @@ wss.on('connection', (ws, req) => {
             broadcast(ws.roomId, { type: 'userList', users: room.users });
             if (room.users.length === 0) {
                 delete chatRooms[ws.roomId];
+                messagesCache.delete(ws.roomId); // 清空缓存防止泄密
             } else {
-                room.messages = [];
+                room.messages = []; // 清空内存消息防止泄密
             }
         }
     });
