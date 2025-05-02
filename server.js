@@ -21,47 +21,25 @@ const CHATROOM_DIR = path.join(__dirname, 'chatroom');
 const MAX_DIR_SIZE_MB = 80;
 const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
 const messagesCache = new Map();
-
-process.on('uncaughtException', (error) => {
-    console.error('未捕获异常:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('未处理拒绝:', promise, '原因:', reason);
-});
+const MAX_MESSAGES = 100; // 限制加载的历史消息数量
 
 async function ensureChatroomDir() {
-    try {
-        await fs.mkdir(CHATROOM_DIR, { recursive: true });
-        console.log(`chatroom 目录已确认: ${CHATROOM_DIR}`);
-    } catch (error) {
-        console.error(`创建 chatroom 目录失败: ${error.message}`);
-    }
+    await fs.mkdir(CHATROOM_DIR, { recursive: true });
 }
 
 async function checkAndClearChatroomDir() {
-    try {
-        const files = await fs.readdir(CHATROOM_DIR);
-        let totalSize = 0;
+    const files = await fs.readdir(CHATROOM_DIR);
+    let totalSize = 0;
+    for (const file of files) {
+        const stats = await fs.stat(path.join(CHATROOM_DIR, file));
+        totalSize += stats.size;
+    }
+    const totalSizeMB = totalSize / (1024 * 1024);
+    if (totalSizeMB > MAX_DIR_SIZE_MB) {
         for (const file of files) {
-            const filePath = path.join(CHATROOM_DIR, file);
-            const stats = await fs.stat(filePath);
-            totalSize += stats.size;
+            await fs.unlink(path.join(CHATROOM_DIR, file));
         }
-        const totalSizeMB = totalSize / (1024 * 1024);
-        console.log(`chatroom 目录大小: ${totalSizeMB.toFixed(2)} MB`);
-        if (totalSizeMB > MAX_DIR_SIZE_MB) {
-            console.log('chatroom 目录超过 50MB，正在清空...');
-            for (const file of files) {
-                const filePath = path.join(CHATROOM_DIR, file);
-                await fs.unlink(filePath);
-                console.log(`删除文件: ${filePath}`);
-            }
-            console.log('chatroom 目录已清空');
-            messagesCache.clear();
-        }
-    } catch (error) {
-        console.error(`检查或清空 chatroom 目录失败: ${error.message}`);
+        messagesCache.clear();
     }
 }
 
@@ -70,7 +48,7 @@ function encryptMessage(message) {
     const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
     let encrypted = cipher.update(message, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return { iv: iv.toString('hex'), encrypted: encrypted };
+    return { iv: iv.toString('hex'), encrypted };
 }
 
 function decryptMessage(encryptedData) {
@@ -83,78 +61,59 @@ function decryptMessage(encryptedData) {
 
 async function saveMessages(roomId) {
     const room = chatRooms[roomId];
-    if (room && room.messages.length > 0) {
-        const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
-        try {
-            await fs.writeFile(filePath, JSON.stringify(room.messages));
-            console.log(`保存消息成功: 房间 ${roomId}`);
-            await checkAndClearChatroomDir();
-        } catch (error) {
-            console.error(`保存消息失败: 房间 ${roomId}, 错误:`, error);
-        }
-    }
+    if (!room || room.messages.length === 0) return;
+    const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
+    await fs.writeFile(filePath, JSON.stringify(room.messages.slice(-MAX_MESSAGES)));
+    await checkAndClearChatroomDir();
 }
 
 async function loadMessages(roomId) {
     if (messagesCache.has(roomId)) {
-        console.log(`从缓存加载消息: 房间 ${roomId}`);
         return messagesCache.get(roomId);
     }
-
     const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
     try {
         const data = await fs.readFile(filePath, 'utf8');
-        const messages = JSON.parse(data);
-        const limitedMessages = messages.slice(-100);
-        const decryptedMessages = limitedMessages.map(msg => ({
+        const messages = JSON.parse(data).slice(-MAX_MESSAGES);
+        const decryptedMessages = messages.map(msg => ({
             username: msg.username,
             message: decryptMessage(msg.message)
         }));
         messagesCache.set(roomId, decryptedMessages);
-        console.log(`从文件加载消息: 房间 ${roomId}, 消息数: ${decryptedMessages.length}`);
         return decryptedMessages;
-    } catch (error) {
-        console.log(`无历史消息: 房间 ${roomId}`);
+    } catch {
         return [];
     }
 }
 
 async function destroyRoom(roomId) {
-    if (chatRooms[roomId]) {
-        wss.clients.forEach(client => {
-            if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                    type: 'roomDestroyed',
-                    message: `房间 ${roomId} 已被销毁`
-                }));
-                client.close();
-            }
-        });
-        delete chatRooms[roomId];
-        messagesCache.delete(roomId);
-        const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
-        try {
-            await fs.unlink(filePath);
-            console.log(`删除聊天记录成功: 房间 ${roomId}`);
-        } catch (error) {
-            console.log(`无聊天记录可删除: 房间 ${roomId}`);
+    if (!chatRooms[roomId]) return;
+    wss.clients.forEach(client => {
+        if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'roomDestroyed',
+                message: `房间 ${roomId} 已被销毁`
+            }));
+            client.close();
         }
-        console.log(`房间 ${roomId} 已销毁`);
-    }
+    });
+    delete chatRooms[roomId];
+    messagesCache.delete(roomId);
+    const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
+    try {
+        await fs.unlink(filePath);
+    } catch {}
 }
 
 function checkInactiveClients() {
     const now = Date.now();
     wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN && client.lastActive) {
-            if (now - client.lastActive > INACTIVITY_TIMEOUT) {
-                console.log(`用户 ${client.username} 在房间 ${client.roomId} 超过10分钟未活动，断开连接`);
-                client.send(JSON.stringify({
-                    type: 'inactive',
-                    message: '由于10分钟未活动，您已被移出房间'
-                }));
-                client.close(1000, 'Inactive');
-            }
+        if (client.readyState === WebSocket.OPEN && client.lastActive && now - client.lastActive > INACTIVITY_TIMEOUT) {
+            client.send(JSON.stringify({
+                type: 'inactive',
+                message: '由于10分钟未活动，您已被移出房间'
+            }));
+            client.close(1000, 'Inactive');
         }
     });
 }
@@ -163,26 +122,18 @@ setInterval(checkInactiveClients, 60 * 1000);
 
 wss.on('connection', (ws, req) => {
     const roomId = req.url.split('/')[1] || 'default';
-    console.log(`新连接至房间: ${roomId}`);
-
     ws.lastActive = Date.now();
     ws.roomId = roomId;
 
     if (!chatRooms[roomId]) {
-        chatRooms[roomId] = {
-            users: [],
-            messages: []
-        };
+        chatRooms[roomId] = { users: [], messages: [] };
         loadMessages(roomId).then(messages => {
             chatRooms[roomId].messages = messages.map(msg => ({
                 username: msg.username,
                 message: encryptMessage(msg.message)
             }));
             if (messages.length > 0) {
-                ws.send(JSON.stringify({
-                    type: 'history',
-                    messages: messages
-                }));
+                ws.send(JSON.stringify({ type: 'history', messages }));
             }
         });
     }
@@ -190,66 +141,52 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         try {
-            console.log(`收到消息事件: 房间 ${roomId}`);
             ws.lastActive = Date.now();
             const data = JSON.parse(message);
             if (data.type === 'join') {
                 if (room.users.includes(data.username)) {
-                    console.log(`错误: 用户名 ${data.username} 在房间 ${roomId} 中已被占用`);
                     ws.send(JSON.stringify({ type: 'joinError', message: '用户名已被占用' }));
                 } else {
-                    room.users = room.users.filter(user => user !== null);
+                    room.users = room.users.filter(user => user);
                     room.users.push(data.username);
                     ws.username = data.username;
                     ws.roomId = roomId;
-                    console.log(`用户 ${data.username} 加入房间 ${roomId}, 当前用户列表: ${room.users}`);
                     broadcast(roomId, { type: 'userList', users: room.users });
-                    console.log(`发送 joinSuccess 给 ${data.username}`);
                     ws.send(JSON.stringify({ type: 'joinSuccess', message: '加入成功' }));
                 }
             } else if (data.type === 'message') {
                 const encryptedMessage = encryptMessage(data.message);
                 room.messages.push({ username: ws.username, message: encryptedMessage });
-                console.log(`来自 ${ws.username} 在房间 ${roomId} 的消息事件`);
                 broadcast(roomId, { type: 'message', username: ws.username, message: data.message });
                 saveMessages(roomId);
             } else if (data.type === 'destroy') {
                 destroyRoom(roomId);
             }
         } catch (error) {
-            console.error(`消息处理错误: 房间 ${roomId}, 错误:`, error.message);
+            console.error(`消息处理错误: ${error.message}`);
         }
     });
 
-    ws.on('close', (code, reason) => {
-        console.log(`用户 ${ws.username} 在房间 ${ws.roomId} 的连接关闭，代码: ${code}, 原因: ${reason}`);
+    ws.on('close', () => {
         if (ws.username && ws.roomId) {
             const room = chatRooms[ws.roomId];
-            room.users = room.users.filter(user => user !== ws.username && user !== null);
-            console.log(`用户 ${ws.username} 离开，更新用户列表: ${room.users}`);
+            room.users = room.users.filter(user => user !== ws.username);
             broadcast(ws.roomId, { type: 'userList', users: room.users });
             if (room.users.length === 0) {
                 delete chatRooms[ws.roomId];
-                console.log(`房间 ${ws.roomId} 已销毁（无用户），内存记录已清除`);
             } else {
                 room.messages = [];
-                console.log(`房间 ${ws.roomId} 内存聊天记录已清除，用户列表: ${room.users}`);
             }
         }
     });
 });
 
 function broadcast(roomId, data) {
-    console.log(`广播至房间 ${roomId}: 类型 ${data.type}`);
-    if (data && typeof data === 'object') {
-        wss.clients.forEach(client => {
-            if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(data));
-            }
-        });
-    } else {
-        console.error('无效广播数据');
-    }
+    wss.clients.forEach(client => {
+        if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(data));
+        }
+    });
 }
 
 ensureChatroomDir().then(() => {
