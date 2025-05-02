@@ -2,7 +2,7 @@ let ws;
 let username = '';
 let joined = false;
 let roomId = '';
-let roomLocked = false; // 新增：标记是否已锁定房间
+let roomLocked = false;
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         roomId = id;
-        roomLocked = true; // 锁定房间
+        roomLocked = true;
         document.getElementById('current-room-id').textContent = `当前房间: ${roomId}`;
         input.value = '';
         connect();
@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const destroyRoomButton = document.getElementById('destroy-room');
     const handleDestroyRoom = () => {
+        if (destroyRoomButton.disabled) return; // 检查禁用状态
         if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
             ws.send(JSON.stringify({ type: 'destroy' }));
         }
