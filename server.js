@@ -21,7 +21,7 @@ const CHATROOM_DIR = path.join(__dirname, 'chatroom');
 const MAX_DIR_SIZE_MB = 80;
 const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
 const messagesCache = new Map();
-const MAX_MESSAGES = 100; // 限制加载的历史消息数量
+const MAX_MESSAGES = 100;
 
 async function ensureChatroomDir() {
     await fs.mkdir(CHATROOM_DIR, { recursive: true });
@@ -127,17 +127,20 @@ wss.on('connection', (ws, req) => {
 
     if (!chatRooms[roomId]) {
         chatRooms[roomId] = { users: [], messages: [] };
-        loadMessages(roomId).then(messages => {
-            chatRooms[roomId].messages = messages.map(msg => ({
-                username: msg.username,
-                message: encryptMessage(msg.message)
-            }));
-            if (messages.length > 0) {
-                ws.send(JSON.stringify({ type: 'history', messages }));
-            }
-        });
     }
     const room = chatRooms[roomId];
+
+    // 加载并发送历史消息给新用户
+    loadMessages(roomId).then(messages => {
+        if (messages.length > 0) {
+            ws.send(JSON.stringify({ type: 'history', messages }));
+        }
+        // 更新房间消息（加密格式）
+        room.messages = messages.map(msg => ({
+            username: msg.username,
+            message: encryptMessage(msg.message)
+        }));
+    });
 
     ws.on('message', (message) => {
         try {
