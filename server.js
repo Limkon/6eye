@@ -9,11 +9,6 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-app.use((req, res, next) => {
-    res.removeHeader('Permissions-Policy');
-    next();
-});
-
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -56,7 +51,7 @@ async function checkAndClearChatroomDir() {
         const totalSizeMB = totalSize / (1024 * 1024);
         console.log(`chatroom 目录大小: ${totalSizeMB.toFixed(2)} MB`);
         if (totalSizeMB > MAX_DIR_SIZE_MB) {
-            console.log('chatroom 目录超过 80MB，正在清空...');
+            console.log('chatroom 目录超过 50MB，正在清空...');
             for (const file of files) {
                 const filePath = path.join(CHATROOM_DIR, file);
                 await fs.unlink(filePath);
@@ -75,7 +70,7 @@ function encryptMessage(message) {
     const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
     let encrypted = cipher.update(message, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return { iv: iv.toString('hex'), encrypted };
+    return { iv: iv.toString('hex'), encrypted: encrypted };
 }
 
 function decryptMessage(encryptedData) {
@@ -154,10 +149,6 @@ function checkInactiveClients() {
         if (client.readyState === WebSocket.OPEN && client.lastActive) {
             if (now - client.lastActive > INACTIVITY_TIMEOUT) {
                 console.log(`用户 ${client.username} 在房间 ${client.roomId} 超过10分钟未活动，断开连接`);
-                if (client.username && client.roomId && chatRooms[client.roomId]) {
-                    chatRooms[client.roomId].users = chatRooms[client.roomId].users.filter(user => user !== client.username && user !== null);
-                    broadcast(client.roomId, { type: 'userList', users: chatRooms[client.roomId].users });
-                }
                 client.send(JSON.stringify({
                     type: 'inactive',
                     message: '由于10分钟未活动，您已被移出房间'
@@ -182,22 +173,20 @@ wss.on('connection', (ws, req) => {
             users: [],
             messages: []
         };
+        loadMessages(roomId).then(messages => {
+            chatRooms[roomId].messages = messages.map(msg => ({
+                username: msg.username,
+                message: encryptMessage(msg.message)
+            }));
+            if (messages.length > 0) {
+                ws.send(JSON.stringify({
+                    type: 'history',
+                    messages: messages
+                }));
+            }
+        });
     }
     const room = chatRooms[roomId];
-
-    loadMessages(roomId).then(messages => {
-        room.messages = messages.map(msg => ({
-            username: msg.username,
-            message: encryptMessage(msg.message)
-        }));
-        if (messages.length > 0) {
-            ws.send(JSON.stringify({
-                type: 'history',
-                messages
-            }));
-            console.log(`发送历史消息给新连接: 房间 ${roomId}, 消息数: ${messages.length}`);
-        }
-    });
 
     ws.on('message', (message) => {
         try {
@@ -205,7 +194,6 @@ wss.on('connection', (ws, req) => {
             ws.lastActive = Date.now();
             const data = JSON.parse(message);
             if (data.type === 'join') {
-                console.log(`尝试加入: 用户 ${data.username}, 房间 ${roomId}, 当前用户列表: ${room.users}`);
                 if (room.users.includes(data.username)) {
                     console.log(`错误: 用户名 ${data.username} 在房间 ${roomId} 中已被占用`);
                     ws.send(JSON.stringify({ type: 'joinError', message: '用户名已被占用' }));
@@ -214,20 +202,10 @@ wss.on('connection', (ws, req) => {
                     room.users.push(data.username);
                     ws.username = data.username;
                     ws.roomId = roomId;
-                    console.log(`用户 ${data.username} 加入房间 ${roomId}, 更新用户列表: ${room.users}`);
-                    ws.send(JSON.stringify({ type: 'joinSuccess', message: '加入成功' }));
-                    console.log(`发送 joinSuccess 给 ${data.username}`);
-                    loadMessages(roomId).then(messages => {
-                        if (messages.length > 0) {
-                            ws.send(JSON.stringify({
-                                type: 'history',
-                                messages
-                            }));
-                            console.log(`发送历史消息给 ${data.username}: 房间 ${roomId}, 消息数: ${messages.length}`);
-                        }
-                    });
+                    console.log(`用户 ${data.username} 加入房间 ${roomId}, 当前用户列表: ${room.users}`);
                     broadcast(roomId, { type: 'userList', users: room.users });
-                    console.log(`广播用户列表: 房间 ${roomId}, 用户: ${room.users}`);
+                    console.log(`发送 joinSuccess 给 ${data.username}`);
+                    ws.send(JSON.stringify({ type: 'joinSuccess', message: '加入成功' }));
                 }
             } else if (data.type === 'message') {
                 const encryptedMessage = encryptMessage(data.message);
@@ -235,22 +213,6 @@ wss.on('connection', (ws, req) => {
                 console.log(`来自 ${ws.username} 在房间 ${roomId} 的消息事件`);
                 broadcast(roomId, { type: 'message', username: ws.username, message: data.message });
                 saveMessages(roomId);
-            } else if (data.type === 'getHistory') {
-                console.log(`收到 getHistory 请求: 房间 ${roomId}`);
-                loadMessages(roomId).then(messages => {
-                    ws.send(JSON.stringify({
-                        type: 'history',
-                        messages
-                    }));
-                    console.log(`发送历史消息响应 getHistory: 房间 ${roomId}, 消息数: ${messages.length}`);
-                });
-            } else if (data.type === 'getUserList') {
-                console.log(`收到 getUserList 请求: 房间 ${roomId}`);
-                ws.send(JSON.stringify({
-                    type: 'userList',
-                    users: room.users.filter(user => user !== null)
-                }));
-                console.log(`发送用户列表响应 getUserList: 房间 ${roomId}, 用户: ${room.users}`);
             } else if (data.type === 'destroy') {
                 destroyRoom(roomId);
             }
@@ -263,21 +225,22 @@ wss.on('connection', (ws, req) => {
         console.log(`用户 ${ws.username} 在房间 ${ws.roomId} 的连接关闭，代码: ${code}, 原因: ${reason}`);
         if (ws.username && ws.roomId) {
             const room = chatRooms[ws.roomId];
-            if (room) {
-                room.users = room.users.filter(user => user !== ws.username && user !== null);
-                console.log(`用户 ${ws.username} 离开，更新用户列表: ${room.users}`);
-                broadcast(ws.roomId, { type: 'userList', users: room.users });
-                if (room.users.length === 0) {
-                    delete chatRooms[ws.roomId];
-                    console.log(`房间 ${ws.roomId} 已销毁（无用户），内存记录已清除`);
-                }
+            room.users = room.users.filter(user => user !== ws.username && user !== null);
+            console.log(`用户 ${ws.username} 离开，更新用户列表: ${room.users}`);
+            broadcast(ws.roomId, { type: 'userList', users: room.users });
+            if (room.users.length === 0) {
+                delete chatRooms[ws.roomId];
+                console.log(`房间 ${ws.roomId} 已销毁（无用户），内存记录已清除`);
+            } else {
+                room.messages = [];
+                console.log(`房间 ${ws.roomId} 内存聊天记录已清除，用户列表: ${room.users}`);
             }
         }
     });
 });
 
 function broadcast(roomId, data) {
-    console.log(`广播至房间 ${roomId}: 类型 ${data.type}, 数据:`, data);
+    console.log(`广播至房间 ${roomId}: 类型 ${data.type}`);
     if (data && typeof data === 'object') {
         wss.clients.forEach(client => {
             if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {

@@ -2,11 +2,6 @@ let ws;
 let username = '';
 let joined = false;
 let roomId = '';
-let lastDisconnectTime = null;
-const RECONNECT_TIMEOUT = 2000;
-const HISTORY_TIMEOUT = 5000; // 延长至5秒
-const MAX_HISTORY_RETRIES = 3; // 最多重试3次
-let historyRetryCount = 0;
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -16,10 +11,6 @@ function connect() {
     ws.onopen = () => {
         console.log('连接成功');
         document.getElementById('destroy-room').disabled = false;
-        if (username && joined) {
-            ws.send(JSON.stringify({ type: 'join', username }));
-            console.log('重连后发送 join 请求:', username);
-        }
     };
     ws.onmessage = (event) => {
         try {
@@ -27,7 +18,7 @@ function connect() {
             console.log('收到消息:', data);
             switch (data.type) {
                 case 'userList':
-                    console.log('收到用户列表:', data.users);
+                    console.log('更新用户列表:', data.users);
                     updateUserList(data.users);
                     break;
                 case 'message':
@@ -36,60 +27,18 @@ function connect() {
                     break;
                 case 'history':
                     console.log('收到历史消息:', data.messages);
-                    historyRetryCount = 0; // 重置重试计数
-                    if (!Array.isArray(data.messages)) {
-                        console.warn('历史消息格式错误，非数组:', data.messages);
-                        return;
-                    }
-                    if (data.messages.length === 0) {
-                        console.log('历史消息为空');
-                        addMessage('系统', '暂无历史消息');
-                    } else {
-                        data.messages.forEach(msg => {
-                            if (msg && msg.username && msg.message) {
-                                addMessage(msg.username, msg.message);
-                            } else {
-                                console.warn('无效历史消息:', msg);
-                            }
-                        });
-                    }
+                    data.messages.forEach(msg => {
+                        addMessage(msg.username, msg.message);
+                    });
                     break;
                 case 'joinSuccess':
-                    console.log('收到 joinSuccess，开始处理');
+                    console.log('收到 joinSuccess，启用消息输入框');
                     joined = true;
-                    console.log('设置 joined = true');
-                    try {
-                        document.getElementById('message').disabled = false;
-                        document.getElementById('send').disabled = false;
-                        document.getElementById('username-label').style.display = 'none';
-                        document.getElementById('username').style.display = 'none';
-                        document.getElementById('join').style.display = 'none';
-                        console.log('UI 更新完成');
-                    } catch (error) {
-                        console.error('UI 更新失败:', error);
-                    }
-                    if (ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({ type: 'getUserList' }));
-                        console.log('发送请求: getUserList');
-                        ws.send(JSON.stringify({ type: 'getHistory' }));
-                        console.log('发送请求: getHistory');
-                    } else {
-                        console.warn('WebSocket 未打开，无法发送请求，状态:', ws.readyState);
-                        connect(); // 强制重连
-                    }
-                    setTimeout(() => {
-                        if (historyRetryCount < MAX_HISTORY_RETRIES && !document.querySelector('.message-system') && !document.querySelector('.message-left') && !document.querySelector('.message-right')) {
-                            console.log(`未收到历史消息，第 ${historyRetryCount + 1} 次重试 getHistory`);
-                            historyRetryCount++;
-                            if (ws.readyState === WebSocket.OPEN) {
-                                ws.send(JSON.stringify({ type: 'getHistory' }));
-                                console.log('重试发送请求: getHistory');
-                            } else {
-                                console.warn('重试时 WebSocket 未打开，状态:', ws.readyState);
-                                connect();
-                            }
-                        }
-                    }, HISTORY_TIMEOUT);
+                    document.getElementById('message').disabled = false;
+                    document.getElementById('send').disabled = false;
+                    document.getElementById('username-label').style.display = 'none';
+                    document.getElementById('username').style.display = 'none';
+                    document.getElementById('join').style.display = 'none';
                     break;
                 case 'joinError':
                     console.log('加入失败:', data.message);
@@ -108,12 +57,36 @@ function connect() {
                     document.getElementById('chat').innerHTML = '';
                     updateUserList([]);
                     alert(data.message);
-                    resetRoom();
+                    joined = false;
+                    username = '';
+                    roomId = '';
+                    document.getElementById('room-id').value = '';
+                    document.getElementById('current-room-id').textContent = '';
+                    document.getElementById('username-label').style.display = 'block';
+                    document.getElementById('username').style.display = 'block';
+                    document.getElementById('join').style.display = 'block';
+                    document.getElementById('message').disabled = true;
+                    document.getElementById('send').disabled = true;
+                    document.getElementById('destroy-room').disabled = true;
+                    ws.close();
                     break;
                 case 'inactive':
                     console.log('因不活跃被断开:', data.message);
                     alert(data.message);
-                    resetRoom();
+                    joined = false;
+                    username = '';
+                    roomId = '';
+                    document.getElementById('room-id').value = '';
+                    document.getElementById('current-room-id').textContent = '';
+                    document.getElementById('chat').innerHTML = '';
+                    updateUserList([]);
+                    document.getElementById('username-label').style.display = 'block';
+                    document.getElementById('username').style.display = 'block';
+                    document.getElementById('join').style.display = 'block';
+                    document.getElementById('message').disabled = true;
+                    document.getElementById('send').disabled = true;
+                    document.getElementById('destroy-room').disabled = true;
+                    ws.close();
                     break;
                 default:
                     console.warn('未知消息类型:', data);
@@ -125,51 +98,31 @@ function connect() {
     };
     ws.onclose = (event) => {
         console.log(`连接关闭，代码: ${event.code}, 原因: ${event.reason}`);
-        lastDisconnectTime = Date.now();
-        if (event.code === 1000 && (event.reason === 'Inactive' || event.reason === 'RoomDestroyed')) {
-            resetRoom();
-            return;
+        joined = false;
+        username = '';
+        document.getElementById('message').disabled = true;
+        document.getElementById('send').disabled = true;
+        document.getElementById('username-label').style.display = 'block';
+        document.getElementById('username').style.display = 'block';
+        document.getElementById('join').style.display = 'block';
+        document.getElementById('chat').innerHTML = '';
+        updateUserList([]);
+        document.getElementById('destroy-room').disabled = true;
+        if (event.code === 1000 && event.reason === 'Inactive') {
+            // 已在 inactive 消息中处理
+        } else if (event.code !== 1000 || event.reason !== 'RoomDestroyed') {
+            alert('连接断开，请重新加入');
+            roomId = '';
+            document.getElementById('room-id').value = '';
+            document.getElementById('current-room-id').textContent = '';
         }
-        setTimeout(() => {
-            if (Date.now() - lastDisconnectTime >= RECONNECT_TIMEOUT) {
-                resetRoom();
-                alert('连接断开，请刷新后重新加入');
-            } else if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-                console.log('尝试重连...');
-                connect();
-            }
-        }, RECONNECT_TIMEOUT);
     };
-}
-
-function resetRoom() {
-    joined = false;
-    username = '';
-    roomId = '';
-    historyRetryCount = 0;
-    document.getElementById('room-id').value = '';
-    document.getElementById('room-id').disabled = false;
-    document.getElementById('join-room').disabled = false;
-    document.getElementById('current-room-id').textContent = '';
-    document.getElementById('chat').innerHTML = '';
-    updateUserList([]);
-    document.getElementById('username-label').style.display = 'block';
-    document.getElementById('username').style.display = 'block';
-    document.getElementById('join').style.display = 'block';
-    document.getElementById('message').disabled = true;
-    document.getElementById('send').disabled = true;
-    document.getElementById('destroy-room').disabled = true;
-    if (ws) ws.close();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const joinRoomButton = document.getElementById('join-room');
     const handleJoinRoom = () => {
         console.log('join-room 按钮触发');
-        if (roomId) {
-            alert('已加入一个房间，无法再次输入房间ID');
-            return;
-        }
         const input = document.getElementById('room-id');
         const id = input.value.trim();
         if (!id) {
@@ -178,19 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         roomId = id;
         document.getElementById('current-room-id').textContent = `当前房间: ${roomId}`;
-        input.value = '';
-        input.disabled = true;
-        joinRoomButton.disabled = true;
+        input.value = ''; // 清空房间 ID 输入框
         connect();
     };
     joinRoomButton.addEventListener('click', handleJoinRoom);
     joinRoomButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // 防止默认触摸行为
         console.log('join-room 触摸触发');
-        handleJoinRoom();
-    });
-    joinRoomButton.addEventListener('pointerdown', (e) => {
-        console.log('join-room 指针触发');
         handleJoinRoom();
     });
 
@@ -212,37 +159,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-            console.log('WebSocket 未打开，尝试连接');
             connect();
-            // 延迟发送 join 请求，确保连接打开
-            setTimeout(() => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    username = name;
-                    ws.send(JSON.stringify({ type: 'join', username }));
-                    console.log('发送 join 请求:', username);
-                } else {
-                    console.warn('延迟连接后 WebSocket 仍未打开，状态:', ws.readyState);
-                }
-            }, 500);
-        } else {
-            username = name;
-            ws.send(JSON.stringify({ type: 'join', username }));
-            console.log('发送 join 请求:', username);
         }
+        username = name;
+        ws.send(JSON.stringify({ type: 'join', username }));
     };
     joinButton.addEventListener('click', handleJoin);
     joinButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         console.log('join 触摸触发');
-        handleJoin();
-    });
-    joinButton.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        console.log('join 触摸结束');
-        handleJoin();
-    });
-    joinButton.addEventListener('pointerdown', (e) => {
-        console.log('join 指针触发');
         handleJoin();
     });
 
@@ -259,10 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         console.log('send 触摸触发');
-        handleSend();
-    });
-    sendButton.addEventListener('pointerdown', (e) => {
-        console.log('send 指针触发');
         handleSend();
     });
 
@@ -284,10 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('theme-toggle 触摸触发');
         handleThemeToggle();
     });
-    themeToggleButton.addEventListener('pointerdown', (e) => {
-        console.log('theme-toggle 指针触发');
-        handleThemeToggle();
-    });
 
     const userlistToggleButton = document.getElementById('userlist-toggle');
     const handleUserlistToggle = () => {
@@ -300,12 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('userlist-toggle 触摸触发');
         handleUserlistToggle();
     });
-    userlistToggleButton.addEventListener('pointerdown', (e) => {
-        console.log('userlist-toggle 指针触发');
-        handleUserlistToggle();
-    });
 
-    const destroyRoomButton = document.getElementalById('destroy-room');
+    const destroyRoomButton = document.getElementById('destroy-room');
     const handleDestroyRoom = () => {
         console.log('destroy-room 按钮触发');
         if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
@@ -318,37 +231,23 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('destroy-room 触摸触发');
         handleDestroyRoom();
     });
-    destroyRoomButton.addEventListener('pointerdown', (e) => {
-        console.log('destroy-room 指针触发');
-        handleDestroyRoom();
-    });
 });
 
 function addMessage(user, message) {
     const chat = document.getElementById('chat');
     const div = document.createElement('div');
-    div.className = user === username ? 'message-right' : user === '系统' ? 'message-system' : 'message-left';
+    div.className = user === username ? 'message-right' : 'message-left';
     div.textContent = `${user}: ${message}`;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
 
 function updateUserList(users) {
-    console.log('更新用户列表，输入数据:', users);
     const list = document.getElementById('userlist');
     list.innerHTML = '<h3>当前在线用户：</h3>';
-    const filteredUsers = users.filter(user => user !== null && user !== undefined);
-    console.log('过滤后的用户列表:', filteredUsers);
-    if (filteredUsers.length === 0) {
-        list.innerHTML += '<div>暂无在线用户</div>';
-    } else {
-        filteredUsers.forEach(user => {
-            const div = document.createElement('div');
-            div.textContent = user;
-            list.appendChild(div);
-        });
-    }
-    list.style.display = 'none';
-    list.offsetHeight;
-    list.style.display = '';
+    users.filter(user => user !== null).forEach(user => {
+        const div = document.createElement('div');
+        div.textContent = user;
+        list.appendChild(div);
+    });
 }
