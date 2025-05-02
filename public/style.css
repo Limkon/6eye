@@ -68,13 +68,13 @@ header h1 {
 main {
     flex: 1;
     display: flex;
-    flex-direction: column; /* 确保垂直排列 */
+    flex-direction: row; /* 改为横向排列，userlist 在左侧 */
     overflow: hidden;
     margin: 0; /* 移除外边距 */
 }
 
 #chat {
-    flex: 1; /* 填充剩余空间 */
+    flex: 3; /* 占主要空间 */
     padding: 8px;
     overflow-y: auto;
     background: #f9f9f9;
@@ -83,11 +83,13 @@ main {
 }
 
 #userlist {
-    flex: none;
+    flex: 1; /* 占较少空间 */
     padding: 8px;
-    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc; /* 改为右边框 */
+    border-left: none; /* 移除左边框 */
     overflow-y: auto;
     background: #fff;
+    order: -1; /* 确保 userlist 在 chat 左侧 */
 }
 
 #userlist.hidden {
@@ -284,7 +286,7 @@ body.dark-mode .message-right {
     }
 
     main {
-        flex-direction: column;
+        flex-direction: column; /* 移动端保持垂直排列 */
         margin: 0; /* 确保无外边距 */
     }
 
@@ -299,9 +301,11 @@ body.dark-mode .message-right {
         flex: none;
         display: none; /* 默认隐藏 */
         border-left: none;
+        border-right: none; /* 移除边框，适应移动端 */
         border-top: 1px solid #ccc;
         padding: 8px;
         height: 100px; /* 显示时的固定高度 */
+        width: 100%; /* 占满宽度 */
     }
 
     #userlist.hidden {
