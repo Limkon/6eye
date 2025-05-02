@@ -109,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
     joinRoomButton.addEventListener('click', handleJoinRoom);
     joinRoomButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // 阻止冒泡
         handleJoinRoom();
     });
 
@@ -138,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
     joinButton.addEventListener('click', handleJoin);
     joinButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // 阻止冒泡
         handleJoin();
     });
 
@@ -159,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('click', handleSend);
     sendButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // 阻止冒泡
+        e.stopPropagation(); // 阻止冒泡，避免触发 click
         handleSend();
     });
 
@@ -178,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
     themeToggleButton.addEventListener('click', handleThemeToggle);
     themeToggleButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // 阻止冒泡
         handleThemeToggle();
     });
 
@@ -189,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
     userlistToggleButton.addEventListener('click', handleUserlistToggle);
     userlistToggleButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // 阻止冒泡
         handleUserlistToggle();
     });
 
@@ -203,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
     destroyRoomButton.addEventListener('click', handleDestroyRoom);
     destroyRoomButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // 阻止冒泡
         handleDestroyRoom();
     });
 });
