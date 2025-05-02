@@ -4,7 +4,9 @@ let joined = false;
 let roomId = '';
 let lastDisconnectTime = null;
 const RECONNECT_TIMEOUT = 2000;
-const HISTORY_TIMEOUT = 3000;
+const HISTORY_TIMEOUT = 5000; // 延长至5秒
+const MAX_HISTORY_RETRIES = 3; // 最多重试3次
+let historyRetryCount = 0;
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -16,6 +18,7 @@ function connect() {
         document.getElementById('destroy-room').disabled = false;
         if (username && joined) {
             ws.send(JSON.stringify({ type: 'join', username }));
+            console.log('重连后发送 join 请求:', username);
         }
     };
     ws.onmessage = (event) => {
@@ -33,6 +36,7 @@ function connect() {
                     break;
                 case 'history':
                     console.log('收到历史消息:', data.messages);
+                    historyRetryCount = 0; // 重置重试计数
                     if (!Array.isArray(data.messages)) {
                         console.warn('历史消息格式错误，非数组:', data.messages);
                         return;
@@ -71,15 +75,18 @@ function connect() {
                         console.log('发送请求: getHistory');
                     } else {
                         console.warn('WebSocket 未打开，无法发送请求，状态:', ws.readyState);
+                        connect(); // 强制重连
                     }
                     setTimeout(() => {
-                        if (!document.querySelector('.message-system') && !document.querySelector('.message-left') && !document.querySelector('.message-right')) {
-                            console.log('未收到历史消息，重试 getHistory');
+                        if (historyRetryCount < MAX_HISTORY_RETRIES && !document.querySelector('.message-system') && !document.querySelector('.message-left') && !document.querySelector('.message-right')) {
+                            console.log(`未收到历史消息，第 ${historyRetryCount + 1} 次重试 getHistory`);
+                            historyRetryCount++;
                             if (ws.readyState === WebSocket.OPEN) {
                                 ws.send(JSON.stringify({ type: 'getHistory' }));
                                 console.log('重试发送请求: getHistory');
                             } else {
                                 console.warn('重试时 WebSocket 未打开，状态:', ws.readyState);
+                                connect();
                             }
                         }
                     }, HISTORY_TIMEOUT);
@@ -139,6 +146,7 @@ function resetRoom() {
     joined = false;
     username = '';
     roomId = '';
+    historyRetryCount = 0;
     document.getElementById('room-id').value = '';
     document.getElementById('room-id').disabled = false;
     document.getElementById('join-room').disabled = false;
@@ -181,6 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('join-room 触摸触发');
         handleJoinRoom();
     });
+    joinRoomButton.addEventListener('pointerdown', (e) => {
+        console.log('join-room 指针触发');
+        handleJoinRoom();
+    });
 
     const joinButton = document.getElementById('join');
     const handleJoin = () => {
@@ -202,10 +214,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             console.log('WebSocket 未打开，尝试连接');
             connect();
+            // 延迟发送 join 请求，确保连接打开
+            setTimeout(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    username = name;
+                    ws.send(JSON.stringify({ type: 'join', username }));
+                    console.log('发送 join 请求:', username);
+                } else {
+                    console.warn('延迟连接后 WebSocket 仍未打开，状态:', ws.readyState);
+                }
+            }, 500);
+        } else {
+            username = name;
+            ws.send(JSON.stringify({ type: 'join', username }));
+            console.log('发送 join 请求:', username);
         }
-        username = name;
-        ws.send(JSON.stringify({ type: 'join', username }));
-        console.log('发送 join 请求:', username);
     };
     joinButton.addEventListener('click', handleJoin);
     joinButton.addEventListener('touchstart', (e) => {
@@ -216,6 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
     joinButton.addEventListener('touchend', (e) => {
         e.preventDefault();
         console.log('join 触摸结束');
+        handleJoin();
+    });
+    joinButton.addEventListener('pointerdown', (e) => {
+        console.log('join 指针触发');
         handleJoin();
     });
 
@@ -232,6 +259,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         console.log('send 触摸触发');
+        handleSend();
+    });
+    sendButton.addEventListener('pointerdown', (e) => {
+        console.log('send 指针触发');
         handleSend();
     });
 
@@ -253,6 +284,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('theme-toggle 触摸触发');
         handleThemeToggle();
     });
+    themeToggleButton.addEventListener('pointerdown', (e) => {
+        console.log('theme-toggle 指针触发');
+        handleThemeToggle();
+    });
 
     const userlistToggleButton = document.getElementById('userlist-toggle');
     const handleUserlistToggle = () => {
@@ -265,8 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('userlist-toggle 触摸触发');
         handleUserlistToggle();
     });
+    userlistToggleButton.addEventListener('pointerdown', (e) => {
+        console.log('userlist-toggle 指针触发');
+        handleUserlistToggle();
+    });
 
-    const destroyRoomButton = document.getElementById('destroy-room');
+    const destroyRoomButton = document.getElementalById('destroy-room');
     const handleDestroyRoom = () => {
         console.log('destroy-room 按钮触发');
         if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
@@ -277,6 +316,10 @@ document.addEventListener('DOMContentLoaded', () => {
     destroyRoomButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         console.log('destroy-room 触摸触发');
+        handleDestroyRoom();
+    });
+    destroyRoomButton.addEventListener('pointerdown', (e) => {
+        console.log('destroy-room 指针触发');
         handleDestroyRoom();
     });
 });
@@ -305,4 +348,7 @@ function updateUserList(users) {
             list.appendChild(div);
         });
     }
+    list.style.display = 'none';
+    list.offsetHeight;
+    list.style.display = '';
 }
