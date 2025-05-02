@@ -9,6 +9,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    margin: 0; /* 确保无外边距 */
 }
 
 header {
@@ -67,20 +68,23 @@ header h1 {
 main {
     flex: 1;
     display: flex;
+    flex-direction: column; /* 确保垂直排列 */
     overflow: hidden;
+    margin: 0; /* 移除外边距 */
 }
 
 #chat {
-    flex: 3;
-    padding: 10px;
+    flex: 1; /* 填充剩余空间 */
+    padding: 8px;
     overflow-y: auto;
     background: #f9f9f9;
     white-space: pre-wrap;
+    margin: 0; /* 移除外边距 */
 }
 
 #userlist {
-    flex: 1;
-    padding: 10px;
+    flex: none;
+    padding: 8px;
     border-left: 1px solid #ccc;
     overflow-y: auto;
     background: #fff;
@@ -92,9 +96,10 @@ main {
 
 footer {
     display: flex;
-    padding: 10px;
+    padding: 8px;
     background: #eee;
     align-items: center;
+    margin: 0; /* 移除外边距 */
 }
 
 footer label {
@@ -216,7 +221,7 @@ body.dark-mode .message-right {
     .controls {
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 10px;
+        margin-top: 8px;
         width: 100%;
     }
 
@@ -245,6 +250,7 @@ body.dark-mode .message-right {
         flex-wrap: wrap;
         gap: 8px;
         padding: 8px;
+        margin: 0; /* 确保无外边距 */
     }
 
     footer label {
@@ -279,20 +285,23 @@ body.dark-mode .message-right {
 
     main {
         flex-direction: column;
+        margin: 0; /* 确保无外边距 */
     }
 
     #chat {
-        flex: none;
-        height: calc(100% - 80px); /* 动态高度，确保紧邻 footer */
+        flex: 1; /* 填充所有剩余空间 */
         padding: 8px;
+        margin: 0; /* 移除外边距 */
+        overflow-y: auto;
     }
 
     #userlist {
         flex: none;
-        display: none; /* 默认隐藏用户列表 */
+        display: none; /* 默认隐藏 */
         border-left: none;
         border-top: 1px solid #ccc;
         padding: 8px;
+        height: 100px; /* 显示时的固定高度 */
     }
 
     #userlist.hidden {
@@ -300,7 +309,6 @@ body.dark-mode .message-right {
     }
 
     #userlist:not(.hidden) {
-        display: block; /* 通过 userlist-toggle 显示 */
-        height: 100px; /* 固定高度，仅在显示时生效 */
+        display: block;
     }
 }
