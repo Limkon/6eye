@@ -3,7 +3,8 @@ let username = '';
 let joined = false;
 let roomId = '';
 let lastDisconnectTime = null;
-const RECONNECT_TIMEOUT = 1000;
+const RECONNECT_TIMEOUT = 2000;
+const HISTORY_TIMEOUT = 3000; // 3秒超时重试
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -31,7 +32,7 @@ function connect() {
                     addMessage(data.username, data.message);
                     break;
                 case 'history':
-                    console.log('收到历史消息:', data.messages); // 增强日志
+                    console.log('收到历史消息:', data.messages);
                     if (!Array.isArray(data.messages)) {
                         console.warn('历史消息格式错误，非数组:', data.messages);
                         return;
@@ -58,7 +59,16 @@ function connect() {
                     document.getElementById('username').style.display = 'none';
                     document.getElementById('join').style.display = 'none';
                     ws.send(JSON.stringify({ type: 'getUserList' }));
-                    ws.send(JSON.stringify({ type: 'getHistory' })); // 主动请求历史记录
+                    console.log('发送请求: getUserList');
+                    ws.send(JSON.stringify({ type: 'getHistory' }));
+                    console.log('发送请求: getHistory');
+                    // 超时重试
+                    setTimeout(() => {
+                        if (!document.querySelector('.message-system') && !document.querySelector('.message-left') && !document.querySelector('.message-right')) {
+                            console.log('未收到历史消息，重试 getHistory');
+                            ws.send(JSON.stringify({ type: 'getHistory' }));
+                        }
+                    }, HISTORY_TIMEOUT);
                     break;
                 case 'joinError':
                     console.log('加入失败:', data.message);
