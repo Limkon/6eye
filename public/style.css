@@ -210,11 +210,11 @@ body.dark-mode .message-right {
     header {
         flex-direction: column;
         align-items: flex-start;
-        padding: 8px; /* 减小内边距 */
+        padding: 8px;
     }
 
     .controls {
-        flexexpl-wrap: wrap;
+        flex-wrap: wrap;
         gap: 8px;
         margin-top: 10px;
         width: 100%;
@@ -230,13 +230,13 @@ body.dark-mode .message-right {
     .controls input[type="text"] {
         width: calc(100% - 20px);
         margin: 5px 10px;
-        padding: 6px; /* 减小内边距 */
-        font-size: 12px; /* 缩小字体 */
+        padding: 6px;
+        font-size: 12px;
     }
 
     .controls button {
         margin: 5px 10px;
-        padding: 6px 10px; /* 减小按钮大小 */
+        padding: 6px 10px;
         font-size: 12px;
         min-width: 80px;
     }
@@ -244,7 +244,7 @@ body.dark-mode .message-right {
     footer {
         flex-wrap: wrap;
         gap: 8px;
-        padding: 8px; /* 减小内边距 */
+        padding: 8px;
     }
 
     footer label {
@@ -266,7 +266,7 @@ body.dark-mode .message-right {
         margin: 5px 10px;
         padding: 6px;
         font-size: 12px;
-        min-height: 30px; /* 减小最小高度 */
+        min-height: 30px;
         max-height: 80px;
     }
 
@@ -283,15 +283,24 @@ body.dark-mode .message-right {
 
     #chat {
         flex: none;
-        height: calc(100% - 100px); /* 动态计算高度，确保在屏幕内 */
+        height: calc(100% - 80px); /* 动态高度，确保紧邻 footer */
         padding: 8px;
     }
 
     #userlist {
         flex: none;
-        height: 100px; /* 固定用户列表高度 */
+        display: none; /* 默认隐藏用户列表 */
         border-left: none;
         border-top: 1px solid #ccc;
         padding: 8px;
+    }
+
+    #userlist.hidden {
+        display: none;
+    }
+
+    #userlist:not(.hidden) {
+        display: block; /* 通过 userlist-toggle 显示 */
+        height: 100px; /* 固定高度，仅在显示时生效 */
     }
 }
