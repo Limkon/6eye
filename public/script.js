@@ -19,6 +19,11 @@ function connect() {
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
+            // 仅在 joined 状态下处理消息，防止掉线后重新填充
+            if (!joined && data.type !== 'joinSuccess' && data.type !== 'joinError') {
+                console.log('忽略掉线状态下的消息:', data.type);
+                return;
+            }
             switch (data.type) {
                 case 'userList':
                     updateUserList(data.users);
@@ -90,7 +95,9 @@ function connect() {
                 const chatElement = document.getElementById('chat');
                 if (chatElement) {
                     chatElement.innerHTML = '';
-                    console.log('聊天记录已清空');
+                    // 强制触发 DOM 更新
+                    chatElement.dispatchEvent(new Event('DOMSubtreeModified'));
+                    console.log('聊天记录已清空，child count:', chatElement.childElementCount);
                 } else {
                     console.error('未找到 chat 元素');
                 }
