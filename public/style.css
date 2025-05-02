@@ -208,76 +208,73 @@ body.dark-mode .message-right {
 /* 移动端适配 */
 @media (max-width: 600px) {
     header {
-        flex-direction: row; /* 改为水平排列 */
-        align-items: center;
-        padding: 8px;
-    }
-
-    header h1 {
-        font-size: 1.2em; /* 缩小标题 */
-        margin-right: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 8px; /* 减小内边距 */
     }
 
     .controls {
-        flex-wrap: nowrap; /* 按钮尽量水平排列 */
-        gap: 4px;
-        margin: 0;
-        flex: 1;
-        justify-content: flex-end; /* 按钮靠右 */
+        flexexpl-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+        width: 100%;
     }
 
     .controls #current-room-id {
-        display: none; /* 隐藏当前房间ID，节省空间 */
+        width: 100%;
+        margin: 0;
+        text-align: left;
+        padding-left: 10px;
     }
 
     .controls input[type="text"] {
-        width: 100px; /* 缩短输入框 */
-        margin: 0 4px;
-        padding: 4px;
-        font-size: 12px;
+        width: calc(100% - 20px);
+        margin: 5px 10px;
+        padding: 6px; /* 减小内边距 */
+        font-size: 12px; /* 缩小字体 */
     }
 
     .controls button {
-        margin: 0 4px;
-        padding: 4px 8px;
+        margin: 5px 10px;
+        padding: 6px 10px; /* 减小按钮大小 */
         font-size: 12px;
-        min-width: 60px; /* 缩小按钮 */
+        min-width: 80px;
     }
 
     footer {
         flex-wrap: wrap;
-        gap: 4px;
-        padding: 8px;
+        gap: 8px;
+        padding: 8px; /* 减小内边距 */
     }
 
     footer label {
         width: 100%;
-        margin: 0 8px;
+        margin: 0 10px;
         text-align: left;
         font-size: 12px;
     }
 
     footer #username {
-        width: calc(100% - 16px);
-        margin: 4px 8px;
+        width: calc(100% - 20px);
+        margin: 5px 10px;
         padding: 6px;
         font-size: 12px;
     }
 
     footer #message {
-        width: calc(100% - 16px);
-        margin: 4px 8px;
+        width: calc(100% - 20px);
+        margin: 5px 10px;
         padding: 6px;
         font-size: 12px;
-        min-height: 30px;
+        min-height: 30px; /* 减小最小高度 */
         max-height: 80px;
     }
 
     footer button {
-        padding: 6px 10px;
-        margin: 4px 8px;
+        padding: 6px 12px;
+        margin: 5px 10px;
         font-size: 12px;
-        min-width: 60px;
+        min-width: 80px;
     }
 
     main {
@@ -286,24 +283,15 @@ body.dark-mode .message-right {
 
     #chat {
         flex: none;
-        height: 70%; /* 增加消息窗口高度 */
+        height: calc(100% - 100px); /* 动态计算高度，确保在屏幕内 */
         padding: 8px;
     }
 
     #userlist {
         flex: none;
-        height: 30%; /* 减小用户列表高度 */
+        height: 100px; /* 固定用户列表高度 */
         border-left: none;
         border-top: 1px solid #ccc;
         padding: 8px;
-        display: none; /* 默认隐藏用户列表 */
-    }
-
-    #userlist.hidden {
-        display: none;
-    }
-
-    #userlist:not(.hidden) {
-        display: block; /* 通过切换按钮显示 */
     }
 }
