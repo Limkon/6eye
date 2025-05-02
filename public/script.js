@@ -3,7 +3,7 @@ let username = '';
 let joined = false;
 let roomId = '';
 let lastDisconnectTime = null;
-const RECONNECT_TIMEOUT = 2000;
+const RECONNECT_TIMEOUT = 1000;
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
