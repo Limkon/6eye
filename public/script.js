@@ -66,40 +66,39 @@ function connect() {
         }
     };
     ws.onclose = (event) => {
+        // 记录关闭时的状态
+        const wasJoined = joined;
+        const wasUsername = username;
+        const wasRoomId = roomId;
+
         // 尝试在1秒内重连
         const reconnectTimeout = setTimeout(() => {
-            if (joined && roomId) {
+            if (wasJoined && wasRoomId) {
                 connect(); // 触发重连
             }
         }, 1000);
 
-        // 如果重连成功，清除超时逻辑
-        ws.onopen = () => {
-            clearTimeout(reconnectTimeout);
-            document.getElementById('destroy-room').disabled = false;
-            if (joined && username) {
-                ws.send(JSON.stringify({ type: 'join', username }));
-            }
-        };
-
-        // 如果1秒后仍未重连成功，视为断开
+        // 检查1秒后是否重连成功
         setTimeout(() => {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
+                // 重连失败，清理聊天记录和用户列表
                 joined = false;
                 username = '';
+                document.getElementById('chat').innerHTML = '';
+                updateUserList([]);
                 document.getElementById('message').disabled = true;
                 document.getElementById('send').disabled = true;
                 document.getElementById('username-label').style.display = 'block';
                 document.getElementById('username').style.display = 'block';
                 document.getElementById('join').style.display = 'block';
-                document.getElementById('chat').innerHTML = '';
-                updateUserList([]);
                 document.getElementById('destroy-room').disabled = true;
                 if (event.code !== 1000 || (event.reason !== 'Inactive' && event.reason !== 'RoomDestroyed')) {
                     alert('连接断开，请重新加入');
                     resetRoom();
                 }
             }
+            // 清除重连定时器
+            clearTimeout(reconnectTimeout);
         }, 1000);
     };
 }
