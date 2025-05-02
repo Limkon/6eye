@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 开始安装 TCR 项目..."
+echo "🚀 开始安装项目..."
 
 # 直接定义 GitHub 仓库信息
 GITHUB_USER="Limkon"
