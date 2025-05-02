@@ -11,6 +11,10 @@ function connect() {
     ws = new WebSocket(`wss://${location.host}/${roomId}`);
     ws.onopen = () => {
         document.getElementById('destroy-room').disabled = false;
+        // 如果是重连后，重新发送加入消息
+        if (joined && username) {
+            ws.send(JSON.stringify({ type: 'join', username }));
+        }
     };
     ws.onmessage = (event) => {
         try {
@@ -62,20 +66,41 @@ function connect() {
         }
     };
     ws.onclose = (event) => {
-        joined = false;
-        username = '';
-        document.getElementById('message').disabled = true;
-        document.getElementById('send').disabled = true;
-        document.getElementById('username-label').style.display = 'block';
-        document.getElementById('username').style.display = 'block';
-        document.getElementById('join').style.display = 'block';
-        document.getElementById('chat').innerHTML = '';
-        updateUserList([]);
-        document.getElementById('destroy-room').disabled = true;
-        if (event.code !== 1000 || (event.reason !== 'Inactive' && event.reason !== 'RoomDestroyed')) {
-            alert('连接断开，请重新加入');
-            resetRoom();
-        }
+        // 尝试在1秒内重连
+        const reconnectTimeout = setTimeout(() => {
+            if (joined && roomId) {
+                connect(); // 触发重连
+            }
+        }, 1000);
+
+        // 如果重连成功，清除超时逻辑
+        ws.onopen = () => {
+            clearTimeout(reconnectTimeout);
+            document.getElementById('destroy-room').disabled = false;
+            if (joined && username) {
+                ws.send(JSON.stringify({ type: 'join', username }));
+            }
+        };
+
+        // 如果1秒后仍未重连成功，视为断开
+        setTimeout(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                joined = false;
+                username = '';
+                document.getElementById('message').disabled = true;
+                document.getElementById('send').disabled = true;
+                document.getElementById('username-label').style.display = 'block';
+                document.getElementById('username').style.display = 'block';
+                document.getElementById('join').style.display = 'block';
+                document.getElementById('chat').innerHTML = '';
+                updateUserList([]);
+                document.getElementById('destroy-room').disabled = true;
+                if (event.code !== 1000 || (event.reason !== 'Inactive' && event.reason !== 'RoomDestroyed')) {
+                    alert('连接断开，请重新加入');
+                    resetRoom();
+                }
+            }
+        }, 1000);
     };
 }
 
@@ -183,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const destroyRoomButton = document.getElementById('destroy-room');
     const handleDestroyRoom = () => {
-        if (destroyRoomButton.disabled) return; // 检查禁用状态
+        if (destroyRoomButton.disabled) return;
         if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
             ws.send(JSON.stringify({ type: 'destroy' }));
         }
