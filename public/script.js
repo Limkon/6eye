@@ -11,19 +11,10 @@ function connect() {
     ws = new WebSocket(`wss://${location.host}/${roomId}`);
     ws.onopen = () => {
         document.getElementById('destroy-room').disabled = false;
-        // 如果是重连后，重新发送加入消息
-        if (joined && username) {
-            ws.send(JSON.stringify({ type: 'join', username }));
-        }
     };
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            // 仅在 joined 状态下处理消息，防止掉线后重新填充
-            if (!joined && data.type !== 'joinSuccess' && data.type !== 'joinError') {
-                console.log('忽略掉线状态下的消息:', data.type);
-                return;
-            }
             switch (data.type) {
                 case 'userList':
                     updateUserList(data.users);
@@ -71,60 +62,20 @@ function connect() {
         }
     };
     ws.onclose = (event) => {
-        // 记录关闭时的状态
-        const wasJoined = joined;
-        const wasUsername = username;
-        const wasRoomId = roomId;
-
-        // 调试日志
-        console.log('WebSocket 关闭，code:', event.code, 'reason:', event.reason);
-
-        // 尝试在1秒内重连
-        const reconnectTimeout = setTimeout(() => {
-            if (wasJoined && wasRoomId) {
-                console.log('尝试重连...');
-                connect(); // 触发重连
-            }
-        }, 1000);
-
-        // 检查1秒后是否重连成功
-        setTimeout(() => {
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                console.log('重连失败，执行清理逻辑');
-                // 确保清理聊天记录和用户列表
-                const chatElement = document.getElementById('chat');
-                if (chatElement) {
-                    chatElement.innerHTML = '';
-                    // 强制触发 DOM 更新
-                    chatElement.dispatchEvent(new Event('DOMSubtreeModified'));
-                    console.log('聊天记录已清空，child count:', chatElement.childElementCount);
-                } else {
-                    console.error('未找到 chat 元素');
-                }
-                updateUserList([]);
-                console.log('用户列表已清空');
-
-                // 重置状态
-                joined = false;
-                username = '';
-                document.getElementById('message').disabled = true;
-                document.getElementById('send').disabled = true;
-                document.getElementById('username-label').style.display = 'block';
-                document.getElementById('username').style.display = 'block';
-                document.getElementById('join').style.display = 'block';
-                document.getElementById('destroy-room').disabled = true;
-
-                // 提示用户
-                if (event.code !== 1000 || (event.reason !== 'Inactive' && event.reason !== 'RoomDestroyed')) {
-                    alert('连接断开，请重新加入');
-                    resetRoom();
-                }
-            } else {
-                console.log('重连成功，无需清理');
-            }
-            // 清除重连定时器
-            clearTimeout(reconnectTimeout);
-        }, 1000);
+        joined = false;
+        username = '';
+        document.getElementById('message').disabled = true;
+        document.getElementById('send').disabled = true;
+        document.getElementById('username-label').style.display = 'block';
+        document.getElementById('username').style.display = 'block';
+        document.getElementById('join').style.display = 'block';
+        document.getElementById('chat').innerHTML = '';
+        updateUserList([]);
+        document.getElementById('destroy-room').disabled = true;
+        if (event.code !== 1000 || (event.reason !== 'Inactive' && event.reason !== 'RoomDestroyed')) {
+            alert('连接断开，请重新加入');
+            resetRoom();
+        }
     };
 }
 
@@ -232,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const destroyRoomButton = document.getElementById('destroy-room');
     const handleDestroyRoom = () => {
-        if (destroyRoomButton.disabled) return;
+        if (destroyRoomButton.disabled) return; // 检查禁用状态
         if (confirm('确定要销毁房间吗？所有聊天记录将被删除！')) {
             ws.send(JSON.stringify({ type: 'destroy' }));
         }

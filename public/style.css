@@ -128,10 +128,7 @@ footer #message {
 }
 
 footer button {
-    padding: 8px 16px; /* 保持水平padding，垂直padding与textarea一致 */
-    height: 56px; /* 匹配textarea的min-height(40px) + padding(8px*2) = 56px */
-    line-height: normal; /* 确保文字垂直居中 */
-    box-sizing: border-box; /* 确保高度包含padding */
+    padding: 8px 16px;
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
@@ -282,10 +279,7 @@ body.dark-mode .message-right {
     }
 
     footer button {
-        padding: 6px 12px; /* 移动端保持水平padding，垂直padding与textarea一致 */
-        height: 42px; /* 匹配移动端textarea的min-height(30px) + padding(6px*2) = 42px */
-        line-height: normal; /* 确保文字垂直居中 */
-        box-sizing: border-box; /* 确保高度包含padding */
+        padding: 6px 12px;
         margin: 5px 10px;
         font-size: 12px;
         min-width: 80px;
