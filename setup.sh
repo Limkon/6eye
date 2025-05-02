@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 开始安装项目..."
+echo "🚀 开始安装 TCR 项目..."
 
 # 直接定义 GitHub 仓库信息
 GITHUB_USER="Limkon"
@@ -35,19 +35,13 @@ if ! curl -fsSL "$TAR_URL" | tar -xz -C "$TEMP_DIR" --strip-components=1; then
     exit 1
 fi
 
-# 删除 .github 目录（如果存在）
+# 删除不需要的 .github 目录并复制文件
 rm -rf "$TEMP_DIR/.github"
-
-# 复制文件到项目目录，排除所有以.开头的文件和目录
-shopt -s extglob dotglob
-cd "$TEMP_DIR"
-if ! cp -rf !(.*) "$PROJECT_DIR"; then
+if ! cp -rf "$TEMP_DIR"/. "$PROJECT_DIR"; then
     echo "❌ 错误：复制文件到 $PROJECT_DIR 失败"
     rm -rf "$TEMP_DIR"
-    shopt -u extglob dotglob
     exit 1
 fi
-shopt -u extglob dotglob
 rm -rf "$TEMP_DIR"
 
 # 检查 Node.js 是否安装
@@ -88,4 +82,4 @@ Name=Chatroom Server
 Comment=Start Server automatically
 EOF
 
-echo "✅ 项目安装完成！系统重启后将自动启动服务器。"
+echo "✅  项目安装完成！系统重启后将自动启动服务器。"
