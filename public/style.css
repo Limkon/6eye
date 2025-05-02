@@ -107,6 +107,9 @@ footer {
 footer label {
     margin-right: 10px;
     font-size: 14px;
+    height: 56px; /* 统一高度 */
+    line-height: 56px; /* 文字垂直居中 */
+    box-sizing: border-box;
 }
 
 footer input[type="text"],
@@ -114,21 +117,27 @@ footer textarea {
     padding: 8px;
     margin-right: 10px;
     font-size: 14px;
+    box-sizing: border-box;
 }
 
 footer #username {
     width: 150px;
+    height: 56px; /* 统一高度，包含padding和border */
 }
 
 footer #message {
     flex: 1;
     resize: vertical;
-    min-height: 40px;
+    min-height: 56px; /* 调整min-height以匹配总高度 */
     max-height: 100px;
+    padding: 8px; /* 保持原padding */
 }
 
 footer button {
     padding: 8px 16px;
+    height: 56px; /* 统一高度，包含padding和border */
+    line-height: normal; /* 文字垂直居中 */
+    box-sizing: border-box;
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
@@ -260,6 +269,9 @@ body.dark-mode .message-right {
         margin: 0 10px;
         text-align: left;
         font-size: 12px;
+        height: 42px; /* 统一移动端高度 */
+        line-height: 42px; /* 文字垂直居中 */
+        box-sizing: border-box;
     }
 
     footer #username {
@@ -267,6 +279,8 @@ body.dark-mode .message-right {
         margin: 5px 10px;
         padding: 6px;
         font-size: 12px;
+        height: 42px; /* 统一移动端高度 */
+        box-sizing: border-box;
     }
 
     footer #message {
@@ -274,8 +288,9 @@ body.dark-mode .message-right {
         margin: 5px 10px;
         padding: 6px;
         font-size: 12px;
-        min-height: 30px;
+        min-height: 42px; /* 统一移动端高度 */
         max-height: 80px;
+        box-sizing: border-box;
     }
 
     footer button {
@@ -283,6 +298,9 @@ body.dark-mode .message-right {
         margin: 5px 10px;
         font-size: 12px;
         min-width: 80px;
+        height: 42px; /* 统一移动端高度 */
+        line-height: normal; /* 文字垂直居中 */
+        box-sizing: border-box;
     }
 
     main {
