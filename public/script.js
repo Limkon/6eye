@@ -71,9 +71,13 @@ function connect() {
         const wasUsername = username;
         const wasRoomId = roomId;
 
+        // 调试日志
+        console.log('WebSocket 关闭，code:', event.code, 'reason:', event.reason);
+
         // 尝试在1秒内重连
         const reconnectTimeout = setTimeout(() => {
             if (wasJoined && wasRoomId) {
+                console.log('尝试重连...');
                 connect(); // 触发重连
             }
         }, 1000);
@@ -81,21 +85,35 @@ function connect() {
         // 检查1秒后是否重连成功
         setTimeout(() => {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                // 重连失败，清理聊天记录和用户列表
+                console.log('重连失败，执行清理逻辑');
+                // 确保清理聊天记录和用户列表
+                const chatElement = document.getElementById('chat');
+                if (chatElement) {
+                    chatElement.innerHTML = '';
+                    console.log('聊天记录已清空');
+                } else {
+                    console.error('未找到 chat 元素');
+                }
+                updateUserList([]);
+                console.log('用户列表已清空');
+
+                // 重置状态
                 joined = false;
                 username = '';
-                document.getElementById('chat').innerHTML = '';
-                updateUserList([]);
                 document.getElementById('message').disabled = true;
                 document.getElementById('send').disabled = true;
                 document.getElementById('username-label').style.display = 'block';
                 document.getElementById('username').style.display = 'block';
                 document.getElementById('join').style.display = 'block';
                 document.getElementById('destroy-room').disabled = true;
+
+                // 提示用户
                 if (event.code !== 1000 || (event.reason !== 'Inactive' && event.reason !== 'RoomDestroyed')) {
                     alert('连接断开，请重新加入');
                     resetRoom();
                 }
+            } else {
+                console.log('重连成功，无需清理');
             }
             // 清除重连定时器
             clearTimeout(reconnectTimeout);
