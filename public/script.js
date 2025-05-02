@@ -2,6 +2,10 @@ let ws;
 let username = '';
 let joined = false;
 let roomId = '';
+let reconnectAttempts = 0;
+let maxReconnectAttempts = 5;
+let reconnectInterval = 1000; // 每秒重试
+let isReconnecting = false;
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -10,6 +14,8 @@ function connect() {
     ws = new WebSocket(`wss://${location.host}/${roomId}`);
     ws.onopen = () => {
         console.log('连接成功');
+        reconnectAttempts = 0; // 重置重连计数
+        isReconnecting = false;
         document.getElementById('destroy-room').disabled = false;
     };
     ws.onmessage = (event) => {
@@ -98,23 +104,39 @@ function connect() {
     };
     ws.onclose = (event) => {
         console.log(`连接关闭，代码: ${event.code}, 原因: ${event.reason}`);
-        joined = false;
-        username = '';
-        document.getElementById('message').disabled = true;
-        document.getElementById('send').disabled = true;
-        document.getElementById('username-label').style.display = 'block';
-        document.getElementById('username').style.display = 'block';
-        document.getElementById('join').style.display = 'block';
-        document.getElementById('chat').innerHTML = '';
-        updateUserList([]);
-        document.getElementById('destroy-room').disabled = true;
-        if (event.code === 1000 && event.reason === 'Inactive') {
-            // 已在 inactive 消息中处理
-        } else if (event.code !== 1000 || event.reason !== 'RoomDestroyed') {
+        if (event.code === 1000 && (event.reason === 'Inactive' || event.reason === 'RoomDestroyed')) {
+            return; // 已由消息处理
+        }
+        if (!isReconnecting && reconnectAttempts < maxReconnectAttempts) {
+            isReconnecting = true;
+            reconnectAttempts++;
+            console.log(`尝试重连 ${reconnectAttempts}/${maxReconnectAttempts}`);
+            setTimeout(() => {
+                connect();
+                if (joined && username) {
+                    ws.onopen = () => {
+                        ws.send(JSON.stringify({ type: 'join', username }));
+                        console.log('重连后重新加入');
+                    };
+                }
+            }, reconnectInterval);
+        } else {
+            console.log('重连失败或达到最大尝试次数');
+            joined = false;
+            username = '';
+            document.getElementById('message').disabled = true;
+            document.getElementById('send').disabled = true;
+            document.getElementById('username-label').style.display = 'block';
+            document.getElementById('username').style.display = 'block';
+            document.getElementById('join').style.display = 'block';
+            document.getElementById('chat').innerHTML = '';
+            updateUserList([]);
+            document.getElementById('destroy-room').disabled = true;
             alert('连接断开，请重新加入');
             roomId = '';
             document.getElementById('room-id').value = '';
             document.getElementById('current-room-id').textContent = '';
+            location.reload(); // 自动刷新页面
         }
     };
 }
@@ -131,12 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         roomId = id;
         document.getElementById('current-room-id').textContent = `当前房间: ${roomId}`;
-        input.value = ''; // 清空房间 ID 输入框
+        input.value = '';
         connect();
     };
     joinRoomButton.addEventListener('click', handleJoinRoom);
     joinRoomButton.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // 防止默认触摸行为
+        e.preventDefault();
         console.log('join-room 触摸触发');
         handleJoinRoom();
     });
