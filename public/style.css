@@ -2,7 +2,7 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    touch-action: manipulation; /* 防止移动端双击缩放 */
+    touch-action: manipulation;
 }
 
 #app {
@@ -75,6 +75,7 @@ main {
     padding: 10px;
     overflow-y: auto;
     background: #f9f9f9;
+    white-space: pre-wrap; /* 保留消息中的换行和空格 */
 }
 
 #userlist {
@@ -101,7 +102,8 @@ footer label {
     font-size: 14px;
 }
 
-footer input[type="text"] {
+footer input[type="text"],
+footer textarea {
     padding: 8px;
     margin-right: 10px;
     font-size: 14px;
@@ -113,6 +115,9 @@ footer #username {
 
 footer #message {
     flex: 1;
+    resize: vertical;
+    min-height: 40px;
+    max-height: 100px;
 }
 
 footer button {
@@ -123,21 +128,23 @@ footer button {
 }
 
 /* 消息气泡 */
-.message-left {
-    background: #e0f7fa;
-    color: #333;
+.message-left,
+.message-right {
     padding: 8px;
     margin: 5px 0;
     border-radius: 5px;
+    white-space: pre-wrap; /* 保留消息中的换行和空格 */
+}
+
+.message-left {
+    background: #e0f7fa;
+    color: #333;
     text-align: left;
 }
 
 .message-right {
     background: #c8e6c9;
     color: #333;
-    padding: 8px;
-    margin: 5px 0;
-    border-radius: 5px;
     text-align: right;
 }
 
@@ -155,7 +162,8 @@ body.dark-mode .controls #current-room-id {
     color: #e0e0e0;
 }
 
-body.dark-mode .controls input[type="text"] {
+body.dark-mode .controls input[type="text"],
+body.dark-mode footer textarea {
     background: #444;
     color: #e0e0e0;
     border-color: #555;
