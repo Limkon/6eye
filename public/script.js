@@ -3,7 +3,7 @@ let username = '';
 let joined = false;
 let roomId = '';
 let lastDisconnectTime = null;
-const RECONNECT_TIMEOUT = 2000; // 2秒重连窗口
+const RECONNECT_TIMEOUT = 2000;
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -14,7 +14,6 @@ function connect() {
         console.log('连接成功');
         document.getElementById('destroy-room').disabled = false;
         if (username && joined) {
-            // 重连后重新发送加入请求
             ws.send(JSON.stringify({ type: 'join', username }));
         }
     };
@@ -24,7 +23,7 @@ function connect() {
             console.log('收到消息:', data);
             switch (data.type) {
                 case 'userList':
-                    console.log('更新用户列表:', data.users);
+                    console.log('收到用户列表:', data.users); // 增强日志
                     updateUserList(data.users);
                     break;
                 case 'message':
@@ -45,6 +44,8 @@ function connect() {
                     document.getElementById('username-label').style.display = 'none';
                     document.getElementById('username').style.display = 'none';
                     document.getElementById('join').style.display = 'none';
+                    // 主动请求用户列表
+                    ws.send(JSON.stringify({ type: 'getUserList' }));
                     break;
                 case 'joinError':
                     console.log('加入失败:', data.message);
@@ -85,7 +86,6 @@ function connect() {
             resetRoom();
             return;
         }
-        // 尝试在2秒内重连
         setTimeout(() => {
             if (Date.now() - lastDisconnectTime >= RECONNECT_TIMEOUT) {
                 resetRoom();
@@ -247,11 +247,18 @@ function addMessage(user, message) {
 }
 
 function updateUserList(users) {
+    console.log('更新用户列表，输入数据:', users); // 增强日志
     const list = document.getElementById('userlist');
     list.innerHTML = '<h3>当前在线用户：</h3>';
-    users.filter(user => user !== null).forEach(user => {
-        const div = document.createElement('div');
-        div.textContent = user;
-        list.appendChild(div);
-    });
+    const filteredUsers = users.filter(user => user !== null && user !== undefined);
+    console.log('过滤后的用户列表:', filteredUsers); // 增强日志
+    if (filteredUsers.length === 0) {
+        list.innerHTML += '<div>暂无在线用户</div>';
+    } else {
+        filteredUsers.forEach(user => {
+            const div = document.createElement('div');
+            div.textContent = user;
+            list.appendChild(div);
+        });
+    }
 }
