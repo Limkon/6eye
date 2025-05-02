@@ -23,7 +23,7 @@ function connect() {
             console.log('收到消息:', data);
             switch (data.type) {
                 case 'userList':
-                    console.log('收到用户列表:', data.users); // 增强日志
+                    console.log('收到用户列表:', data.users);
                     updateUserList(data.users);
                     break;
                 case 'message':
@@ -31,10 +31,23 @@ function connect() {
                     addMessage(data.username, data.message);
                     break;
                 case 'history':
-                    console.log('收到历史消息:', data.messages);
-                    data.messages.forEach(msg => {
-                        addMessage(msg.username, msg.message);
-                    });
+                    console.log('收到历史消息:', data.messages); // 增强日志
+                    if (!Array.isArray(data.messages)) {
+                        console.warn('历史消息格式错误，非数组:', data.messages);
+                        return;
+                    }
+                    if (data.messages.length === 0) {
+                        console.log('历史消息为空');
+                        addMessage('系统', '暂无历史消息');
+                    } else {
+                        data.messages.forEach(msg => {
+                            if (msg && msg.username && msg.message) {
+                                addMessage(msg.username, msg.message);
+                            } else {
+                                console.warn('无效历史消息:', msg);
+                            }
+                        });
+                    }
                     break;
                 case 'joinSuccess':
                     console.log('收到 joinSuccess，启用消息输入框');
@@ -44,8 +57,8 @@ function connect() {
                     document.getElementById('username-label').style.display = 'none';
                     document.getElementById('username').style.display = 'none';
                     document.getElementById('join').style.display = 'none';
-                    // 主动请求用户列表
                     ws.send(JSON.stringify({ type: 'getUserList' }));
+                    ws.send(JSON.stringify({ type: 'getHistory' })); // 主动请求历史记录
                     break;
                 case 'joinError':
                     console.log('加入失败:', data.message);
@@ -240,18 +253,18 @@ document.addEventListener('DOMContentLoaded', () => {
 function addMessage(user, message) {
     const chat = document.getElementById('chat');
     const div = document.createElement('div');
-    div.className = user === username ? 'message-right' : 'message-left';
+    div.className = user === username ? 'message-right' : user === '系统' ? 'message-system' : 'message-left';
     div.textContent = `${user}: ${message}`;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
 
 function updateUserList(users) {
-    console.log('更新用户列表，输入数据:', users); // 增强日志
+    console.log('更新用户列表，输入数据:', users);
     const list = document.getElementById('userlist');
     list.innerHTML = '<h3>当前在线用户：</h3>';
     const filteredUsers = users.filter(user => user !== null && user !== undefined);
-    console.log('过滤后的用户列表:', filteredUsers); // 增强日志
+    console.log('过滤后的用户列表:', filteredUsers);
     if (filteredUsers.length === 0) {
         list.innerHTML += '<div>暂无在线用户</div>';
     } else {
