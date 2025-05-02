@@ -4,7 +4,7 @@ let joined = false;
 let roomId = '';
 let lastDisconnectTime = null;
 const RECONNECT_TIMEOUT = 2000;
-const HISTORY_TIMEOUT = 3000; // 3秒超时重试
+const HISTORY_TIMEOUT = 3000;
 
 function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -51,22 +51,36 @@ function connect() {
                     }
                     break;
                 case 'joinSuccess':
-                    console.log('收到 joinSuccess，启用消息输入框');
+                    console.log('收到 joinSuccess，开始处理');
                     joined = true;
-                    document.getElementById('message').disabled = false;
-                    document.getElementById('send').disabled = false;
-                    document.getElementById('username-label').style.display = 'none';
-                    document.getElementById('username').style.display = 'none';
-                    document.getElementById('join').style.display = 'none';
-                    ws.send(JSON.stringify({ type: 'getUserList' }));
-                    console.log('发送请求: getUserList');
-                    ws.send(JSON.stringify({ type: 'getHistory' }));
-                    console.log('发送请求: getHistory');
-                    // 超时重试
+                    console.log('设置 joined = true');
+                    try {
+                        document.getElementById('message').disabled = false;
+                        document.getElementById('send').disabled = false;
+                        document.getElementById('username-label').style.display = 'none';
+                        document.getElementById('username').style.display = 'none';
+                        document.getElementById('join').style.display = 'none';
+                        console.log('UI 更新完成');
+                    } catch (error) {
+                        console.error('UI 更新失败:', error);
+                    }
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'getUserList' }));
+                        console.log('发送请求: getUserList');
+                        ws.send(JSON.stringify({ type: 'getHistory' }));
+                        console.log('发送请求: getHistory');
+                    } else {
+                        console.warn('WebSocket 未打开，无法发送请求，状态:', ws.readyState);
+                    }
                     setTimeout(() => {
                         if (!document.querySelector('.message-system') && !document.querySelector('.message-left') && !document.querySelector('.message-right')) {
                             console.log('未收到历史消息，重试 getHistory');
-                            ws.send(JSON.stringify({ type: 'getHistory' }));
+                            if (ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({ type: 'getHistory' }));
+                                console.log('重试发送请求: getHistory');
+                            } else {
+                                console.warn('重试时 WebSocket 未打开，状态:', ws.readyState);
+                            }
                         }
                     }, HISTORY_TIMEOUT);
                     break;
@@ -186,15 +200,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.log('WebSocket 未打开，尝试连接');
             connect();
         }
         username = name;
         ws.send(JSON.stringify({ type: 'join', username }));
+        console.log('发送 join 请求:', username);
     };
     joinButton.addEventListener('click', handleJoin);
     joinButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         console.log('join 触摸触发');
+        handleJoin();
+    });
+    joinButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        console.log('join 触摸结束');
         handleJoin();
     });
 
