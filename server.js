@@ -43,6 +43,22 @@ async function checkAndClearChatroomDir() {
     }
 }
 
+function encryptRoomId(roomId) {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(roomId, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return { iv: iv.toString('hex'), encrypted };
+}
+
+function decryptRoomId(encryptedData) {
+    const iv = Buffer.from(encryptedData.iv, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
+
 function encryptMessage(message) {
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
@@ -62,7 +78,8 @@ function decryptMessage(encryptedData) {
 async function saveMessages(roomId) {
     const room = chatRooms[roomId];
     if (!room || room.messages.length === 0) return;
-    const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
+    const encryptedRoomId = encryptRoomId(roomId);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId.encrypted}.json`);
     await fs.writeFile(filePath, JSON.stringify(room.messages.slice(-MAX_MESSAGES)));
     await checkAndClearChatroomDir();
 }
@@ -71,7 +88,8 @@ async function loadMessages(roomId) {
     if (messagesCache.has(roomId)) {
         return messagesCache.get(roomId);
     }
-    const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
+    const encryptedRoomId = encryptRoomId(roomId);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId.encrypted}.json`);
     try {
         const data = await fs.readFile(filePath, 'utf8');
         const messages = JSON.parse(data).slice(-MAX_MESSAGES);
@@ -99,7 +117,8 @@ async function destroyRoom(roomId) {
     });
     delete chatRooms[roomId];
     messagesCache.delete(roomId);
-    const filePath = path.join(CHATROOM_DIR, `chat_${roomId}.json`);
+    const encryptedRoomId = encryptRoomId(roomId);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId.encrypted}.json`);
     try {
         await fs.unlink(filePath);
     } catch {}
@@ -130,12 +149,10 @@ wss.on('connection', (ws, req) => {
     }
     const room = chatRooms[roomId];
 
-    // 加载历史消息并发送给新用户
     loadMessages(roomId).then(messages => {
         if (messages.length > 0) {
             ws.send(JSON.stringify({ type: 'history', messages }));
         }
-        // 更新房间消息（加密格式），仅当房间消息为空时
         if (!room.messages.length) {
             room.messages = messages.map(msg => ({
                 username: msg.username,
@@ -179,9 +196,9 @@ wss.on('connection', (ws, req) => {
             broadcast(ws.roomId, { type: 'userList', users: room.users });
             if (room.users.length === 0) {
                 delete chatRooms[ws.roomId];
-                messagesCache.delete(ws.roomId); // 清空缓存防止泄密
+                messagesCache.delete(ws.roomId);
             } else {
-                room.messages = []; // 清空内存消息防止泄密
+                room.messages = [];
             }
         }
     });
