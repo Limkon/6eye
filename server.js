@@ -31,8 +31,12 @@ async function checkAndClearChatroomDir() {
     const files = await fs.readdir(CHATROOM_DIR);
     let totalSize = 0;
     for (const file of files) {
-        const stats = await fs.stat(path.join(CHATROOM_DIR, file));
-        totalSize += stats.size;
+        try {
+            const stats = await fs.stat(path.join(CHATROOM_DIR, file));
+            totalSize += stats.size;
+        } catch {
+            console.warn(`跳过无效文件: ${file}`);
+        }
     }
     const totalSizeMB = totalSize / (1024 * 1024);
     if (totalSizeMB > MAX_DIR_SIZE_MB) {
@@ -40,23 +44,32 @@ async function checkAndClearChatroomDir() {
             await fs.unlink(path.join(CHATROOM_DIR, file));
         }
         messagesCache.clear();
+        console.log('目录超限，已清空所有聊天记录');
     }
 }
 
 function encryptRoomId(roomId) {
-    const iv = crypto.randomBytes(IV_LENGTH);
+    // 使用 roomId 的哈希作为固定 IV，确保每次加密结果一致
+    const iv = crypto.createHash('md5').update(roomId).digest().slice(0, IV_LENGTH);
     const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
     let encrypted = cipher.update(roomId, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return { iv: iv.toString('hex'), encrypted };
+    return encrypted;
 }
 
-function decryptRoomId(encryptedData) {
-    const iv = Buffer.from(encryptedData.iv, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+function decryptRoomId(encryptedRoomId) {
+    try {
+        // 解密时需重新生成相同的 IV
+        const decrypted = Buffer.from(encryptedRoomId, 'hex').toString('utf8');
+        const iv = crypto.createHash('md5').update(decrypted).digest().slice(0, IV_LENGTH);
+        const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+        let decryptedRoomId = decipher.update(encryptedRoomId, 'hex', 'utf8');
+        decryptedRoomId += decipher.final('utf8');
+        return decryptedRoomId;
+    } catch (error) {
+        console.error(`解密 roomId 失败: ${error.message}`);
+        throw error;
+    }
 }
 
 function encryptMessage(message) {
@@ -79,8 +92,9 @@ async function saveMessages(roomId) {
     const room = chatRooms[roomId];
     if (!room || room.messages.length === 0) return;
     const encryptedRoomId = encryptRoomId(roomId);
-    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId.encrypted}.json`);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
     await fs.writeFile(filePath, JSON.stringify(room.messages.slice(-MAX_MESSAGES)));
+    console.log(`保存消息到: ${filePath}`);
     await checkAndClearChatroomDir();
 }
 
@@ -89,7 +103,7 @@ async function loadMessages(roomId) {
         return messagesCache.get(roomId);
     }
     const encryptedRoomId = encryptRoomId(roomId);
-    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId.encrypted}.json`);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
     try {
         const data = await fs.readFile(filePath, 'utf8');
         const messages = JSON.parse(data).slice(-MAX_MESSAGES);
@@ -98,6 +112,7 @@ async function loadMessages(roomId) {
             message: decryptMessage(msg.message)
         }));
         messagesCache.set(roomId, decryptedMessages);
+        console.log(`从 ${filePath} 加载消息`);
         return decryptedMessages;
     } catch {
         return [];
@@ -118,9 +133,10 @@ async function destroyRoom(roomId) {
     delete chatRooms[roomId];
     messagesCache.delete(roomId);
     const encryptedRoomId = encryptRoomId(roomId);
-    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId.encrypted}.json`);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
     try {
         await fs.unlink(filePath);
+        console.log(`删除文件: ${filePath}`);
     } catch {}
 }
 
