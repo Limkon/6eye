@@ -26,10 +26,9 @@ const MAX_MESSAGES = 100;
 async function ensureChatroomDir() {
     await fs.mkdir(CHATROOM_DIR, { recursive: true });
     const files = await fs.readdir(CHATROOM_DIR);
+    const fileRegex = new RegExp('^chat_[0-9a-f]{64}\\.json$');
     for (const file of files) {
-        if (file.startsWith('chat_') && !file.match(/^chat_[0-9a-f]{ souhaité
-
-System: 64}\.json$/)) {
+        if (file.startsWith('chat_') && !file.match(fileRegex)) {
             await fs.unlink(path.join(CHATROOM_DIR, file));
         }
     }
@@ -82,7 +81,7 @@ async function saveMessages(roomId) {
     if (!room || room.messages.length === 0) return;
     const encryptedRoomId = encryptRoomId(roomId);
     const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
-    await fs.writeFile(filePath, JSON.stringify/room.messages.slice(-MAX_MESSAGES)));
+    await fs.writeFile(filePath, JSON.stringify(room.messages.slice(-MAX_MESSAGES)));
     await checkAndClearChatroomDir();
 }
 
