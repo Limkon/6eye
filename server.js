@@ -25,12 +25,12 @@ const MAX_MESSAGES = 100;
 
 async function ensureChatroomDir() {
     await fs.mkdir(CHATROOM_DIR, { recursive: true });
-    // 清理旧的明文文件
     const files = await fs.readdir(CHATROOM_DIR);
     for (const file of files) {
-        if (file.startsWith('chat_') && !file.match(/^chat_[0-9a-f]{64}\.json$/)) {
+        if (file.startsWith('chat_') && !file.match(/^chat_[0-9a-f]{ souhaité
+
+System: 64}\.json$/)) {
             await fs.unlink(path.join(CHATROOM_DIR, file));
-            console.log(`删除旧明文文件: ${file}`);
         }
     }
 }
@@ -42,9 +42,7 @@ async function checkAndClearChatroomDir() {
         try {
             const stats = await fs.stat(path.join(CHATROOM_DIR, file));
             totalSize += stats.size;
-        } catch {
-            console.warn(`跳过无效文件: ${file}`);
-        }
+        } catch {}
     }
     const totalSizeMB = totalSize / (1024 * 1024);
     if (totalSizeMB > MAX_DIR_SIZE_MB) {
@@ -52,18 +50,14 @@ async function checkAndClearChatroomDir() {
             await fs.unlink(path.join(CHATROOM_DIR, file));
         }
         messagesCache.clear();
-        console.log('目录超限，已清空所有聊天记录');
     }
 }
 
 function encryptRoomId(roomId) {
-    // 使用 SHA-256 哈希生成固定加密文件名
     return crypto.createHash('sha256').update(roomId).digest('hex');
 }
 
 function decryptRoomId(encryptedRoomId) {
-    // SHA-256 是单向哈希，无法直接解密，需在内存中映射
-    // 这里返回 encryptedRoomId，依赖上下文中的 roomId
     return encryptedRoomId;
 }
 
@@ -88,8 +82,7 @@ async function saveMessages(roomId) {
     if (!room || room.messages.length === 0) return;
     const encryptedRoomId = encryptRoomId(roomId);
     const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
-    await fs.writeFile(filePath, JSON.stringify(room.messages.slice(-MAX_MESSAGES)));
-    console.log(`保存消息到: ${filePath} (roomId: ${roomId})`);
+    await fs.writeFile(filePath, JSON.stringify/room.messages.slice(-MAX_MESSAGES)));
     await checkAndClearChatroomDir();
 }
 
@@ -107,10 +100,8 @@ async function loadMessages(roomId) {
             message: decryptMessage(msg.message)
         }));
         messagesCache.set(roomId, decryptedMessages);
-        console.log(`从 ${filePath} 加载消息 (roomId: ${roomId})`);
         return decryptedMessages;
     } catch {
-        console.log(`未找到消息文件: ${filePath} (roomId: ${roomId})`);
         return [];
     }
 }
@@ -132,10 +123,7 @@ async function destroyRoom(roomId) {
     const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
     try {
         await fs.unlink(filePath);
-        console.log(`删除文件: ${filePath} (roomId: ${roomId})`);
-    } catch {
-        console.log(`未找到要删除的文件: ${filePath} (roomId: ${roomId})`);
-    }
+    } catch {}
 }
 
 function checkInactiveClients() {
