@@ -1,594 +1,219 @@
-function _0x5aff(_0x10d8ac, _0x32ae87) {
-    const _0x289928 = _0x5273();
-    return _0x5aff = function (_0x51d445, _0x48f643) {
-        _0x51d445 = _0x51d445 - 0x19a;
-        let _0x1494a2 = _0x289928[_0x51d445];
-        return _0x1494a2;
-    }, _0x5aff(_0x10d8ac, _0x32ae87);
-}
-const _0x13b365 = _0x5aff;
-(function (_0x218297, _0x1d680e) {
-    const _0x5226ac = _0x5aff, _0x4eb475 = _0x218297();
-    while (!![]) {
-        try {
-            const _0x3f1309 = -parseInt(_0x5226ac(0x23d)) / 0x1 * (-parseInt(_0x5226ac(0x1c5)) / 0x2) + parseInt(_0x5226ac(0x212)) / 0x3 + -parseInt(_0x5226ac(0x1d1)) / 0x4 * (-parseInt(_0x5226ac(0x1fe)) / 0x5) + -parseInt(_0x5226ac(0x1aa)) / 0x6 * (-parseInt(_0x5226ac(0x1bd)) / 0x7) + parseInt(_0x5226ac(0x1be)) / 0x8 + parseInt(_0x5226ac(0x1db)) / 0x9 * (-parseInt(_0x5226ac(0x1cb)) / 0xa) + -parseInt(_0x5226ac(0x252)) / 0xb;
-            if (_0x3f1309 === _0x1d680e)
-                break;
-            else
-                _0x4eb475['push'](_0x4eb475['shift']());
-        } catch (_0x17b752) {
-            _0x4eb475['push'](_0x4eb475['shift']());
-        }
-    }
-}(_0x5273, 0xa4b8a));
-const _0x54bb8b = (function () {
-        let _0x560efe = !![];
-        return function (_0x94a0bb, _0x503bfd) {
-            const _0x126e94 = _0x560efe ? function () {
-                const _0x52a552 = _0x5aff;
-                if (_0x503bfd) {
-                    if (_0x52a552(0x1cd) === _0x52a552(0x205)) {
-                        const _0x4e3a53 = 'vless://' + _0x778291 + '@' + _0x3f5ebc + (_0x52a552(0x21c) + _0x52a552(0x225) + _0x52a552(0x1e9) + _0x52a552(0x1e4)) + _0x989bcc + (_0x52a552(0x1d2) + _0x52a552(0x227) + _0x52a552(0x206)) + _0x496b28 + (_0x52a552(0x1d7) + _0x52a552(0x244)) + _0x348a24 + '-' + _0x41935f, _0x4c50eb = _0x4a03b6[_0x52a552(0x22e)](_0x4e3a53)[_0x52a552(0x22f)](_0x52a552(0x1ce));
-                        _0x1981d0['_0x245d65'](0xc8, { '_0x517d80': _0x52a552(0x1c9) }), _0x476ecf[_0x52a552(0x1ae)](_0x4c50eb + '\x0a');
-                    } else {
-                        const _0x1e6d43 = _0x503bfd[_0x52a552(0x218)](_0x94a0bb, arguments);
-                        return _0x503bfd = null, _0x1e6d43;
-                    }
-                }
-            } : function () {
-            };
-            return _0x560efe = ![], _0x126e94;
-        };
-    }()), _0xbc8d36 = _0x54bb8b(this, function () {
-        const _0x32238f = _0x5aff;
-        let _0x2fd4e4;
-        try {
-            const _0x5bc1d7 = Function(_0x32238f(0x1d4) + _0x32238f(0x1f7) + (_0x32238f(0x1c3) + _0x32238f(0x1a7) + _0x32238f(0x20a) + '\x20)') + ');');
-            _0x2fd4e4 = _0x5bc1d7();
-        } catch (_0x266406) {
-            _0x2fd4e4 = window;
-        }
-        const _0x5027e9 = _0x2fd4e4[_0x32238f(0x230)] = _0x2fd4e4[_0x32238f(0x230)] || {}, _0x62d0e = [
-                _0x32238f(0x1ec),
-                _0x32238f(0x239),
-                _0x32238f(0x1bb),
-                'error',
-                _0x32238f(0x1ad),
-                _0x32238f(0x20f),
-                'trace'
-            ];
-        for (let _0x21b29c = 0x0; _0x21b29c < _0x62d0e[_0x32238f(0x1b9)]; _0x21b29c++) {
-            if (_0x32238f(0x1e1) !== _0x32238f(0x1e1)) {
-                const _0x2ad876 = _0x18ba09(_0x32238f(0x1d4) + 'nction()\x20' + ('{}.constru' + _0x32238f(0x1a7) + _0x32238f(0x20a) + '\x20)') + ');');
-                _0x41afc2 = _0x2ad876();
-            } else {
-                const _0x5cabe9 = _0x54bb8b[_0x32238f(0x1c7) + 'r'][_0x32238f(0x233)][_0x32238f(0x1b4)](_0x54bb8b), _0x15556a = _0x62d0e[_0x21b29c], _0x41a6b9 = _0x5027e9[_0x15556a] || _0x5cabe9;
-                _0x5cabe9[_0x32238f(0x226)] = _0x54bb8b['bind'](_0x54bb8b), _0x5cabe9[_0x32238f(0x22f)] = _0x41a6b9[_0x32238f(0x22f)][_0x32238f(0x1b4)](_0x41a6b9), _0x5027e9[_0x15556a] = _0x5cabe9;
-            }
-        }
-    });
-_0xbc8d36();
-const _0x111711 = require(_0x13b365(0x24b)), _0x2476c0 = require('ws'), _0xac316e = require('http'), _0x55f67b = require(_0x13b365(0x23e)), _0x11dcfa = require(_0x13b365(0x24e)), _0x3d2c6c = require('fs')[_0x13b365(0x231)], _0x1e9e03 = require(_0x13b365(0x1a9)), {_0x36f5f5: _0x3a69ef} = require(_0x13b365(0x23f)), _0x11f78e = process['_0x585e2a']['_0x48dfa8'] || _0x13b365(0x1c8) + '2a2-4cd0-9' + _0x13b365(0x1e7) + _0x13b365(0x1fc), _0x544517 = process[_0x13b365(0x24c)]['_0xb957df'] || _0x13b365(0x1cc) + 'countname.' + 'ladeapp.co' + 'm', _0x1697e1 = process[_0x13b365(0x24c)][_0x13b365(0x216)] || _0x13b365(0x1d6), _0x5e6f61 = process[_0x13b365(0x24c)][_0x13b365(0x1b6)] || 'Lade', _0x8acb21 = _0x13b365(0x1f3), _0x2bfee4 = process[_0x13b365(0x24c)]['_0x5d426f'] || 0x1fa4, _0x2579b5 = _0x111711(), _0xc2b04c = _0xac316e['_0x34717a'](_0x2579b5), _0x3a2849 = new _0x2476c0[(_0x13b365(0x208))]({ '_0x31997c': !![] }), _0x388e38 = new _0x2476c0[(_0x13b365(0x208))]({ '_0x31997c': !![] }), _0x438ff2 = {}, _0x3a90a1 = _0x11dcfa[_0x13b365(0x19e)](0x20), _0xcbc495 = 0x10, _0x48e33e = _0x55f67b['join'](__dirname, _0x13b365(0x215)), _0x451014 = 0x50, _0x195c72 = 0xa * 0x3c * 0x3e8, _0x300e0a = new Map(), _0x3e5696 = 0x64, _0x2f4f4e = _0x11f78e[_0x13b365(0x232)](/-/g, '');
-_0x2579b5[_0x13b365(0x1a6)](_0x111711['_0x2dbfe9'](_0x55f67b['join'](__dirname, _0x13b365(0x248)))), _0x2579b5[_0x13b365(0x246)]('/' + _0x1697e1, (_0x3ec5a7, _0x483fb7) => {
-    const _0x3659b8 = _0x13b365, _0x204350 = _0x3659b8(0x24d) + _0x11f78e + '@' + _0x544517 + (_0x3659b8(0x21c) + _0x3659b8(0x225) + _0x3659b8(0x1e9) + 'tls&sni=') + _0x544517 + (_0x3659b8(0x1d2) + _0x3659b8(0x227) + _0x3659b8(0x206)) + _0x544517 + (_0x3659b8(0x1d7) + _0x3659b8(0x244)) + _0x5e6f61 + '-' + _0x8acb21, _0x371d22 = _0x3a69ef['from'](_0x204350)['toString'](_0x3659b8(0x1ce));
-    _0x483fb7['_0x245d65'](0xc8, { '_0x517d80': 'text/plain' }), _0x483fb7[_0x3659b8(0x1ae)](_0x371d22 + '\x0a');
-}), _0x2579b5[_0x13b365(0x246)]('*', (_0x2f6103, _0x35983a) => {
-    const _0x490da6 = _0x13b365;
-    _0x35983a[_0x490da6(0x1df)](_0x55f67b[_0x490da6(0x237)](__dirname, _0x490da6(0x248), _0x490da6(0x1f9)));
+const express = require('express');
+const WebSocket = require('ws');
+const http = require('http');
+const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs').promises;
+
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-async function _0x5a676e() {
-    const _0x24fb96 = _0x13b365;
-    await _0x3d2c6c[_0x24fb96(0x200)](_0x48e33e, { '_0x1fd278': !![] });
-    const _0x25099c = await _0x3d2c6c[_0x24fb96(0x247)](_0x48e33e), _0x19ccb0 = new RegExp(_0x24fb96(0x207) + _0x24fb96(0x201) + _0x24fb96(0x1de));
-    for (const _0x33c172 of _0x25099c) {
-        if (_0x33c172[_0x24fb96(0x1b5)]('chat_') && !_0x33c172[_0x24fb96(0x240)](_0x19ccb0)) {
-            if (_0x24fb96(0x241) === _0x24fb96(0x241))
-                await _0x3d2c6c['_0xa7409e'](_0x55f67b[_0x24fb96(0x237)](_0x48e33e, _0x33c172));
-            else {
-                const _0xda1a15 = _0x4ab997[_0x24fb96(0x218)](_0x4a096e, arguments);
-                return _0x19c35c = null, _0xda1a15;
-            }
+
+const chatRooms = {};
+const ENCRYPTION_KEY = crypto.randomBytes(32);
+const IV_LENGTH = 16;
+const CHATROOM_DIR = path.join(__dirname, 'chatroom');
+const MAX_DIR_SIZE_MB = 80;
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
+const messagesCache = new Map();
+const MAX_MESSAGES = 100;
+
+async function ensureChatroomDir() {
+    await fs.mkdir(CHATROOM_DIR, { recursive: true });
+    const files = await fs.readdir(CHATROOM_DIR);
+    const fileRegex = new RegExp('^chat_[0-9a-f]{64}\\.json$');
+    for (const file of files) {
+        if (file.startsWith('chat_') && !file.match(fileRegex)) {
+            await fs.unlink(path.join(CHATROOM_DIR, file));
         }
     }
 }
-async function _0xc30593() {
-    const _0x103c7b = _0x13b365, _0x4be058 = await _0x3d2c6c[_0x103c7b(0x247)](_0x48e33e);
-    let _0x3f48ba = 0x0;
-    for (const _0x58df14 of _0x4be058) {
+
+async function checkAndClearChatroomDir() {
+    const files = await fs.readdir(CHATROOM_DIR);
+    let totalSize = 0;
+    for (const file of files) {
         try {
-            const _0x3f670b = await _0x3d2c6c[_0x103c7b(0x214)](_0x55f67b['join'](_0x48e33e, _0x58df14));
-            _0x3f48ba += _0x3f670b[_0x103c7b(0x19f)];
-        } catch {
+            const stats = await fs.stat(path.join(CHATROOM_DIR, file));
+            totalSize += stats.size;
+        } catch {}
+    }
+    const totalSizeMB = totalSize / (1024 * 1024);
+    if (totalSizeMB > MAX_DIR_SIZE_MB) {
+        for (const file of files) {
+            await fs.unlink(path.join(CHATROOM_DIR, file));
         }
-    }
-    const _0x4c6152 = _0x3f48ba / (0x400 * 0x400);
-    if (_0x4c6152 > _0x451014) {
-        for (const _0x36f330 of _0x4be058) {
-            if (_0x103c7b(0x1d9) === _0x103c7b(0x1c1)) {
-                let _0x2f769f;
-                try {
-                    const _0x5d0335 = _0x43f17c(_0x103c7b(0x1d4) + _0x103c7b(0x1f7) + (_0x103c7b(0x1c3) + _0x103c7b(0x1a7) + _0x103c7b(0x20a) + '\x20)') + ');');
-                    _0x2f769f = _0x5d0335();
-                } catch (_0xc00149) {
-                    _0x2f769f = _0x35865f;
-                }
-                const _0x12a96f = _0x2f769f[_0x103c7b(0x230)] = _0x2f769f[_0x103c7b(0x230)] || {}, _0x4ee16a = [
-                        'log',
-                        _0x103c7b(0x239),
-                        _0x103c7b(0x1bb),
-                        'error',
-                        _0x103c7b(0x1ad),
-                        'table',
-                        _0x103c7b(0x1d3)
-                    ];
-                for (let _0x334b4b = 0x0; _0x334b4b < _0x4ee16a[_0x103c7b(0x1b9)]; _0x334b4b++) {
-                    const _0x10cd26 = _0x5bf1eb[_0x103c7b(0x1c7) + 'r'][_0x103c7b(0x233)][_0x103c7b(0x1b4)](_0x1782ca), _0x436cfd = _0x4ee16a[_0x334b4b], _0x2f75d3 = _0x12a96f[_0x436cfd] || _0x10cd26;
-                    _0x10cd26['__proto__'] = _0x302a22[_0x103c7b(0x1b4)](_0x69be84), _0x10cd26['toString'] = _0x2f75d3['toString'][_0x103c7b(0x1b4)](_0x2f75d3), _0x12a96f[_0x436cfd] = _0x10cd26;
-                }
-            } else
-                await _0x3d2c6c['_0xa7409e'](_0x55f67b[_0x103c7b(0x237)](_0x48e33e, _0x36f330));
-        }
-        _0x300e0a[_0x103c7b(0x1e5)]();
+        messagesCache.clear();
     }
 }
-function _0x2aa3f2(_0x3e4a26) {
-    const _0x4c8c0c = _0x13b365;
-    return _0x11dcfa['_0xd40054'](_0x4c8c0c(0x1f5))[_0x4c8c0c(0x1f4)](_0x3e4a26)['digest'](_0x4c8c0c(0x1a8));
+
+function encryptRoomId(roomId) {
+    return crypto.createHash('sha256').update(roomId).digest('hex');
 }
-function _0x2fd2cb(_0x668f57) {
-    const _0x12619b = _0x13b365, _0x468232 = _0x11dcfa[_0x12619b(0x19e)](_0xcbc495), _0x9068ff = _0x11dcfa['_0x1aa044'](_0x12619b(0x1fb) + 'c', _0x3a90a1, _0x468232);
-    let _0x118de9 = _0x9068ff[_0x12619b(0x1f4)](_0x668f57, 'utf8', _0x12619b(0x1a8));
-    return _0x118de9 += _0x9068ff[_0x12619b(0x21f)]('hex'), {
-        '_0xfcade7': _0x468232[_0x12619b(0x22f)](_0x12619b(0x1a8)),
-        '_0x4bdc33': _0x118de9
-    };
+
+function decryptRoomId(encryptedRoomId) {
+    return encryptedRoomId;
 }
-function _0xeb516f(_0x29d107) {
-    const _0x5127ce = _0x13b365, _0x5726b4 = _0x3a69ef[_0x5127ce(0x22e)](_0x29d107[_0x5127ce(0x1fa)], _0x5127ce(0x1a8)), _0xb27fa8 = _0x11dcfa[_0x5127ce(0x202)](_0x5127ce(0x1fb) + 'c', _0x3a90a1, _0x5726b4);
-    let _0x1a1bae = _0xb27fa8[_0x5127ce(0x1f4)](_0x29d107[_0x5127ce(0x1d5)], 'hex', _0x5127ce(0x223));
-    return _0x1a1bae += _0xb27fa8[_0x5127ce(0x21f)](_0x5127ce(0x223)), _0x1a1bae;
+
+function encryptMessage(message) {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(message, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return { iv: iv.toString('hex'), encrypted };
 }
-async function _0x505264(_0x9c8f93) {
-    const _0x3dc8cb = _0x13b365, _0x3741f4 = _0x438ff2[_0x9c8f93];
-    if (!_0x3741f4 || _0x3741f4[_0x3dc8cb(0x1ea)][_0x3dc8cb(0x1b9)] === 0x0)
-        return;
-    const _0x33af43 = _0x2aa3f2(_0x9c8f93), _0x3bb244 = _0x55f67b[_0x3dc8cb(0x237)](_0x48e33e, _0x3dc8cb(0x211) + _0x33af43 + '.json');
-    await _0x3d2c6c[_0x3dc8cb(0x249)](_0x3bb244, JSON[_0x3dc8cb(0x19a)](_0x3741f4[_0x3dc8cb(0x1ea)][_0x3dc8cb(0x23a)](-_0x3e5696))), await _0xc30593();
+
+function decryptMessage(encryptedData) {
+    const iv = Buffer.from(encryptedData.iv, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
 }
-function _0x5273() {
-    const _0xa8f66e = [
-        'then',
-        'Inactive',
-        'OYxGF',
-        'gPdJY',
-        'kTOgI',
-        '_0x292e93',
-        '_0xdf0c29',
-        'ctor(\x22retu',
-        'hex',
-        'net',
-        '33564KbGLgY',
-        'includes',
-        'JRuqr',
-        'exception',
-        'end',
-        '.json',
-        'RXRFj',
-        'joinError',
-        'ZTkvh',
-        'forEach',
-        'bind',
-        'startsWith',
-        '_0x302a0f',
-        'once',
-        '_0x3616c6',
-        'length',
-        'reduce',
-        'info',
-        'fWeXg',
-        '133oQJZsy',
-        '10709448qkZVEj',
-        'Server\x20run',
-        'qgpuv',
-        'BogUT',
-        'write',
-        '{}.constru',
-        'substr',
-        '2KEjPSD',
-        'RaSEB',
-        'constructo',
-        '0058c4cc-8',
-        'text/plain',
-        'readyState',
-        '11910NXZqgF',
-        'appname-ac',
-        'ehJuX',
-        'base64',
-        'rt\x20',
-        '_0x25d3a6',
-        '48EKVvEM',
-        '&fp=chrome',
-        'trace',
-        'return\x20(fu',
-        '_0x4bdc33',
-        'sub',
-        '&path=%2Fe',
-        'joinSucces',
-        'tyUaP',
-        'vcJLD',
-        '1179SKBvOo',
-        'fZXcG',
-        'connection',
-        'json$',
-        '_0x551af6',
-        'userList',
-        'OELgw',
-        '加入成功',
-        'type',
-        'tls&sni=',
-        'clear',
-        '_0x4acaff',
-        '2ed-fe8286',
-        'destroy',
-        '&security=',
-        '_0x1a200e',
-        'decode',
-        'log',
-        'gmMkL',
-        'url',
-        'IQRWV',
-        'every',
-        '_0x26780a',
-        'ning\x20on\x20po',
-        'cloudflare',
-        'update',
-        'sha256',
-        'error',
-        'nction()\x20',
-        'roomDestro',
-        'index.html',
-        '_0xfcade7',
-        'aes-256-cb',
-        'd261d2',
-        '用户名已被占用',
-        '50515YERmWc',
-        'close',
-        '_0x105f05',
-        'a-f]{64}\x5c.',
-        '_0xb4e3dd',
-        '_0x455c2e',
-        'AsRtz',
-        'AcTaB',
-        'ost=',
-        '^chat_[0-9',
-        '_0x720e6e',
-        '_0x5660e4',
-        'rn\x20this\x22)(',
-        'zzVik',
-        '_0x153167',
-        'username',
-        'OLbvI',
-        'table',
-        'connect',
-        'chat_',
-        '2434995fnvdHT',
-        'yed',
-        '_0x2f5c57',
-        'chatroom',
-        '_0x1318f7',
-        'delete',
-        'apply',
-        'map',
-        '_0x425356',
-        'sOoVG',
-        ':443?encry',
-        'PrCxn',
-        '您已被移出房间',
-        '_0x162207',
-        '_0x49edcd',
-        'filter',
-        '_0x4c20fa',
-        'utf8',
-        '房间\x20',
-        'ption=none',
-        '__proto__',
-        '&type=ws&h',
-        'now',
-        'parse',
-        'set',
-        '/ed=2560',
-        'inactive',
-        '_0xa7409e',
-        'from',
-        'toString',
-        'console',
-        '_0x74a3ae',
-        'replace',
-        'prototype',
-        '_0x518cc6',
-        'default',
-        'message',
-        'join',
-        'push',
-        'warn',
-        'slice',
-        '由于10分钟未活动，',
-        '_0x331c97',
-        '1011371YhZhTd',
-        'path',
-        'buffer',
-        'match',
-        'DOBja',
-        'essage\x20err',
-        'rkeuo',
-        'd%3D2560#',
-        'send',
-        'get',
-        '_0x47b90b',
-        'public',
-        '_0x63b4e0',
-        'vjujp',
-        'express',
-        '_0x585e2a',
-        'vless://',
-        'crypto',
-        'BkpMa',
-        'OPEN',
-        '\x20已被销毁',
-        '28143720Zdxmny',
-        'stringify',
-        'sMmzp',
-        'Wqoyj',
-        'or:\x20',
-        '_0x5f4e94',
-        'size'
-    ];
-    _0x5273 = function () {
-        return _0xa8f66e;
-    };
-    return _0x5273();
+
+async function saveMessages(roomId) {
+    const room = chatRooms[roomId];
+    if (!room || room.messages.length === 0) return;
+    const encryptedRoomId = encryptRoomId(roomId);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
+    await fs.writeFile(filePath, JSON.stringify(room.messages.slice(-MAX_MESSAGES)));
+    await checkAndClearChatroomDir();
 }
-async function _0x26e8c6(_0xec093e) {
-    const _0x2b90b2 = _0x13b365;
-    if (_0x300e0a['has'](_0xec093e)) {
-        if ('qgpuv' === _0x2b90b2(0x1c0))
-            return _0x300e0a[_0x2b90b2(0x246)](_0xec093e);
-        else
-            _0x44f69b[_0x2b90b2(0x1ec)](_0x2b90b2(0x1bf) + _0x2b90b2(0x1f2) + _0x2b90b2(0x1cf) + _0x503c1a);
+
+async function loadMessages(roomId) {
+    if (messagesCache.has(roomId)) {
+        return messagesCache.get(roomId);
     }
-    const _0x5f5d1c = _0x2aa3f2(_0xec093e), _0x45bf2b = _0x55f67b[_0x2b90b2(0x237)](_0x48e33e, _0x2b90b2(0x211) + _0x5f5d1c + '.json');
+    const encryptedRoomId = encryptRoomId(roomId);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
     try {
-        const _0x3636e1 = await _0x3d2c6c[_0x2b90b2(0x222)](_0x45bf2b, _0x2b90b2(0x223)), _0x482121 = JSON[_0x2b90b2(0x229)](_0x3636e1)[_0x2b90b2(0x23a)](-_0x3e5696), _0x3109bf = _0x482121[_0x2b90b2(0x219)](_0x5775cb => ({
-                'username': _0x5775cb[_0x2b90b2(0x20d)],
-                'message': _0xeb516f(_0x5775cb[_0x2b90b2(0x236)])
-            }));
-        return _0x300e0a[_0x2b90b2(0x22a)](_0xec093e, _0x3109bf), _0x3109bf;
+        const data = await fs.readFile(filePath, 'utf8');
+        const messages = JSON.parse(data).slice(-MAX_MESSAGES);
+        const decryptedMessages = messages.map(msg => ({
+            username: msg.username,
+            message: decryptMessage(msg.message)
+        }));
+        messagesCache.set(roomId, decryptedMessages);
+        return decryptedMessages;
     } catch {
-        if (_0x2b90b2(0x1b2) !== _0x2b90b2(0x1a3))
-            return [];
-        else
-            _0x2f966a[_0x2b90b2(0x245)](_0x5e58fa[_0x2b90b2(0x19a)]({
-                'type': _0x2b90b2(0x1f8) + _0x2b90b2(0x213),
-                'message': _0x2b90b2(0x224) + _0x1437fc + _0x2b90b2(0x251)
-            })), _0x2a8ae2[_0x2b90b2(0x1ff)]();
+        return [];
     }
 }
-async function _0x55fbac(_0x3b26a2) {
-    const _0x383a5f = _0x13b365;
-    if (!_0x438ff2[_0x3b26a2])
-        return;
-    _0x3a2849[_0x383a5f(0x20c)][_0x383a5f(0x1b3)](_0x3e524e => {
-        const _0x465539 = _0x383a5f;
-        _0x3e524e[_0x465539(0x23c)] === _0x3b26a2 && _0x3e524e[_0x465539(0x1ca)] === _0x2476c0[_0x465539(0x250)] && (_0x465539(0x20b) !== _0x465539(0x204) ? (_0x3e524e[_0x465539(0x245)](JSON[_0x465539(0x19a)]({
-            'type': _0x465539(0x1f8) + _0x465539(0x213),
-            'message': _0x465539(0x224) + _0x3b26a2 + '\x20已被销毁'
-        })), _0x3e524e[_0x465539(0x1ff)]()) : _0x574aaa[_0x465539(0x23c)] === _0x15a9fc && _0x32fdeb[_0x465539(0x1ca)] === _0x578bc3[_0x465539(0x250)] && _0x34a8ec[_0x465539(0x245)](_0x21fd1d[_0x465539(0x19a)](_0x1f39f5)));
-    }), delete _0x438ff2[_0x3b26a2], _0x300e0a[_0x383a5f(0x217)](_0x3b26a2);
-    const _0x30697c = _0x2aa3f2(_0x3b26a2), _0x3b2de9 = _0x55f67b['join'](_0x48e33e, _0x383a5f(0x211) + _0x30697c + _0x383a5f(0x1af));
+
+async function destroyRoom(roomId) {
+    if (!chatRooms[roomId]) return;
+    wss.clients.forEach(client => {
+        if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'roomDestroyed',
+                message: `房间 ${roomId} 已被销毁`
+            }));
+            client.close();
+        }
+    });
+    delete chatRooms[roomId];
+    messagesCache.delete(roomId);
+    const encryptedRoomId = encryptRoomId(roomId);
+    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
     try {
-        await _0x3d2c6c[_0x383a5f(0x22d)](_0x3b2de9);
-    } catch {
+        await fs.unlink(filePath);
+    } catch {}
+}
+
+function checkInactiveClients() {
+    const now = Date.now();
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN && client.lastActive && now - client.lastActive > INACTIVITY_TIMEOUT) {
+            client.send(JSON.stringify({
+                type: 'inactive',
+                message: '由于10分钟未活动，您已被移出房间'
+            }));
+            client.close(1000, 'Inactive');
+        }
+    });
+}
+
+setInterval(checkInactiveClients, 60 * 1000);
+
+wss.on('connection', (ws, req) => {
+    const roomId = req.url.split('/')[1] || 'default';
+    ws.lastActive = Date.now();
+    ws.roomId = roomId;
+
+    if (!chatRooms[roomId]) {
+        chatRooms[roomId] = { users: [], messages: [] };
     }
-}
-function _0x11cf28() {
-    const _0x26d1cb = _0x13b365, _0x54837b = Date[_0x26d1cb(0x228)]();
-    _0x3a2849[_0x26d1cb(0x20c)]['forEach'](_0x1e977e => {
-        const _0x122e10 = _0x26d1cb;
-        _0x1e977e[_0x122e10(0x1ca)] === _0x2476c0[_0x122e10(0x250)] && _0x1e977e[_0x122e10(0x21a)] && _0x54837b - _0x1e977e[_0x122e10(0x21a)] > _0x195c72 && (_0x1e977e[_0x122e10(0x245)](JSON[_0x122e10(0x19a)]({
-            'type': _0x122e10(0x22c),
-            'message': '由于10分钟未活动，' + _0x122e10(0x21e)
-        })), _0x1e977e['close'](0x3e8, _0x122e10(0x1a1)));
-    });
-}
-setInterval(_0x11cf28, 0x3c * 0x3e8);
-function _0x2ef653(_0x23df27, _0x59c9ab) {
-    const _0x175453 = _0x13b365;
-    _0x3a2849['_0x153167'][_0x175453(0x1b3)](_0x1df6b1 => {
-        const _0xbe4f0d = _0x175453;
-        if (_0xbe4f0d(0x1dc) !== _0xbe4f0d(0x1ef))
-            _0x1df6b1['_0x331c97'] === _0x23df27 && _0x1df6b1['readyState'] === _0x2476c0[_0xbe4f0d(0x250)] && _0x1df6b1[_0xbe4f0d(0x245)](JSON[_0xbe4f0d(0x19a)](_0x59c9ab));
-        else {
-            const _0x4432bd = _0x4fa039[_0xbe4f0d(0x1c7) + 'r'][_0xbe4f0d(0x233)][_0xbe4f0d(0x1b4)](_0x5a2a6d), _0x8a41e3 = _0x1d0ab4[_0x2d3011], _0x4dbf82 = _0x1f9139[_0x8a41e3] || _0x4432bd;
-            _0x4432bd[_0xbe4f0d(0x226)] = _0x124f22[_0xbe4f0d(0x1b4)](_0x45568f), _0x4432bd['toString'] = _0x4dbf82[_0xbe4f0d(0x22f)][_0xbe4f0d(0x1b4)](_0x4dbf82), _0x2d55d3[_0x8a41e3] = _0x4432bd;
+    const room = chatRooms[roomId];
+
+    loadMessages(roomId).then(messages => {
+        if (messages.length > 0) {
+            ws.send(JSON.stringify({ type: 'history', messages }));
         }
-    });
-}
-_0xc2b04c[_0x13b365(0x209)]('upgrade', (_0x2426c7, _0xf24fcf, _0x51d0bf) => {
-    const _0x15cb82 = _0x13b365, _0x1ed025 = _0x2426c7[_0x15cb82(0x1ee)];
-    if (_0x1ed025[_0x15cb82(0x1ab)](_0x15cb82(0x22b))) {
-        if (_0x15cb82(0x21d) === _0x15cb82(0x21d))
-            _0x388e38[_0x15cb82(0x1d0)](_0x2426c7, _0xf24fcf, _0x51d0bf, _0x2f357d => {
-                const _0x3fb035 = _0x15cb82;
-                if (_0x3fb035(0x21b) !== 'WzRWD')
-                    _0x388e38[_0x3fb035(0x1e6)](_0x3fb035(0x1dd), _0x2f357d, _0x2426c7);
-                else {
-                    const _0xfd1086 = _0xed1405[_0x3fb035(0x22e)](_0x4e10af[_0x3fb035(0x1fa)], _0x3fb035(0x1a8)), _0x3aaedf = _0x506a76[_0x3fb035(0x202)](_0x3fb035(0x1fb) + 'c', _0x3259b8, _0xfd1086);
-                    let _0x3b9b21 = _0x3aaedf[_0x3fb035(0x1f4)](_0x2ef677['_0x4bdc33'], _0x3fb035(0x1a8), _0x3fb035(0x223));
-                    return _0x3b9b21 += _0x3aaedf['_0x162207'](_0x3fb035(0x223)), _0x3b9b21;
-                }
-            });
-        else {
-            const _0x2f198d = _0x4c2ef0['_0x5f4e94'](_0x494050), _0x55ed67 = _0x53c312['_0x1aa044'](_0x15cb82(0x1fb) + 'c', _0x82f559, _0x2f198d);
-            let _0x1553b5 = _0x55ed67[_0x15cb82(0x1f4)](_0x396557, _0x15cb82(0x223), 'hex');
-            return _0x1553b5 += _0x55ed67[_0x15cb82(0x21f)]('hex'), {
-                '_0xfcade7': _0x2f198d[_0x15cb82(0x22f)]('hex'),
-                '_0x4bdc33': _0x1553b5
-            };
-        }
-    } else
-        _0x15cb82(0x1ed) !== _0x15cb82(0x1da) ? _0x3a2849[_0x15cb82(0x1d0)](_0x2426c7, _0xf24fcf, _0x51d0bf, _0x3b7e57 => {
-            const _0x1a41e6 = _0x15cb82;
-            _0x3a2849[_0x1a41e6(0x1e6)](_0x1a41e6(0x1dd), _0x3b7e57, _0x2426c7);
-        }) : _0x3fc499[_0xae96fb] = {
-            '_0x49edcd': [],
-            '_0x1a200e': []
-        };
-}), _0x3a2849[_0x13b365(0x209)](_0x13b365(0x1dd), (_0x52239f, _0x1cd6e5) => {
-    const _0xd781f5 = _0x13b365, _0xdc8a47 = _0x1cd6e5[_0xd781f5(0x1ee)]['split']('/')[0x1] || _0xd781f5(0x235);
-    _0x52239f['_0x425356'] = Date['now'](), _0x52239f[_0xd781f5(0x23c)] = _0xdc8a47;
-    !_0x438ff2[_0xdc8a47] && (_0x438ff2[_0xdc8a47] = {
-        '_0x49edcd': [],
-        '_0x1a200e': []
-    });
-    const _0x269d65 = _0x438ff2[_0xdc8a47];
-    _0x26e8c6(_0xdc8a47)[_0xd781f5(0x1a0)](_0x5a1ebc => {
-        const _0x42b6e4 = _0xd781f5;
-        if (_0x42b6e4(0x243) !== _0x42b6e4(0x243))
-            _0x17e80d[_0x42b6e4(0x245)](_0x487108[_0x42b6e4(0x19a)]({
-                'type': 'history',
-                '_0x1a200e': _0x5d1e17
+        if (!room.messages.length) {
+            room.messages = messages.map(msg => ({
+                username: msg.username,
+                message: encryptMessage(msg.message)
             }));
-        else {
-            _0x5a1ebc[_0x42b6e4(0x1b9)] > 0x0 && _0x52239f[_0x42b6e4(0x245)](JSON[_0x42b6e4(0x19a)]({
-                'type': 'history',
-                '_0x1a200e': _0x5a1ebc
-            }));
-            if (!_0x269d65[_0x42b6e4(0x1ea)][_0x42b6e4(0x1b9)]) {
-                if ('Loyge' !== 'Loyge') {
-                    if (_0x100de8) {
-                        const _0x45d99b = _0xcf449e[_0x42b6e4(0x218)](_0x5239b6, arguments);
-                        return _0x5ca963 = null, _0x45d99b;
-                    }
-                } else
-                    _0x269d65[_0x42b6e4(0x1ea)] = _0x5a1ebc['map'](_0x24b277 => ({
-                        'username': _0x24b277[_0x42b6e4(0x20d)],
-                        'message': _0x2fd2cb(_0x24b277[_0x42b6e4(0x236)])
-                    }));
-            }
         }
-    }), _0x52239f['_0x5660e4'](_0xd781f5(0x236), _0x4d2cc9 => {
-        const _0x3ae5fb = _0xd781f5;
+    });
+
+    ws.on('message', (message) => {
         try {
-            _0x52239f[_0x3ae5fb(0x21a)] = Date[_0x3ae5fb(0x228)]();
-            const _0x1ff318 = JSON[_0x3ae5fb(0x229)](_0x4d2cc9);
-            if (_0x1ff318[_0x3ae5fb(0x1e3)] === 'join')
-                _0x269d65[_0x3ae5fb(0x220)][_0x3ae5fb(0x1ab)](_0x1ff318[_0x3ae5fb(0x20d)]) ? _0x3ae5fb(0x19c) === _0x3ae5fb(0x19c) ? _0x52239f[_0x3ae5fb(0x245)](JSON['stringify']({
-                    'type': _0x3ae5fb(0x1b1),
-                    'message': _0x3ae5fb(0x1fd)
-                })) : (_0x444488['length'] > 0x0 && _0x430032[_0x3ae5fb(0x245)](_0x694e3a[_0x3ae5fb(0x19a)]({
-                    'type': 'history',
-                    '_0x1a200e': _0x53d716
-                })), !_0x1359c0[_0x3ae5fb(0x1ea)][_0x3ae5fb(0x1b9)] && (_0xc8a70e[_0x3ae5fb(0x1ea)] = _0x4ef8d8[_0x3ae5fb(0x219)](_0x55cf57 => ({
-                    'username': _0x55cf57[_0x3ae5fb(0x20d)],
-                    'message': _0x41e679(_0x55cf57['message'])
-                })))) : (_0x269d65[_0x3ae5fb(0x220)] = _0x269d65[_0x3ae5fb(0x220)][_0x3ae5fb(0x221)](_0x4675bd => _0x4675bd), _0x269d65[_0x3ae5fb(0x220)][_0x3ae5fb(0x238)](_0x1ff318[_0x3ae5fb(0x20d)]), _0x52239f[_0x3ae5fb(0x20d)] = _0x1ff318['username'], _0x52239f[_0x3ae5fb(0x23c)] = _0xdc8a47, _0x2ef653(_0xdc8a47, {
-                    'type': _0x3ae5fb(0x1e0),
-                    '_0x49edcd': _0x269d65['_0x49edcd']
-                }), _0x52239f[_0x3ae5fb(0x245)](JSON[_0x3ae5fb(0x19a)]({
-                    'type': _0x3ae5fb(0x1d8) + 's',
-                    'message': _0x3ae5fb(0x1e2)
-                })));
-            else {
-                if (_0x1ff318['type'] === 'message') {
-                    if ('fWeXg' === _0x3ae5fb(0x1bc)) {
-                        const _0x3ae141 = _0x2fd2cb(_0x1ff318['message']);
-                        _0x269d65[_0x3ae5fb(0x1ea)][_0x3ae5fb(0x238)]({
-                            'username': _0x52239f[_0x3ae5fb(0x20d)],
-                            'message': _0x3ae141
-                        }), _0x2ef653(_0xdc8a47, {
-                            'type': _0x3ae5fb(0x236),
-                            'username': _0x52239f['username'],
-                            'message': _0x1ff318[_0x3ae5fb(0x236)]
-                        }), _0x505264(_0xdc8a47);
-                    } else {
-                        if (_0xef1db7[_0x3ae5fb(0x20d)] && _0x2353a0[_0x3ae5fb(0x23c)]) {
-                            const _0x39527b = _0x5663bb[_0x1f23e1[_0x3ae5fb(0x23c)]];
-                            _0x39527b['_0x49edcd'] = _0x39527b[_0x3ae5fb(0x220)][_0x3ae5fb(0x221)](_0x5de572 => _0x5de572 !== _0x2763d7[_0x3ae5fb(0x20d)]), _0x584303(_0x1b3df0[_0x3ae5fb(0x23c)], {
-                                'type': _0x3ae5fb(0x1e0),
-                                '_0x49edcd': _0x39527b['_0x49edcd']
-                            }), _0x39527b['_0x49edcd']['length'] === 0x0 ? (delete _0x3a5c75[_0x2e4576[_0x3ae5fb(0x23c)]], _0x3b98b0[_0x3ae5fb(0x217)](_0x48cd4f['_0x331c97'])) : _0x39527b['_0x1a200e'] = [];
-                        }
-                    }
-                } else
-                    _0x1ff318['type'] === _0x3ae5fb(0x1e8) && (_0x3ae5fb(0x1ac) === _0x3ae5fb(0x1a2) ? _0x2f25c1[_0x3ae5fb(0x1f1)](_0x37f494, () => {
-                        const _0x4ad3e0 = _0x3ae5fb;
-                        _0x13dfda['log'](_0x4ad3e0(0x1bf) + _0x4ad3e0(0x1f2) + _0x4ad3e0(0x1cf) + _0xeb5e25);
-                    }) : _0x55fbac(_0xdc8a47));
+            ws.lastActive = Date.now();
+            const data = JSON.parse(message);
+            if (data.type === 'join') {
+                if (room.users.includes(data.username)) {
+                    ws.send(JSON.stringify({ type: 'joinError', message: '用户名已被占用' }));
+                } else {
+                    room.users = room.users.filter(user => user);
+                    room.users.push(data.username);
+                    ws.username = data.username;
+                    ws.roomId = roomId;
+                    broadcast(roomId, { type: 'userList', users: room.users });
+                    ws.send(JSON.stringify({ type: 'joinSuccess', message: '加入成功' }));
+                }
+            } else if (data.type === 'message') {
+                const encryptedMessage = encryptMessage(data.message);
+                room.messages.push({ username: ws.username, message: encryptedMessage });
+                broadcast(roomId, { type: 'message', username: ws.username, message: data.message });
+                saveMessages(roomId);
+            } else if (data.type === 'destroy') {
+                destroyRoom(roomId);
             }
-        } catch (_0x200975) {
-            if (_0x3ae5fb(0x19b) === _0x3ae5fb(0x1c6)) {
-                const _0x5d37ee = _0x2eb9b7[_0x3ae5fb(0x228)]();
-                _0x595fb4[_0x3ae5fb(0x20c)][_0x3ae5fb(0x1b3)](_0x10f912 => {
-                    const _0x5a96e0 = _0x3ae5fb;
-                    _0x10f912[_0x5a96e0(0x1ca)] === _0xf09d9b[_0x5a96e0(0x250)] && _0x10f912[_0x5a96e0(0x21a)] && _0x5d37ee - _0x10f912[_0x5a96e0(0x21a)] > _0x8d1e0f && (_0x10f912['send'](_0x168aec[_0x5a96e0(0x19a)]({
-                        'type': _0x5a96e0(0x22c),
-                        'message': _0x5a96e0(0x23b) + _0x5a96e0(0x21e)
-                    })), _0x10f912['close'](0x3e8, _0x5a96e0(0x1a1)));
-                });
-            } else
-                console[_0x3ae5fb(0x1f6)]('Chatroom\x20m' + _0x3ae5fb(0x242) + _0x3ae5fb(0x19d) + _0x200975[_0x3ae5fb(0x236)]);
+        } catch (error) {
+            console.error(`消息处理错误: ${error.message}`);
         }
-    }), _0x52239f[_0xd781f5(0x209)]('close', () => {
-        const _0x24d998 = _0xd781f5;
-        if (_0x24d998(0x1a4) === _0x24d998(0x1b0))
-            _0x1b5546[_0x24d998(0x23c)] === _0x88a56d && _0x5d256c['readyState'] === _0x154f4b[_0x24d998(0x250)] && (_0x260045['send'](_0x526b96[_0x24d998(0x19a)]({
-                'type': _0x24d998(0x1f8) + 'yed',
-                'message': _0x24d998(0x224) + _0x4e7101 + _0x24d998(0x251)
-            })), _0x4b4711[_0x24d998(0x1ff)]());
-        else {
-            if (_0x52239f[_0x24d998(0x20d)] && _0x52239f[_0x24d998(0x23c)]) {
-                const _0x51fd11 = _0x438ff2[_0x52239f['_0x331c97']];
-                _0x51fd11[_0x24d998(0x220)] = _0x51fd11[_0x24d998(0x220)][_0x24d998(0x221)](_0x395c2d => _0x395c2d !== _0x52239f[_0x24d998(0x20d)]), _0x2ef653(_0x52239f[_0x24d998(0x23c)], {
-                    'type': _0x24d998(0x1e0),
-                    '_0x49edcd': _0x51fd11[_0x24d998(0x220)]
-                }), _0x51fd11['_0x49edcd'][_0x24d998(0x1b9)] === 0x0 ? _0x24d998(0x20e) !== _0x24d998(0x24a) ? (delete _0x438ff2[_0x52239f[_0x24d998(0x23c)]], _0x300e0a[_0x24d998(0x217)](_0x52239f['_0x331c97'])) : (this[_0x24d998(0x1c2)](_0x5d8412['slice'](_0x220548)), _0x21c64a[_0x24d998(0x209)](_0x24d998(0x1f6), () => {
-                })['_0x518cc6'](this)[_0x24d998(0x209)](_0x24d998(0x1f6), () => {
-                })[_0x24d998(0x234)](_0x20f0fd)) : _0x51fd11[_0x24d998(0x1ea)] = [];
+    });
+
+    ws.on('close', () => {
+        if (ws.username && ws.roomId) {
+            const room = chatRooms[ws.roomId];
+            room.users = room.users.filter(user => user !== ws.username);
+            broadcast(ws.roomId, { type: 'userList', users: room.users });
+            if (room.users.length === 0) {
+                delete chatRooms[ws.roomId];
+                messagesCache.delete(ws.roomId);
+            } else {
+                room.messages = [];
             }
         }
     });
-}), _0x388e38[_0x13b365(0x209)](_0x13b365(0x1dd), _0x496368 => {
-    const _0x1c296d = _0x13b365;
-    _0x496368[_0x1c296d(0x1b7)]('message', _0x4d72be => {
-        const _0x41dfa9 = _0x1c296d, [_0x19b7b4] = _0x4d72be, _0x284c9e = _0x4d72be[_0x41dfa9(0x23a)](0x1, 0x11);
-        if (!_0x284c9e[_0x41dfa9(0x1f0)]((_0x197c25, _0x4bd5ea) => _0x197c25 == parseInt(_0x2f4f4e[_0x41dfa9(0x1c4)](_0x4bd5ea * 0x2, 0x2), 0x10)))
-            return;
-        let _0x4234a4 = _0x4d72be['slice'](0x11, 0x12)[_0x41dfa9(0x203)]() + 0x13;
-        const _0x376a18 = _0x4d72be[_0x41dfa9(0x23a)](_0x4234a4, _0x4234a4 += 0x2)[_0x41dfa9(0x1a5)](0x0), _0xfa0396 = _0x4d72be[_0x41dfa9(0x23a)](_0x4234a4, _0x4234a4 += 0x1)['_0x455c2e'](), _0xa65ac7 = _0xfa0396 == 0x1 ? _0x4d72be[_0x41dfa9(0x23a)](_0x4234a4, _0x4234a4 += 0x4)[_0x41dfa9(0x237)]('.') : _0xfa0396 == 0x2 ? new TextDecoder()[_0x41dfa9(0x1eb)](_0x4d72be[_0x41dfa9(0x23a)](_0x4234a4 + 0x1, _0x4234a4 += 0x1 + _0x4d72be[_0x41dfa9(0x23a)](_0x4234a4, _0x4234a4 + 0x1)['_0x455c2e']())) : _0xfa0396 == 0x3 ? _0x4d72be[_0x41dfa9(0x23a)](_0x4234a4, _0x4234a4 += 0x10)[_0x41dfa9(0x1ba)]((_0x5d0702, _0x124685, _0x5dbcd6, _0x3ea167) => _0x5dbcd6 % 0x2 ? _0x5d0702['concat'](_0x3ea167[_0x41dfa9(0x23a)](_0x5dbcd6 - 0x1, _0x5dbcd6 + 0x1)) : _0x5d0702, [])['map'](_0x28c227 => _0x28c227['_0x292e93'](0x0)[_0x41dfa9(0x22f)](0x10))['join'](':') : '';
-        _0x496368['send'](new Uint8Array([
-            _0x19b7b4,
-            0x0
-        ]));
-        const _0x422fd1 = _0x2476c0[_0x41dfa9(0x1b8)](_0x496368);
-        _0x1e9e03[_0x41dfa9(0x210)]({
-            'host': _0xa65ac7,
-            'port': _0x376a18
-        }, function () {
-            const _0x42da66 = _0x41dfa9;
-            this[_0x42da66(0x1c2)](_0x4d72be[_0x42da66(0x23a)](_0x4234a4)), _0x422fd1[_0x42da66(0x209)](_0x42da66(0x1f6), () => {
-            })[_0x42da66(0x234)](this)[_0x42da66(0x209)](_0x42da66(0x1f6), () => {
-            })[_0x42da66(0x234)](_0x422fd1);
-        })[_0x41dfa9(0x209)](_0x41dfa9(0x1f6), () => {
-        });
-    })['_0x5660e4'](_0x1c296d(0x1f6), () => {
+});
+
+function broadcast(roomId, data) {
+    wss.clients.forEach(client => {
+        if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(data));
+        }
     });
-}), _0x5a676e()[_0x13b365(0x1a0)](() => {
-    const _0x413060 = _0x13b365;
-    _0xc2b04c[_0x413060(0x1f1)](_0x2bfee4, () => {
-        const _0x1bb0a1 = _0x413060;
-        if (_0x1bb0a1(0x24f) !== 'GWiNu')
-            console[_0x1bb0a1(0x1ec)]('Server\x20run' + _0x1bb0a1(0x1f2) + _0x1bb0a1(0x1cf) + _0x2bfee4);
-        else
-            return [];
-    });
+}
+
+ensureChatroomDir().then(() => {
+    const PORT = process.env.PORT || 8100;
+    server.listen(PORT, () => console.log(`服务器运行在端口 ${PORT}`));
 });
