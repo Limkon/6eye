@@ -74,6 +74,7 @@ fi
 # 安装 axios
 echo "📦 安装 axios..."
 npm install axios
+npm install express ws
 
 # 创建开机启动项
 mkdir -p "$HOME/.config/autostart"
