@@ -1,4 +1,7 @@
 #!/bin/bash
+set -x # 开启执行跟踪
+set -e # 脚本出错时立即退出 (这个应该已经有了)
+set -o pipefail # 管道中的任何命令失败都视为失败 (这个应该已经有了)
 
 # --- 配置开始 ---
 GH_USER="Limkon"                                     # 从日志中获取的 GitHub 用户名
