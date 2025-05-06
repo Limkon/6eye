@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         roomId = id;
         roomLocked = true; // Lock room choice until connection closes or is reset
         currentRoomIdElement.textContent = `当前房间: ${roomId}`;
-        // roomIdInput.value = ''; // Clear after selection
+        roomIdInput.value = ''; // Clear after selection
         connect();
     };
     if (joinRoomButton) {
