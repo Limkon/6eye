@@ -7,13 +7,13 @@ const fs = require('fs').promises;
 const { URL } = require('url');
 
 // --- 配置常量 ---
-const KEY_FILE_PATH = path.join(__dirname, '.encryption_key'); // 存储加密密钥的文件
-let ENCRYPTION_KEY; // 将在此处加载或生成
+const KEY_FILE_PATH = path.join(__dirname, '.encryption_key');
+let ENCRYPTION_KEY;
 
 const IV_LENGTH = 16;
 const CHATROOM_DIR = path.join(__dirname, 'chatroom');
-const MAX_DIR_SIZE_MB = 80; // MB
-const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 分钟
+const MAX_DIR_SIZE_MB = 80;
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
 const messagesCache = new Map();
 const MAX_MESSAGES_PER_ROOM_FILE = 100;
 const MAX_MESSAGES_IN_MEMORY = 100;
@@ -29,24 +29,16 @@ app.get('*', (req, res) => {
 
 const chatRooms = {};
 
-/**
- * 加载或生成加密密钥。
- * 优先顺序: 环境变量 -> 密钥文件 -> 生成新密钥并保存。
- * @returns {Promise<Buffer>} 加密密钥 Buffer
- */
 async function loadOrGenerateEncryptionKey() {
-    // 1. 尝试从环境变量加载
     const envKeyHex = process.env.CHAT_ENCRYPTION_KEY;
     if (envKeyHex) {
         if (envKeyHex.length === 64 && /^[0-9a-fA-F]+$/.test(envKeyHex)) {
             console.log("已从 CHAT_ENCRYPTION_KEY 环境变量加载加密密钥。");
             return Buffer.from(envKeyHex, 'hex');
         } else {
-            console.warn("警告: CHAT_ENCRYPTION_KEY 环境变量格式无效 (需要64位十六进制字符串)，将尝试从文件加载或生成新密钥。");
+            console.warn("警告: CHAT_ENCRYPTION_KEY 环境变量格式无效，将尝试从文件加载或生成新密钥。");
         }
     }
-
-    // 2. 尝试从文件加载
     try {
         const fileKeyHex = await fs.readFile(KEY_FILE_PATH, 'utf8');
         if (fileKeyHex && fileKeyHex.trim().length === 64 && /^[0-9a-fA-F]+$/.test(fileKeyHex.trim())) {
@@ -56,37 +48,26 @@ async function loadOrGenerateEncryptionKey() {
             console.warn(`警告: 文件 ${KEY_FILE_PATH} 中的密钥无效或格式不正确。将生成新密钥。`);
         }
     } catch (error) {
-        if (error.code !== 'ENOENT') { // ENOENT 表示文件不存在，这是正常的首次运行情况
+        if (error.code !== 'ENOENT') {
             console.warn(`警告: 读取密钥文件 ${KEY_FILE_PATH} 失败 (错误: ${error.message})。将生成新密钥。`);
         } else {
-            console.log(`信息: 密钥文件 ${KEY_FILE_PATH} 未找到。这是首次运行的正常情况，将生成新密钥。`);
+            console.log(`信息: 密钥文件 ${KEY_FILE_PATH} 未找到。将生成新密钥。`);
         }
     }
-
-    // 3. 生成新密钥并保存到文件
     console.log(`正在生成新的加密密钥...`);
     const newKeyBuffer = crypto.randomBytes(32);
     const newKeyHex = newKeyBuffer.toString('hex');
     try {
-        await fs.writeFile(KEY_FILE_PATH, newKeyHex, { encoding: 'utf8', mode: 0o600 }); // 设置文件权限为仅所有者可读写
+        await fs.writeFile(KEY_FILE_PATH, newKeyHex, { encoding: 'utf8', mode: 0o600 });
         console.log(`新的加密密钥已生成并保存到 ${KEY_FILE_PATH}。`);
-        console.warn(`重要提示:`);
-        console.warn(`  - 请务必备份 ${KEY_FILE_PATH} 文件，或将其中的密钥字符串记录在安全的地方。`);
-        console.warn(`  - 如果此文件或密钥丢失，所有已加密的聊天记录将永久无法恢复！`);
-        console.warn(`  - 强烈建议将 '.encryption_key' 添加到您的 .gitignore 文件中，以避免意外将其提交到版本控制系统。`);
+        console.warn(`重要提示: 请务必备份 ${KEY_FILE_PATH} 文件或密钥字符串。`);
         return newKeyBuffer;
     } catch (writeError) {
         console.error(`致命错误: 无法将新的加密密钥保存到 ${KEY_FILE_PATH}: ${writeError.message}`);
-        console.error("由于无法持久化加密密钥，服务器无法安全启动。请检查文件系统权限。");
-        console.error("您也可以尝试手动设置 CHAT_ENCRYPTION_KEY 环境变量来绕过文件写入问题。");
-        process.exit(1); // 无法保存密钥则退出
+        process.exit(1);
     }
 }
 
-
-/**
- * 确保聊天室目录存在，并清理无效的聊天文件。
- */
 async function ensureChatroomDir() {
     try {
         await fs.mkdir(CHATROOM_DIR, { recursive: true });
@@ -108,10 +89,14 @@ async function ensureChatroomDir() {
     }
 }
 
-/**
- * 检查聊天室目录大小，如果超过限制则清空。
- */
 async function checkAndClearChatroomDir() {
+    // ---- DEBUGGING: Temporarily disable clearing to isolate save issue ----
+    const TEMPORARILY_DISABLE_CLEARING = true; // <--- SET TO true FOR TESTING THIS SPECIFIC SAVE ISSUE
+    if (TEMPORARILY_DISABLE_CLEARING) {
+        console.log(`[${new Date().toISOString()}] DEBUG: checkAndClearChatroomDir: 清理功能已临时禁用。`);
+        return;
+    }
+    // --------------------------------------------------------------------
     try {
         const files = await fs.readdir(CHATROOM_DIR);
         let totalSize = 0;
@@ -120,22 +105,24 @@ async function checkAndClearChatroomDir() {
                 const stats = await fs.stat(path.join(CHATROOM_DIR, file));
                 totalSize += stats.size;
             } catch (statError) {
-                console.error(`获取文件 ${file} 大小失败: ${statError.message}`);
+                // console.error(`获取文件 ${file} 大小失败: ${statError.message}`); // Potentially too noisy
             }
         }
         const totalSizeMB = totalSize / (1024 * 1024);
         if (totalSizeMB > MAX_DIR_SIZE_MB) {
-            console.warn(`聊天室目录大小 (${totalSizeMB.toFixed(2)}MB) 已超过限制 (${MAX_DIR_SIZE_MB}MB)，将清空目录。`);
+            console.warn(`[${new Date().toISOString()}] DEBUG: checkAndClearChatroomDir: 目录大小 (${totalSizeMB.toFixed(2)}MB) 超限 (${MAX_DIR_SIZE_MB}MB)，将清空。`);
             for (const file of files) {
                 try {
+                    console.log(`[${new Date().toISOString()}] DEBUG: checkAndClearChatroomDir: Unlinking file '${file}'`);
                     await fs.unlink(path.join(CHATROOM_DIR, file));
                 } catch (unlinkError) {
                     console.error(`清空目录时删除文件 ${file} 失败: ${unlinkError.message}`);
                 }
             }
             messagesCache.clear();
-            for (const roomId_iterator in chatRooms) { // Renamed to avoid conflict in loops
+            for (const roomId_iterator in chatRooms) {
                 if (chatRooms[roomId_iterator]) {
+                    console.log(`[${new Date().toISOString()}] DEBUG: checkAndClearChatroomDir: Clearing in-memory messages for room '${roomId_iterator}'`);
                     chatRooms[roomId_iterator].messages = [];
                 }
             }
@@ -190,15 +177,36 @@ function decryptMessage(encryptedData) {
 
 async function saveMessages(roomId) {
     const room = chatRooms[roomId];
-    if (!room || room.messages.length === 0) return;
+    console.log(`[${new Date().toISOString()}] DEBUG: saveMessages CALLED for room '${roomId}'. In-memory messages count: ${room ? room.messages.length : 'ROOM IS UNDEFINED'}`);
+    if (!room || room.messages.length === 0) {
+        console.log(`[${new Date().toISOString()}] DEBUG: saveMessages for room '${roomId}' RETURNED EARLY (room undefined or no messages).`);
+        return;
+    }
+
     const encryptedRoomId = encryptRoomIdForFilename(roomId);
     const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
+    console.log(`[${new Date().toISOString()}] DEBUG: saveMessages for room '${roomId}' will write to file: '${filePath}'`);
     try {
         const messagesToSave = room.messages.slice(-MAX_MESSAGES_PER_ROOM_FILE);
-        await fs.writeFile(filePath, JSON.stringify(messagesToSave));
-        await checkAndClearChatroomDir(); // 每次保存后检查目录大小
+        console.log(`[${new Date().toISOString()}] DEBUG: saveMessages for room '${roomId}', messagesToSave count: ${messagesToSave.length}.`);
+        if (messagesToSave.length > 0) {
+            const lastMsgToSave = messagesToSave[messagesToSave.length - 1];
+            // Log something identifiable from the last message to confirm it's the new one
+            console.log(`[${new Date().toISOString()}] DEBUG: Last message in messagesToSave (user: ${lastMsgToSave.username}, timestamp: ${lastMsgToSave.timestamp})`);
+            // For very detailed debugging, you could log the entire messagesToSave, but it might be large:
+            // console.log(`[${new Date().toISOString()}] DEBUG: messagesToSave content for room '${roomId}': ${JSON.stringify(messagesToSave)}`);
+        } else {
+            console.log(`[${new Date().toISOString()}] DEBUG: saveMessages for room '${roomId}', messagesToSave is EMPTY.`);
+        }
+        
+        const contentToWrite = JSON.stringify(messagesToSave);
+        console.log(`[${new Date().toISOString()}] DEBUG: Writing to '${filePath}', content length: ${contentToWrite.length}`);
+        await fs.writeFile(filePath, contentToWrite);
+        console.log(`[${new Date().toISOString()}] DEBUG: Successfully WROTE messages for room '${roomId}' to '${filePath}'`);
+        
+        await checkAndClearChatroomDir();
     } catch (error) {
-        console.error(`保存房间 ${roomId} 的消息失败: ${error.message}`);
+        console.error(`[${new Date().toISOString()}] DEBUG: 保存房间 '${roomId}' 的消息失败: ${error.message}`, error.stack);
     }
 }
 
@@ -222,13 +230,16 @@ async function loadDecryptedMessagesForClient(roomId) {
         return decryptedMessages;
     } catch (error) {
         if (error.code !== 'ENOENT') {
-            console.error(`加载房间 ${roomId} 的消息 (用于客户端历史) 失败: ${error.message}`);
+            console.error(`[${new Date().toISOString()}] DEBUG: loadDecryptedMessagesForClient: 加载房间 ${roomId} 的消息失败: ${error.message}`);
+        } else {
+            // console.log(`[${new Date().toISOString()}] DEBUG: loadDecryptedMessagesForClient: 文件未找到用于房间 ${roomId}`);
         }
-        return []; // 文件不存在或读取失败则返回空历史
+        return [];
     }
 }
 
 async function destroyRoom(roomId) {
+    // ... (destroyRoom logic - unchanged)
     if (!chatRooms[roomId]) return;
     console.log(`正在销毁房间: ${roomId}`);
     wss.clients.forEach(client => {
@@ -255,6 +266,7 @@ async function destroyRoom(roomId) {
 }
 
 function checkInactiveClients() {
+    // ... (checkInactiveClients logic - unchanged)
     const now = Date.now();
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN && client.lastActive && (now - client.lastActive > INACTIVITY_TIMEOUT)) {
@@ -274,7 +286,7 @@ function checkInactiveClients() {
         }
     });
 }
-setInterval(checkInactiveClients, 60 * 1000); // 每分钟检查一次
+setInterval(checkInactiveClients, 60 * 1000);
 
 wss.on('connection', async (ws, req) => {
     let roomIdFromUrl;
@@ -293,43 +305,43 @@ wss.on('connection', async (ws, req) => {
     ws.lastActive = Date.now();
     ws.username = null;
 
-    console.log(`新客户端连接到房间: ${roomId}`);
+    console.log(`[${new Date().toISOString()}] DEBUG: 新客户端连接到房间: '${roomId}'`);
 
     let createdNewRoomInMemory = false;
     if (!chatRooms[roomId]) {
-        chatRooms[roomId] = { users: [], messages: [] }; // 初始化房间对象，消息列表为空
+        chatRooms[roomId] = { users: [], messages: [] };
         createdNewRoomInMemory = true;
+        console.log(`[${new Date().toISOString()}] DEBUG: 房间 '${roomId}' 在内存中新创建。`);
+    } else {
+        console.log(`[${new Date().toISOString()}] DEBUG: 房间 '${roomId}' 已存在于内存中。当前内存消息数: ${chatRooms[roomId].messages.length}`);
     }
 
     const room = chatRooms[roomId];
 
-    // 如果房间对象是刚在内存中创建的，或者房间对象已存在但其内存消息列表为空
-    // 则尝试从文件加载消息以同步内存状态
     if (createdNewRoomInMemory || room.messages.length === 0) {
         const encryptedRoomId = encryptRoomIdForFilename(roomId);
         const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
-
+        console.log(`[${new Date().toISOString()}] DEBUG: Room '${roomId}', createdNew: ${createdNewRoomInMemory}, memMsgLen: ${room.messages.length}. 尝试从文件 '${filePath}' 加载。`);
         try {
             const data = await fs.readFile(filePath, 'utf8');
             const messagesFromFile = JSON.parse(data);
-
             if (messagesFromFile && messagesFromFile.length > 0) {
                 room.messages = messagesFromFile.slice(-MAX_MESSAGES_IN_MEMORY);
-                console.log(`信息: 房间 ${roomId} 的内存消息列表为空或房间为新实例，已成功从文件 ${filePath} 加载/更新了 ${room.messages.length} 条加密消息到内存。`);
+                console.log(`[${new Date().toISOString()}] DEBUG: 房间 '${roomId}' 已从文件 '${filePath}' 加载/更新了 ${room.messages.length} 条加密消息到内存。`);
             } else if (createdNewRoomInMemory) {
-                console.log(`信息: 房间 ${roomId} (新内存实例) 的聊天文件为空或未找到（或解析后为空）。内存消息列表初始为空。`);
+                console.log(`[${new Date().toISOString()}] DEBUG: 房间 '${roomId}' (新内存实例) 的聊天文件 '${filePath}' 为空或解析后为空。内存消息列表初始为空。`);
             } else {
-                console.log(`信息: 房间 ${roomId} (现有内存实例) 的内存消息列表和文件均为空或文件不存在。无需从文件加载。`);
+                 console.log(`[${new Date().toISOString()}] DEBUG: 房间 '${roomId}' (现有内存实例) 的内存消息和文件 '${filePath}' 均为空。无需从文件加载。`);
             }
         } catch (err) {
             if (err.code === 'ENOENT') {
                 if (createdNewRoomInMemory) {
-                    console.log(`信息: 房间 ${roomId} (新内存实例) 的聊天文件 ${filePath} 未找到。内存消息列表初始为空。`);
+                    console.log(`[${new Date().toISOString()}] DEBUG: 房间 '${roomId}' (新内存实例) 的聊天文件 '${filePath}' 未找到。内存消息列表初始为空。`);
                 } else {
-                    console.log(`信息: 房间 ${roomId} (现有内存实例，消息为空) 的聊天文件 ${filePath} 未找到。内存消息列表保持为空。`);
+                    console.log(`[${new Date().toISOString()}] DEBUG: 房间 '${roomId}' (现有内存实例，消息为空) 的聊天文件 '${filePath}' 未找到。内存消息列表保持为空。`);
                 }
             } else {
-                console.error(`警告: 尝试从文件 ${filePath} 为房间 ${roomId} 加载/更新消息时发生错误: ${err.message}。房间内存消息列表未更改。`);
+                console.error(`[${new Date().toISOString()}] DEBUG: 尝试从文件 '${filePath}' 为房间 '${roomId}' 加载/更新消息时发生错误: ${err.message}。房间内存消息列表未更改。`);
             }
         }
     }
@@ -337,6 +349,8 @@ wss.on('connection', async (ws, req) => {
     const decryptedHistory = await loadDecryptedMessagesForClient(roomId);
     if (decryptedHistory.length > 0) {
         ws.send(JSON.stringify({ type: 'history', messages: decryptedHistory }));
+    } else {
+        console.log(`[${new Date().toISOString()}] DEBUG: No history sent to client for room '${roomId}'. Decrypted history length: 0.`);
     }
 
     ws.on('message', (messageData) => {
@@ -350,23 +364,32 @@ wss.on('connection', async (ws, req) => {
             return;
         }
         try {
+            const currentRoomForMessage = chatRooms[ws.roomId]; // Use ws.roomId for safety
+            if (!currentRoomForMessage) {
+                console.error(`[${new Date().toISOString()}] DEBUG: CRITICAL ERROR - Room object for '${ws.roomId}' not found in chatRooms during message handling.`);
+                ws.send(JSON.stringify({ type: 'error', message: '房间不存在或已销毁。' }));
+                return;
+            }
+
             if (data.type === 'join') {
+                // ... (join logic - unchanged, uses currentRoomForMessage)
                 if (typeof data.username !== 'string' || data.username.trim() === '' || data.username.length > 30) {
                     ws.send(JSON.stringify({ type: 'joinError', message: '无效的用户名。' }));
                     return;
                 }
                 const cleanUsername = data.username.trim();
-                if (room.users.includes(cleanUsername)) {
+                if (currentRoomForMessage.users.includes(cleanUsername)) {
                     ws.send(JSON.stringify({ type: 'joinError', message: '用户名已被占用。' }));
                 } else {
                     ws.username = cleanUsername;
-                    room.users = room.users.filter(user => user); // 清理可能存在的 null/undefined 用户
-                    room.users.push(cleanUsername);
-                    broadcast(roomId, { type: 'userList', users: room.users });
+                    currentRoomForMessage.users = currentRoomForMessage.users.filter(user => user); 
+                    currentRoomForMessage.users.push(cleanUsername);
+                    broadcast(ws.roomId, { type: 'userList', users: currentRoomForMessage.users });
                     ws.send(JSON.stringify({ type: 'joinSuccess', username: cleanUsername, message: '加入成功！' }));
-                    console.log(`用户 ${cleanUsername} 加入房间 ${roomId}`);
-                    broadcast(roomId, { type: 'system', message: `用户 ${cleanUsername} 加入了房间。` });
+                    console.log(`[${new Date().toISOString()}] DEBUG: 用户 ${cleanUsername} 加入房间 ${ws.roomId}`);
+                    broadcast(ws.roomId, { type: 'system', message: `用户 ${cleanUsername} 加入了房间。` });
                 }
+
             } else if (data.type === 'message') {
                 if (!ws.username) {
                     ws.send(JSON.stringify({ type: 'error', message: '发送消息前请先加入房间。' }));
@@ -380,53 +403,70 @@ wss.on('connection', async (ws, req) => {
                     ws.send(JSON.stringify({ type: 'error', message: '消息过长。' }));
                     return;
                 }
+                console.log(`[${new Date().toISOString()}] DEBUG: Room '${ws.roomId}', User '${ws.username}', Received message content: "${data.message.substring(0,30)}..."`);
                 const encryptedMessage = encryptMessage(data.message);
+
                 if (encryptedMessage) {
                     const messageObject = { username: ws.username, message: encryptedMessage, timestamp: Date.now() };
-                    room.messages.push(messageObject);
-                    if (room.messages.length > MAX_MESSAGES_IN_MEMORY) {
-                        room.messages.shift();
+                    
+                    console.log(`[${new Date().toISOString()}] DEBUG: Room '${ws.roomId}', User '${ws.username}', Message (ts: ${messageObject.timestamp}) to be pushed. currentRoomForMessage.messages length BEFORE push: ${currentRoomForMessage.messages.length}`);
+                    
+                    currentRoomForMessage.messages.push(messageObject);
+                    
+                    console.log(`[${new Date().toISOString()}] DEBUG: Room '${ws.roomId}', Message (ts: ${messageObject.timestamp}) pushed. currentRoomForMessage.messages length AFTER push: ${currentRoomForMessage.messages.length}`);
+                    if (currentRoomForMessage.messages.length > 0) {
+                        const lastMsgInMemory = currentRoomForMessage.messages[currentRoomForMessage.messages.length - 1];
+                        console.log(`[${new Date().toISOString()}] DEBUG: Last message in memory after push (user: ${lastMsgInMemory.username}, ts: ${lastMsgInMemory.timestamp})`);
                     }
-                    broadcast(roomId, { type: 'message', username: ws.username, message: data.message, timestamp: messageObject.timestamp });
-                    saveMessages(roomId); // 保存消息
+
+
+                    if (currentRoomForMessage.messages.length > MAX_MESSAGES_IN_MEMORY) {
+                        console.log(`[${new Date().toISOString()}] DEBUG: Room '${ws.roomId}', messages length ${currentRoomForMessage.messages.length} > ${MAX_MESSAGES_IN_MEMORY}, shifting oldest.`);
+                        currentRoomForMessage.messages.shift();
+                    }
+                    broadcast(ws.roomId, { type: 'message', username: ws.username, message: data.message, timestamp: messageObject.timestamp });
+                    
+                    console.log(`[${new Date().toISOString()}] DEBUG: Room '${ws.roomId}', Calling saveMessages for message (ts: ${messageObject.timestamp}).`);
+                    saveMessages(ws.roomId);
                 } else {
                     ws.send(JSON.stringify({ type: 'error', message: '消息加密失败，无法发送。' }));
+                    console.log(`[${new Date().toISOString()}] DEBUG: Room '${ws.roomId}', User '${ws.username}', Encryption failed for message content: "${data.message.substring(0,30)}..."`);
                 }
             } else if (data.type === 'destroy') {
-                console.log(`收到来自用户 ${ws.username || '未知'} 的销毁房间 ${roomId} 请求。`);
-                destroyRoom(roomId);
+                // ... (destroy logic - unchanged)
+                console.log(`收到来自用户 ${ws.username || '未知'} 的销毁房间 ${ws.roomId} 请求。`);
+                destroyRoom(ws.roomId);
             }
         } catch (handlerError) {
-            console.error(`消息处理逻辑错误 (房间: ${roomId}, 用户: ${ws.username}): ${handlerError.message}`, handlerError.stack);
+            console.error(`[${new Date().toISOString()}] DEBUG: 消息处理逻辑错误 (房间: ${ws.roomId}, 用户: ${ws.username}): ${handlerError.message}`, handlerError.stack);
             ws.send(JSON.stringify({ type: 'error', message: '服务器内部错误。' }));
         }
     });
 
     ws.on('close', (code, reason) => {
+        // ... (close logic - unchanged)
         const reasonString = reason ? reason.toString() : '无';
-        console.log(`客户端断开连接 (房间: ${ws.roomId}, 用户: ${ws.username || '未加入'}, code: ${code}, reason: ${reasonString})`);
-        if (ws.username && ws.roomId) { // 确保用户已成功加入过房间
-            const currentRoom = chatRooms[ws.roomId];
-            if (currentRoom) {
-                currentRoom.users = currentRoom.users.filter(user => user !== ws.username);
-                if (currentRoom.users.length > 0) {
-                    broadcast(ws.roomId, { type: 'userList', users: currentRoom.users });
+        console.log(`[${new Date().toISOString()}] DEBUG: 客户端断开连接 (房间: ${ws.roomId}, 用户: ${ws.username || '未加入'}, code: ${code}, reason: ${reasonString})`);
+        if (ws.username && ws.roomId) { 
+            const currentRoomOnClose = chatRooms[ws.roomId];
+            if (currentRoomOnClose) {
+                currentRoomOnClose.users = currentRoomOnClose.users.filter(user => user !== ws.username);
+                if (currentRoomOnClose.users.length > 0) {
+                    broadcast(ws.roomId, { type: 'userList', users: currentRoomOnClose.users });
                     broadcast(ws.roomId, { type: 'system', message: `用户 ${ws.username} 离开了房间。` });
                 } else {
-                    console.log(`房间 ${ws.roomId} 现在为空。`);
-                    // 注意：此处房间对象和其 messages 数组仍然保留在内存中，
-                    // 直到被 destroyRoom 或 checkAndClearChatroomDir 清理（如果后者清内存）
-                    // 或者服务器重启。
+                    console.log(`[${new Date().toISOString()}] DEBUG: 房间 ${ws.roomId} 现在为空。`);
                 }
             }
         }
     });
     ws.on('error', (error) => {
-        console.error(`WebSocket 错误 (房间: ${ws.roomId}, 用户: ${ws.username}): ${error.message}`);
+        console.error(`[${new Date().toISOString()}] DEBUG: WebSocket 错误 (房间: ${ws.roomId}, 用户: ${ws.username}): ${error.message}`);
     });
 });
 
 function broadcast(roomId, data) {
+    // ... (broadcast logic - unchanged)
     wss.clients.forEach(client => {
         if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
             try {
@@ -438,8 +478,8 @@ function broadcast(roomId, data) {
     });
 }
 
-// 主启动函数
 async function main() {
+    // ... (main logic - unchanged)
     try {
         ENCRYPTION_KEY = await loadOrGenerateEncryptionKey();
         if (!ENCRYPTION_KEY) {
@@ -462,6 +502,7 @@ async function main() {
 main();
 
 process.on('SIGINT', () => {
+    // ... (SIGINT logic - unchanged)
     console.log("收到 SIGINT，正在关闭服务器...");
     wss.clients.forEach(client => {
         client.close(1012, "服务器正在关闭");
