@@ -3,7 +3,7 @@ set -e
 
 echo "🚀 开始安装项目..."
 
-# 直接定义 GitHub 仓库信息
+# GitHub 仓库信息
 GITHUB_USER="Limkon"
 REPO_NAME="liuyanshi"
 BRANCH="master"
@@ -12,11 +12,11 @@ echo "👤 GitHub 用户名: $GITHUB_USER"
 echo "📦 仓库名: $REPO_NAME"
 echo "🌿 分支: $BRANCH"
 
-# 构造下载地址
+# 下载链接
 TAR_URL="https://github.com/$GITHUB_USER/$REPO_NAME/archive/refs/heads/$BRANCH.tar.gz"
 echo "📦 下载链接: $TAR_URL"
 
-# 验证 TAR_URL 是否有效
+# 验证下载链接是否可访问
 if ! curl -fsSL --head "$TAR_URL" >/dev/null 2>&1; then
     echo "❌ 错误：无法访问 $TAR_URL，可能是网络问题"
     exit 1
@@ -26,7 +26,7 @@ fi
 PROJECT_DIR=$(pwd)
 echo "📁 项目目录: $PROJECT_DIR"
 
-# 创建临时目录并解压项目文件
+# 创建临时目录并解压项目
 TEMP_DIR=$(mktemp -d)
 echo "📂 临时目录: $TEMP_DIR"
 if ! curl -fsSL "$TAR_URL" | tar -xz -C "$TEMP_DIR" --strip-components=1; then
@@ -38,7 +38,7 @@ fi
 # 删除 .github 目录（如果存在）
 rm -rf "$TEMP_DIR/.github"
 
-# 复制文件到项目目录，排除所有以.开头的文件和目录
+# 复制文件到项目目录，排除 . 开头文件
 shopt -s extglob dotglob
 cd "$TEMP_DIR"
 if ! cp -rf !(.*) "$PROJECT_DIR"; then
@@ -61,20 +61,23 @@ else
     echo "✅ Node.js 已安装：$(node -v)"
 fi
 
-# 加载 nvm
+# 加载 nvm 环境
 export NVM_DIR="$PROJECT_DIR/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-# 安装依赖
-echo "📦 安装依赖..."
-if ! npm install; then
-    echo "⚠️ npm install 失败，继续安装 axios"
+echo "🧩 使用 Node: $(which node)"
+echo "🧩 使用 npm: $(which npm)"
+
+# 创建最小 package.json（如果不存在）
+if [ ! -f "$PROJECT_DIR/package.json" ]; then
+    echo "{}" > "$PROJECT_DIR/package.json"
 fi
 
-# 安装 axios
-echo "📦 安装 axios..."
-npm install axios
-npm install express ws
+# 安装依赖
+echo "📦 安装依赖..."
+npm install axios || echo "⚠️ 安装 axios 失败"
+npm install express || echo "⚠️ 安装 express 失败"
+npm install ws || echo "⚠️ 安装 ws 失败"
 
 # 创建开机启动项
 mkdir -p "$HOME/.config/autostart"
