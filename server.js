@@ -134,9 +134,9 @@ async function checkAndClearChatroomDir() {
                 }
             }
             messagesCache.clear();
-            for (const roomId in chatRooms) {
-                if (chatRooms[roomId]) {
-                    chatRooms[roomId].messages = [];
+            for (const roomId_iterator in chatRooms) { // Renamed to avoid conflict in loops
+                if (chatRooms[roomId_iterator]) {
+                    chatRooms[roomId_iterator].messages = [];
                 }
             }
             console.log("聊天室目录已清空。");
@@ -196,7 +196,7 @@ async function saveMessages(roomId) {
     try {
         const messagesToSave = room.messages.slice(-MAX_MESSAGES_PER_ROOM_FILE);
         await fs.writeFile(filePath, JSON.stringify(messagesToSave));
-        await checkAndClearChatroomDir();
+        await checkAndClearChatroomDir(); // 每次保存后检查目录大小
     } catch (error) {
         console.error(`保存房间 ${roomId} 的消息失败: ${error.message}`);
     }
@@ -222,9 +222,9 @@ async function loadDecryptedMessagesForClient(roomId) {
         return decryptedMessages;
     } catch (error) {
         if (error.code !== 'ENOENT') {
-            console.error(`加载房间 ${roomId} 的消息失败: ${error.message}`);
+            console.error(`加载房间 ${roomId} 的消息 (用于客户端历史) 失败: ${error.message}`);
         }
-        return [];
+        return []; // 文件不存在或读取失败则返回空历史
     }
 }
 
@@ -267,47 +267,72 @@ function checkInactiveClients() {
             if (client.username && client.roomId && chatRooms[client.roomId]) {
                 const room = chatRooms[client.roomId];
                 room.users = room.users.filter(user => user !== client.username);
-                 if (room.users.length > 0) {
+                if (room.users.length > 0) {
                     broadcast(client.roomId, { type: 'userList', users: room.users });
                 }
             }
         }
     });
 }
-setInterval(checkInactiveClients, 60 * 1000);
+setInterval(checkInactiveClients, 60 * 1000); // 每分钟检查一次
 
 wss.on('connection', async (ws, req) => {
-    let roomId;
+    let roomIdFromUrl;
     try {
         const parsedUrl = new URL(req.url, `ws://${req.headers.host}`);
-        roomId = parsedUrl.pathname.split('/')[1] || 'default';
-        roomId = decodeURIComponent(roomId);
+        roomIdFromUrl = parsedUrl.pathname.split('/')[1] || 'default';
+        roomIdFromUrl = decodeURIComponent(roomIdFromUrl);
     } catch (urlParseError) {
         console.error("解析 WebSocket URL 失败:", urlParseError);
         ws.close(1011, "无效的房间ID格式");
         return;
     }
+
+    const roomId = roomIdFromUrl;
     ws.roomId = roomId;
     ws.lastActive = Date.now();
     ws.username = null;
+
     console.log(`新客户端连接到房间: ${roomId}`);
 
+    let createdNewRoomInMemory = false;
     if (!chatRooms[roomId]) {
-        chatRooms[roomId] = { users: [], messages: [] };
+        chatRooms[roomId] = { users: [], messages: [] }; // 初始化房间对象，消息列表为空
+        createdNewRoomInMemory = true;
+    }
+
+    const room = chatRooms[roomId];
+
+    // 如果房间对象是刚在内存中创建的，或者房间对象已存在但其内存消息列表为空
+    // 则尝试从文件加载消息以同步内存状态
+    if (createdNewRoomInMemory || room.messages.length === 0) {
         const encryptedRoomId = encryptRoomIdForFilename(roomId);
         const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
+
         try {
             const data = await fs.readFile(filePath, 'utf8');
             const messagesFromFile = JSON.parse(data);
-            chatRooms[roomId].messages = messagesFromFile.slice(-MAX_MESSAGES_IN_MEMORY);
-            console.log(`已从文件为房间 ${roomId} 加载 ${chatRooms[roomId].messages.length} 条加密消息到内存。`);
+
+            if (messagesFromFile && messagesFromFile.length > 0) {
+                room.messages = messagesFromFile.slice(-MAX_MESSAGES_IN_MEMORY);
+                console.log(`信息: 房间 ${roomId} 的内存消息列表为空或房间为新实例，已成功从文件 ${filePath} 加载/更新了 ${room.messages.length} 条加密消息到内存。`);
+            } else if (createdNewRoomInMemory) {
+                console.log(`信息: 房间 ${roomId} (新内存实例) 的聊天文件为空或未找到（或解析后为空）。内存消息列表初始为空。`);
+            } else {
+                console.log(`信息: 房间 ${roomId} (现有内存实例) 的内存消息列表和文件均为空或文件不存在。无需从文件加载。`);
+            }
         } catch (err) {
-            if (err.code !== 'ENOENT') {
-                console.error(`从文件加载房间 ${roomId} 的原始消息失败: ${err.message}`);
+            if (err.code === 'ENOENT') {
+                if (createdNewRoomInMemory) {
+                    console.log(`信息: 房间 ${roomId} (新内存实例) 的聊天文件 ${filePath} 未找到。内存消息列表初始为空。`);
+                } else {
+                    console.log(`信息: 房间 ${roomId} (现有内存实例，消息为空) 的聊天文件 ${filePath} 未找到。内存消息列表保持为空。`);
+                }
+            } else {
+                console.error(`警告: 尝试从文件 ${filePath} 为房间 ${roomId} 加载/更新消息时发生错误: ${err.message}。房间内存消息列表未更改。`);
             }
         }
     }
-    const room = chatRooms[roomId];
 
     const decryptedHistory = await loadDecryptedMessagesForClient(roomId);
     if (decryptedHistory.length > 0) {
@@ -327,20 +352,20 @@ wss.on('connection', async (ws, req) => {
         try {
             if (data.type === 'join') {
                 if (typeof data.username !== 'string' || data.username.trim() === '' || data.username.length > 30) {
-                     ws.send(JSON.stringify({ type: 'joinError', message: '无效的用户名。' }));
-                     return;
+                    ws.send(JSON.stringify({ type: 'joinError', message: '无效的用户名。' }));
+                    return;
                 }
                 const cleanUsername = data.username.trim();
                 if (room.users.includes(cleanUsername)) {
                     ws.send(JSON.stringify({ type: 'joinError', message: '用户名已被占用。' }));
                 } else {
                     ws.username = cleanUsername;
-                    room.users = room.users.filter(user => user);
+                    room.users = room.users.filter(user => user); // 清理可能存在的 null/undefined 用户
                     room.users.push(cleanUsername);
                     broadcast(roomId, { type: 'userList', users: room.users });
                     ws.send(JSON.stringify({ type: 'joinSuccess', username: cleanUsername, message: '加入成功！' }));
                     console.log(`用户 ${cleanUsername} 加入房间 ${roomId}`);
-                    broadcast(roomId, {type: 'system', message: `用户 ${cleanUsername} 加入了房间。`});
+                    broadcast(roomId, { type: 'system', message: `用户 ${cleanUsername} 加入了房间。` });
                 }
             } else if (data.type === 'message') {
                 if (!ws.username) {
@@ -352,7 +377,7 @@ wss.on('connection', async (ws, req) => {
                     return;
                 }
                 if (data.message.length > 1000) {
-                     ws.send(JSON.stringify({ type: 'error', message: '消息过长。' }));
+                    ws.send(JSON.stringify({ type: 'error', message: '消息过长。' }));
                     return;
                 }
                 const encryptedMessage = encryptMessage(data.message);
@@ -363,9 +388,9 @@ wss.on('connection', async (ws, req) => {
                         room.messages.shift();
                     }
                     broadcast(roomId, { type: 'message', username: ws.username, message: data.message, timestamp: messageObject.timestamp });
-                    saveMessages(roomId);
+                    saveMessages(roomId); // 保存消息
                 } else {
-                     ws.send(JSON.stringify({ type: 'error', message: '消息加密失败，无法发送。' }));
+                    ws.send(JSON.stringify({ type: 'error', message: '消息加密失败，无法发送。' }));
                 }
             } else if (data.type === 'destroy') {
                 console.log(`收到来自用户 ${ws.username || '未知'} 的销毁房间 ${roomId} 请求。`);
@@ -378,16 +403,20 @@ wss.on('connection', async (ws, req) => {
     });
 
     ws.on('close', (code, reason) => {
-        console.log(`客户端断开连接 (房间: ${ws.roomId}, 用户: ${ws.username}, code: ${code}, reason: ${reason ? reason.toString() : '无'})`);
-        if (ws.username && ws.roomId) {
+        const reasonString = reason ? reason.toString() : '无';
+        console.log(`客户端断开连接 (房间: ${ws.roomId}, 用户: ${ws.username || '未加入'}, code: ${code}, reason: ${reasonString})`);
+        if (ws.username && ws.roomId) { // 确保用户已成功加入过房间
             const currentRoom = chatRooms[ws.roomId];
             if (currentRoom) {
                 currentRoom.users = currentRoom.users.filter(user => user !== ws.username);
                 if (currentRoom.users.length > 0) {
                     broadcast(ws.roomId, { type: 'userList', users: currentRoom.users });
-                    broadcast(ws.roomId, {type: 'system', message: `用户 ${ws.username} 离开了房间。`});
+                    broadcast(ws.roomId, { type: 'system', message: `用户 ${ws.username} 离开了房间。` });
                 } else {
                     console.log(`房间 ${ws.roomId} 现在为空。`);
+                    // 注意：此处房间对象和其 messages 数组仍然保留在内存中，
+                    // 直到被 destroyRoom 或 checkAndClearChatroomDir 清理（如果后者清内存）
+                    // 或者服务器重启。
                 }
             }
         }
@@ -412,18 +441,17 @@ function broadcast(roomId, data) {
 // 主启动函数
 async function main() {
     try {
-        ENCRYPTION_KEY = await loadOrGenerateEncryptionKey(); // 加载或生成密钥
-        if (!ENCRYPTION_KEY) { // 双重检查，尽管 loadOrGenerateEncryptionKey 内部会处理退出
+        ENCRYPTION_KEY = await loadOrGenerateEncryptionKey();
+        if (!ENCRYPTION_KEY) {
             console.error("未能初始化加密密钥。服务器无法启动。");
             process.exit(1);
         }
-        await ensureChatroomDir(); // 确保聊天目录存在
+        await ensureChatroomDir();
 
         const PORT = process.env.PORT || 8100;
         server.listen(PORT, () => {
             console.log(`服务器已启动，运行在 http://localhost:${PORT}`);
             console.log(`聊天室目录: ${CHATROOM_DIR}`);
-            // 不再打印环境变量加载信息，因为 loadOrGenerateEncryptionKey 会处理
         });
     } catch (error) {
         console.error("服务器启动过程中发生致命错误:", error.message);
@@ -431,7 +459,7 @@ async function main() {
     }
 }
 
-main(); // 调用主启动函数
+main();
 
 process.on('SIGINT', () => {
     console.log("收到 SIGINT，正在关闭服务器...");
