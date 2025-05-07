@@ -39,70 +39,67 @@ fi
 rm -rf "$TEMP_DIR/.github"
 
 # 复制文件到项目目录，排除 . 开头文件
-shopt -s extglob dotglob
+# shopt -s extglob dotglob # To include dotfiles if needed, but !(.*) excludes them.
+# Using * is simpler if you want all non-dotfiles. If dotfiles (except .git) are needed, adjust.
 cd "$TEMP_DIR"
-if ! cp -rf !(.*) "$PROJECT_DIR"; then
+# Copy all files and directories, including those starting with a dot (like .env if present in repo)
+# except for . and ..
+# A robust way to copy all content:
+if find . -maxdepth 1 -mindepth 1 -exec cp -rf '{}' "$PROJECT_DIR/" \;; then
+    echo "✅ 文件已复制到 $PROJECT_DIR"
+else
     echo "❌ 错误：复制文件到 $PROJECT_DIR 失败"
     rm -rf "$TEMP_DIR"
-    shopt -u extglob dotglob
     exit 1
 fi
-shopt -u extglob dotglob
+# Original copy command for reference (excludes dotfiles):
+# if ! cp -rf !(.*) "$PROJECT_DIR"; then
+#     echo "❌ 错误：复制文件到 $PROJECT_DIR 失败"
+#     rm -rf "$TEMP_DIR"
+#     # shopt -u extglob dotglob
+#     exit 1
+# fi
+# shopt -u extglob dotglob
+
 rm -rf "$TEMP_DIR"
 cd "$PROJECT_DIR" # 确保后续操作在项目目录中
 
-# --- 修改 Node.js 和 nvm 安装逻辑 ---
-echo "🔧 配置项目独立的 Node.js v18 环境..."
-export NVM_DIR="$PROJECT_DIR/.nvm" # 定义 NVM 的安装路径为项目本地
+# --- Node.js 和 npm 检查 ---
+echo "🔧 检查系统 Node.js 环境..."
 
-# 1. 确保 nvm 安装脚本存在或被下载
-if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-    echo "📦 nvm.sh 未在 $NVM_DIR 中找到，开始安装 nvm..."
-    # 从 nvm 的 GitHub 仓库下载 install.sh 并执行，指定 NVM_DIR
-    # 注意：原始脚本的 curl | bash 方法在 set -e 下如果 curl 失败（如网络问题）可能不会按预期退出
-    # 更安全的方式是先下载再执行，或者确保 curl 失败时脚本能正确处理
-    mkdir -p "$NVM_DIR" # 确保 NVM_DIR 存在
-    if curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | NVM_INSTALL_SCRIPT_PATH="$NVM_DIR/install_nvm.sh" bash -s -- --no-use; then
-        echo "✅ nvm 安装脚本执行完毕。"
-        # NVM_DIR 环境变量在 install.sh 脚本执行时应该已经被考虑
-        # install.sh 脚本会将 nvm 相关文件安装到 NVM_DIR
-    else
-        echo "❌ nvm 安装脚本下载或执行失败。"
-        exit 1
-    fi
-else
-    echo "✅ nvm.sh 已存在于 $NVM_DIR。"
-fi
-
-# 2. 加载 nvm
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-    echo "📂 加载 nvm 从 $NVM_DIR/nvm.sh..."
-    \. "$NVM_DIR/nvm.sh" # 点命令 (source) 加载 nvm 函数到当前 shell
-else
-    echo "❌ 错误: $NVM_DIR/nvm.sh 未找到。nvm 可能未正确安装。"
+# 1. 检查 Node.js 是否安装
+if ! command -v node &> /dev/null; then
+    echo "❌ 错误: Node.js 未安装。请先安装 Node.js (推荐 v18 或更高版本) 然后重试。"
+    echo "   例如，在 Ubuntu/Debian 上: sudo apt update && sudo apt install nodejs npm"
+    echo "   或从 NodeSource: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs"
     exit 1
 fi
 
-# 3. 安装并使用 Node.js v18
-NODE_VERSION="18"
-echo "📦 正在通过 nvm 安装/使用 Node.js v$NODE_VERSION..."
-if nvm install "$NODE_VERSION"; then # nvm install 会在安装后自动 use 该版本
-    nvm use "$NODE_VERSION" # 再次确认使用，确保当前 shell session 生效
-    echo "✅ Node.js v$NODE_VERSION 已激活。"
-else
-    echo "❌ 错误: nvm未能安装 Node.js v$NODE_VERSION。"
+# 2. 检查 npm 是否安装
+if ! command -v npm &> /dev/null; then
+    echo "❌ 错误: npm 未安装。请确保 npm 与 Node.js 一起安装。"
     exit 1
 fi
-# --- Node.js 和 nvm 安装逻辑结束 ---
+
+# 3. 检查 Node.js 版本 (需要 v18 或更高)
+NODE_VERSION_OUTPUT=$(node -v)
+# Regex to extract major version, e.g., v18.12.0 -> 18
+NODE_MAJOR_VERSION=$(echo "$NODE_VERSION_OUTPUT" | sed -E 's/v([0-9]+)\..*/\1/')
+
+DESIRED_MAJOR_VERSION="18"
+if [ "$NODE_MAJOR_VERSION" -lt "$DESIRED_MAJOR_VERSION" ]; then
+    echo "❌ 错误: Node.js 版本过低。需要 v$DESIRED_MAJOR_VERSION 或更高版本, 当前版本: $NODE_VERSION_OUTPUT"
+    echo "   请升级您的 Node.js 版本。"
+    exit 1
+else
+    echo "✅ Node.js 版本检查通过: $NODE_VERSION_OUTPUT"
+fi
+# --- Node.js 和 npm 检查结束 ---
 
 echo "🧩 当前使用 Node: $(which node) (版本: $(node -v))"
 echo "🧩 当前使用 npm: $(which npm) (版本: $(npm -v))"
 
 # 创建最小 package.json（如果不存在）
-# 注意：如果仓库本身有 package.json，这一步会覆盖它，除非这里的判断逻辑修改
-# 更好的做法是：如果仓库有 package.json，则使用它；否则，如果需要，才创建。
-# 但原脚本逻辑是：如果复制后不存在 package.json，则创建一个空的。
-# 考虑到 cp !(.*) 的行为，如果仓库根目录有 package.json，它会被复制过来。
 if [ ! -f "$PROJECT_DIR/package.json" ]; then
     echo "📝 $PROJECT_DIR/package.json 未找到，创建空的 package.json。"
     echo "{}" > "$PROJECT_DIR/package.json"
@@ -112,18 +109,23 @@ fi
 
 # 安装依赖
 echo "📦 安装依赖..."
-# 使用 --save 参数可以将依赖项添加到 package.json 中，这是一个好习惯
-# 如果仓库中已有的 package.json 包含了这些依赖，单独执行 npm install 即可
-# 但这里按原脚本逻辑逐个安装
+# 使用 --save-dev 或 --save-prod 根据需要将依赖项添加到 package.json 中，
+# 如果仓库中的 package.json 已包含这些依赖, 单独执行 npm install 即可
+# 这里按原脚本逻辑逐个安装，并假设它们是生产依赖
+# 如果 package.json 已经存在且包含依赖， `npm install` 就足够了。
+# 这个显式安装会添加它们到 package.json (如果它是空的或者没有这些依赖)
 if npm install axios express ws cookie-parser body-parser http-proxy-middleware; then
     echo "✅ 依赖安装成功。"
 else
     echo "❌ 依赖安装过程中发生错误。"
-    # 由于 set -e，npm install 失败时脚本通常会直接退出。
-    # 如果想让脚本继续（例如记录错误但不退出），需要移除 set -e 或修改错误处理。
-    # 原脚本的 || echo "..." 会阻止 set -e 因 npm install 失败而退出。
-    # 为了更清晰，这里用一个 if 语句。
-    exit 1 # 如果依赖安装失败，则退出
+    exit 1 # npm install 失败时脚本会因 set -e 退出，这里显式退出确保清晰
+fi
+
+# 获取 node 的绝对路径，用于开机启动项
+NODE_EXEC_PATH=$(command -v node)
+if [ -z "$NODE_EXEC_PATH" ]; then
+    echo "❌ 致命错误：无法找到 node 执行路径，即使之前检查通过。这不应该发生。"
+    exit 1
 fi
 
 # 创建开机启动项
@@ -133,15 +135,15 @@ echo "🚀 创建开机启动项: $AUTOSTART_FILE"
 cat > "$AUTOSTART_FILE" <<EOF
 [Desktop Entry]
 Type=Application
-Exec=bash -c "cd $PROJECT_DIR && source $NVM_DIR/nvm.sh && nvm use $NODE_VERSION && node server.js"
+Exec=bash -c "cd $PROJECT_DIR && $NODE_EXEC_PATH server.js"
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
 Name=Chatroom Server (liuyanshi)
-Comment=Start liuyanshi Server automatically using project nvm
+Comment=Start liuyanshi Server automatically
 EOF
 chmod +x "$AUTOSTART_FILE" # 确保 desktop 文件可执行（某些桌面环境可能需要）
 
 echo "✅ 项目安装完成！系统重启后将自动启动服务器 (liuyanshi)。"
 echo "   请检查 $AUTOSTART_FILE 的内容。"
-echo "   手动启动服务器: cd $PROJECT_DIR && source $NVM_DIR/nvm.sh && nvm use $NODE_VERSION && node server.js"
+echo "   手动启动服务器: cd $PROJECT_DIR && node server.js"
