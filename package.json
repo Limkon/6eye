@@ -4,12 +4,12 @@
   "description": "A simple chat application with WebSocket",
   "main": "server.js",
   "scripts": {
-    "start": "node start.js"   // ← 修改这里
+    "start": "node start.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "ws": "^8.18.2",
-    "cookie-parser": "^1.4.6",   // ← 新增依赖
+    "cookie-parser": "^1.4.6",
     "body-parser": "^1.20.2"
   },
   "engines": {
