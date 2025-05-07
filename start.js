@@ -8,8 +8,8 @@ const crypto = require('crypto');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // --- 1. 配置和常量 ---
-const PUBLIC_PORT = 13000; // start.js (代理) 监听的公共端口
-const APP_INTERNAL_PORT = 13001; // server.js (主应用) 固定监听的内部端口
+const PUBLIC_PORT = 8100; // start.js (代理) 监听的公共端口
+const APP_INTERNAL_PORT = 8200; // server.js (主应用) 固定监听的内部端口
 
 const USER_PASSWORD_STORAGE_FILE = path.join(__dirname, 'auth_config.enc');
 const MASTER_SECRET_KEY_FILE = path.join(__dirname, 'encryption.secret.key');
