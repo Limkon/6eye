@@ -115,7 +115,7 @@ echo "📦 安装依赖..."
 # 使用 --save 参数可以将依赖项添加到 package.json 中，这是一个好习惯
 # 如果仓库中已有的 package.json 包含了这些依赖，单独执行 npm install 即可
 # 但这里按原脚本逻辑逐个安装
-if npm install axios express ws cookie-parser body-parser; then
+if npm install axios express ws cookie-parser body-parser http-proxy-middleware; then
     echo "✅ 依赖安装成功。"
 else
     echo "❌ 依赖安装过程中发生错误。"
