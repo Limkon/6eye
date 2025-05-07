@@ -78,6 +78,8 @@ echo "📦 安装依赖..."
 npm install axios || echo "⚠️ 安装 axios 失败"
 npm install express || echo "⚠️ 安装 express 失败"
 npm install ws || echo "⚠️ 安装 ws 失败"
+npm install cookie-parser || echo "⚠️ 安装 cookie-parser 失败"
+npm install body-parser || echo "⚠️ 安装 body-parser 失败"
 
 # 创建开机启动项
 mkdir -p "$HOME/.config/autostart"
