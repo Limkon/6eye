@@ -2,221 +2,375 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const { exec } = require('child_process');
-const path = require('path'); // 用于更可靠地执行脚本
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
-const app = express();
+// --- 1. 配置和常量 ---
 const PORT = 8100;
-const PASSWORD = '20021199'; // 请务必使用更安全的密码管理方式，例如环境变量
+const USER_PASSWORD_STORAGE_FILE = path.join(__dirname, 'auth_config.enc'); // 存储加密用户密码的文件
+const MASTER_SECRET_KEY_FILE = path.join(__dirname, 'encryption.secret.key'); // 存储主加密密钥的文件
 
+const ALGORITHM = 'aes-256-cbc';
+const IV_LENGTH = 16; // AES block size for IV
+
+// --- 1a. 获取或生成主加密密钥文本 ---
+function initializeEncryptionSecretKeyText() {
+    if (fs.existsSync(MASTER_SECRET_KEY_FILE)) {
+        console.log(`应用提示：正在从 ${MASTER_SECRET_KEY_FILE} 读取主加密密钥...`);
+        const keyText = fs.readFileSync(MASTER_SECRET_KEY_FILE, 'utf8').trim();
+        if (keyText.length < 64) { // 建议一个较长的随机密钥文本, e.g. 48 bytes random hex is 96 chars
+            console.error(`安全警告：${MASTER_SECRET_KEY_FILE} 中的密钥文本长度 (${keyText.length}) 可能不足。为保证安全，如果怀疑密钥强度，可考虑删除此文件以重新生成。`);
+        }
+        return keyText;
+    } else {
+        console.log(`应用提示：主加密密钥文件 ${MASTER_SECRET_KEY_FILE} 不存在。正在生成新密钥...`);
+        const newKeyText = crypto.randomBytes(48).toString('hex'); // 生成96个十六进制字符的密钥文本
+        try {
+            fs.writeFileSync(MASTER_SECRET_KEY_FILE, newKeyText, { encoding: 'utf8', mode: 0o600 });
+            // 在某些系统上，writeFileSync中的mode可能不完全生效，显式调用chmod更可靠
+            fs.chmodSync(MASTER_SECRET_KEY_FILE, 0o600); // 权限：所有者可读写，其他用户无权限
+            console.log(`应用提示：新的主加密密钥已生成并保存到 ${MASTER_SECRET_KEY_FILE} (权限 600)。`);
+            console.warn(`重要：请务必保护好 ${MASTER_SECRET_KEY_FILE} 文件！如果丢失，将无法解密已存储的用户密码。建议安全备份此文件。`);
+            return newKeyText;
+        } catch (err) {
+            console.error(`严重错误：无法写入或设置主加密密钥文件 ${MASTER_SECRET_KEY_FILE} 的权限。请检查目录权限。应用无法继续。`, err);
+            process.exit(1); // 关键文件操作失败，退出程序
+        }
+    }
+}
+
+const ENCRYPTION_SECRET_KEY_TEXT = initializeEncryptionSecretKeyText();
+// 使用 scrypt 从密钥文本派生一个固定长度的二进制加密密钥 (增加暴力破解难度)
+// Salt应该是唯一的，但为了简单性，如果主密钥文本是持久且唯一的，固定salt也可以接受。
+// 更理想的情况是，salt也随机生成并与密文一起存储，但这会增加复杂性。
+const DERIVED_ENCRYPTION_KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY_TEXT, 'a_fixed_salt_for_scrypt_derivation_v1', 32); // 256-bit key
+
+let isUserPasswordSetupNeeded = !fs.existsSync(USER_PASSWORD_STORAGE_FILE);
+
+// --- 2. 加密与解密函数 ---
+function encryptUserPassword(text) {
+    try {
+        const iv = crypto.randomBytes(IV_LENGTH);
+        const cipher = crypto.createCipheriv(ALGORITHM, DERIVED_ENCRYPTION_KEY, iv);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        return iv.toString('hex') + ':' + encrypted; // 将IV和密文一起存储
+    } catch (error) {
+        console.error("用户密码加密失败:", error);
+        throw new Error("User password encryption failed."); // 传播错误以便上层处理
+    }
+}
+
+function decryptUserPassword(text) {
+    try {
+        const parts = text.split(':');
+        if (parts.length !== 2) {
+            console.error("用户密码解密失败：密文格式无效（缺少IV）。");
+            return null;
+        }
+        const iv = Buffer.from(parts.shift(), 'hex');
+        const encryptedText = parts.join(':'); // parts[0] after shift
+        const decipher = crypto.createDecipheriv(ALGORITHM, DERIVED_ENCRYPTION_KEY, iv);
+        let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+    } catch (error) {
+        console.error("用户密码解密失败:", error.message); // Log specific crypto error
+        return null; // 返回null表示解密不成功
+    }
+}
+
+// --- 3. Express 应用设置 ---
+const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// HTML和CSS部分可以提取出来，或者保持内联以简化单个文件
-const loginPageStyles = `
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background-color: #f0f2f5;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-        color: #333;
-    }
-    .container {
-        background-color: #fff;
-        padding: 30px 40px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        text-align: center;
-        width: 320px;
-    }
-    h2 {
-        margin-top: 0;
-        margin-bottom: 25px;
-        color: #1d2129;
-        font-size: 24px;
-    }
-    input[type="password"] {
-        width: calc(100% - 22px); /* Adjust for padding */
-        padding: 12px;
-        margin-bottom: 20px;
-        border: 1px solid #dddfe2;
-        border-radius: 6px;
-        box-sizing: border-box;
-        font-size: 16px;
-    }
-    input[type="password"]:focus {
-        border-color: #007bff;
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(0,123,255,.25);
-    }
-    button[type="submit"] {
-        width: 100%;
-        padding: 12px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 17px;
-        font-weight: bold;
-        transition: background-color 0.2s;
-    }
-    button[type="submit"]:hover {
-        background-color: #0056b3;
-    }
-    .error-message {
-        color: #dc3545; /* Red for errors */
-        margin-bottom: 15px;
-        font-weight: 500;
-    }
-    .success-message p {
-        font-size: 16px;
-        line-height: 1.5;
-    }
-    .success-message a {
-        color: #007bff;
-        text-decoration: none;
-    }
-    .success-message a:hover {
-        text-decoration: underline;
-    }
+const pageStyles = `
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #333; }
+    .container { background-color: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; width: 360px; max-width: 90%; }
+    h2 { margin-top: 0; margin-bottom: 25px; color: #1d2129; font-size: 22px; }
+    input[type="password"], input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #dddfe2; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+    input[type="password"]:focus, input[type="text"]:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 2px rgba(0,123,255,.25); }
+    button[type="submit"] { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 17px; font-weight: bold; transition: background-color 0.2s; margin-top: 10px; }
+    button[type="submit"]:hover { background-color: #0056b3; }
+    .message { margin-bottom: 15px; font-weight: 500; font-size: 0.95em; }
+    .error-message { color: #dc3545; }
+    .success-message { color: #28a745; }
+    .info-message { color: #17a2b8; font-size: 0.85em; margin-top:15px; line-height: 1.4; }
+    label { display: block; text-align: left; margin-bottom: 5px; font-weight: 500; font-size: 0.9em; }
+    a { color: #007bff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
 `;
 
-// GET /login - 显示登录页面
-app.get('/login', (req, res) => {
-    // 如果用户已经有有效的 cookie，直接重定向到主页
-    if (req.cookies.auth === '1') {
-        return res.redirect('/');
-    }
+// --- 4. 启动模式判断和全局中间件 ---
+if (isUserPasswordSetupNeeded) {
+    console.log("应用提示：未找到用户密码配置文件。首次运行，请设置用户密码。");
+} else {
+    console.log("应用提示：用户密码配置文件已存在。进入登录模式。");
+}
 
-    const errorMessage = req.query.error === '1' ? '<p class="error-message">密码错误！请重试。</p>' : '';
+app.use((req, res, next) => {
+    const allowedSetupPaths = ['/setup', '/do_setup']; // POST target for setup
+    const allowedLoginPaths = ['/login', '/do_login']; // POST target for login
+
+    if (isUserPasswordSetupNeeded) {
+        // If setup is needed, only allow access to setup paths
+        if (!allowedSetupPaths.includes(req.path)) {
+            return res.redirect('/setup');
+        }
+    } else { // Normal login mode (user password is set)
+        if (req.cookies.auth === '1') { // User is authenticated
+            // If authenticated, trying to access login or setup pages should redirect to main page
+            if (allowedLoginPaths.includes(req.path) || allowedSetupPaths.includes(req.path)) {
+                return res.redirect('/');
+            }
+        } else { // User is NOT authenticated
+            // If not authenticated, and not trying to access login paths, redirect to login
+            // (also prevent access to setup paths if somehow attempted post-setup without auth)
+            if (!allowedLoginPaths.includes(req.path)) {
+                return res.redirect('/login');
+            }
+        }
+    }
+    next(); // Proceed to the route handler
+});
+
+
+// --- 5. 路由定义 ---
+
+// == SETUP ROUTES (for initial user password creation) ==
+app.get('/setup', (req, res) => {
+    if (!isUserPasswordSetupNeeded) { // Safeguard, should be caught by middleware
+        return res.redirect('/login');
+    }
+    const error = req.query.error;
+    let errorMessageHtml = '';
+    if (error === 'mismatch') errorMessageHtml = '<p class="message error-message">两次输入的密码不匹配！</p>';
+    else if (error === 'short') errorMessageHtml = '<p class="message error-message">密码长度至少需要8个字符！</p>';
+    else if (error === 'write_failed') errorMessageHtml = '<p class="message error-message">保存用户密码失败，请检查服务器权限或日志。</p>';
+    else if (error === 'encrypt_failed') errorMessageHtml = '<p class="message error-message">密码加密失败，请检查服务器日志。</p>';
+
+
     res.send(`
-        <!DOCTYPE html>
-        <html lang="zh-CN">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>登录</title>
-            <style>${loginPageStyles}</style>
-        </head>
-        <body>
-            <div class="container">
-                <form method="POST" action="/login">
-                    <h2>请输入密码访问</h2>
-                    ${errorMessage}
-                    <input type="password" name="password" placeholder="密码" required autofocus />
-                    <button type="submit">登录</button>
-                </form>
-            </div>
-        </body>
-        </html>
+        <!DOCTYPE html><html lang="zh-CN">
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>设置初始用户密码</title><style>${pageStyles}</style></head>
+        <body><div class="container">
+            <form method="POST" action="/do_setup">
+                <h2>首次运行：设置用户密码</h2>
+                ${errorMessageHtml}
+                <label for="newPassword">新密码 (至少8位):</label>
+                <input type="password" id="newPassword" name="newPassword" required minlength="8" autofocus>
+                <label for="confirmPassword">确认新密码:</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8">
+                <button type="submit">设置用户密码并保存</button>
+                <p class="info-message">此用户密码将使用系统管理的主密钥进行加密后保存在服务器上。</p>
+            </form>
+        </div></body></html>
     `);
 });
 
-// POST /login - 处理登录请求
-app.post('/login', (req, res) => {
-    if (req.body.password === PASSWORD) {
-        // 设置 cookie 标记，30分钟有效
-        res.setHeader('Set-Cookie', 'auth=1; Max-Age=1800; HttpOnly; Path=/; SameSite=Lax'); // Added SameSite=Lax for security
-        
-        // 发送一个包含自动跳转逻辑的页面
+app.post('/do_setup', (req, res) => {
+    if (!isUserPasswordSetupNeeded) { // Safeguard
+        return res.status(403).send("错误：用户密码已设置。");
+    }
+    const { newPassword, confirmPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+        return res.redirect('/setup?error=short');
+    }
+    if (newPassword !== confirmPassword) {
+        return res.redirect('/setup?error=mismatch');
+    }
+
+    try {
+        const encryptedPassword = encryptUserPassword(newPassword);
+        fs.writeFileSync(USER_PASSWORD_STORAGE_FILE, encryptedPassword, 'utf8');
+        isUserPasswordSetupNeeded = false; // Update runtime state
+        console.log("用户密码已成功设置并加密保存。应用现在进入登录模式。");
         res.send(`
-            <!DOCTYPE html>
-            <html lang="zh-CN">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>登录成功</title>
-                <style>
-                    ${loginPageStyles}
-                    /* Additional styles for success page if needed */
-                </style>
-            </head>
-            <body>
-                <div class="container success-message">
-                    <h2>登录成功</h2>
-                    <p>服务正在启动，页面将在几秒后自动跳转...</p>
-                    <p>如果页面没有自动跳转，请 <a href="/">点击这里刷新</a>。</p>
-                    <script>
-                        setTimeout(function() {
-                            window.location.href = '/'; // 跳转到主应用根路径
-                        }, 3000); // 3秒延迟
-                    </script>
-                </div>
-            </body>
-            </html>
+            <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>设置成功</title><style>${pageStyles}</style></head>
+            <body><div class="container">
+                <h2 class="success-message">用户密码设置成功！</h2>
+                <p>您现在可以 <a href="/login">前往登录页面</a>。</p>
+            </div></body></html>
         `);
-
-        // 关闭当前服务器并启动原始的 server.js
-        // 使用 process.nextTick 确保响应已发送或开始发送
-        process.nextTick(() => {
-            server.close((err) => {
-                if (err) {
-                    console.error('关闭登录服务器失败:', err);
-                    // 即使关闭失败，也尝试启动主服务
-                }
-                console.log('验证成功，登录保护服务已关闭。正在启动主服务 (server.js)...');
-                
-                // 确保 server.js 的路径正确，通常与此脚本在同一目录
-                const mainAppPath = path.join(__dirname, 'server.js');
-                const child = exec(`node "${mainAppPath}"`, (error, stdout, stderr) => {
-                    if (error) {
-                        console.error(`启动 server.js 失败: ${error.message}`);
-                        return;
-                    }
-                    if (stderr) {
-                        // 很多应用会将日志输出到 stderr，所以不一定是错误
-                        console.error(`server.js stderr: ${stderr}`);
-                    }
-                    if (stdout) {
-                        console.log(`server.js stdout: ${stdout}`);
-                    }
-                });
-
-                child.on('exit', (code, signal) => {
-                    if (code !== null) {
-                        console.log(`server.js 已退出，退出码 ${code}`);
-                    } else if (signal !== null) {
-                        console.log(`server.js 被信号 ${signal} 终止`);
-                    }
-                });
-            });
-        });
-
-    } else {
-        // 密码错误，重定向回登录页并带上错误提示参数
-        res.redirect('/login?error=1');
+    } catch (encryptError) {
+        console.error("设置用户密码时加密失败:", encryptError);
+        res.redirect('/setup?error=encrypt_failed');
+    } catch (writeError) {
+        console.error("保存加密用户密码文件失败:", writeError);
+        res.redirect('/setup?error=write_failed');
     }
 });
 
-// 拦截器：除了登录页，其他所有请求都需要验证 cookie
-// 这个中间件应该放在所有不需要保护的路由 (如 /login) 定义之后
-app.use((req, res, next) => {
-    if (req.cookies.auth === '1') {
-        // 如果已认证，但访问的是本应由主服务处理的路径
-        // (因为此登录服务除了 /login 外不提供其他页面)
-        // next() 将导致 404，除非主服务已接管。
-        // 这是预期的，因为主服务启动后会处理这些请求。
-        next();
-    } else {
-        // 对于所有其他路径，如果未认证，则重定向到登录页
+// == LOGIN ROUTES ==
+app.get('/login', (req, res) => {
+    if (isUserPasswordSetupNeeded) { // Safeguard
+        return res.redirect('/setup');
+    }
+    // Middleware should already handle if user is authenticated (req.cookies.auth === '1') and redirect to '/'
+
+    const error = req.query.error;
+    let errorMessageHtml = '';
+    if (error === 'invalid') errorMessageHtml = '<p class="message error-message">密码错误！</p>';
+    else if (error === 'decrypt_failed') errorMessageHtml = '<p class="message error-message">无法验证密码。可能是密钥问题或文件损坏。</p>';
+    else if (error === 'read_failed') errorMessageHtml = '<p class="message error-message">无法读取密码配置。请联系管理员。</p>';
+
+
+    res.send(`
+        <!DOCTYPE html><html lang="zh-CN">
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>登录</title><style>${pageStyles}</style></head>
+        <body><div class="container">
+            <form method="POST" action="/do_login">
+                <h2>请输入密码访问</h2>
+                ${errorMessageHtml}
+                <label for="password">密码:</label>
+                <input type="password" id="password" name="password" required autofocus>
+                <button type="submit">登录</button>
+            </form>
+        </div></body></html>
+    `);
+});
+
+app.post('/do_login', (req, res) => {
+    if (isUserPasswordSetupNeeded) { // Safeguard
+        return res.status(403).send("错误：请先完成初始用户密码设置。");
+    }
+    const submittedPassword = req.body.password;
+    if (!submittedPassword) { // Basic validation
+        return res.redirect('/login?error=invalid');
+    }
+
+    try {
+        const encryptedPasswordFromFile = fs.readFileSync(USER_PASSWORD_STORAGE_FILE, 'utf8');
+        const storedDecryptedPassword = decryptUserPassword(encryptedPasswordFromFile);
+
+        if (storedDecryptedPassword === null) {
+            console.error("登录尝试失败：无法解密存储的用户密码。可能主加密密钥已更改或用户密码文件已损坏。");
+            return res.redirect('/login?error=decrypt_failed');
+        }
+
+        if (submittedPassword === storedDecryptedPassword) {
+            // Password is correct
+            res.setHeader('Set-Cookie', 'auth=1; Max-Age=1800; HttpOnly; Path=/; SameSite=Lax'); // Secure cookie attributes
+            
+            // Send a page with a meta refresh or JavaScript redirect
+            res.send(`
+                <!DOCTYPE html><html lang="zh-CN">
+                <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>登录成功</title><style>${pageStyles}</style></head>
+                <body><div class="container">
+                    <h2 class="success-message">登录成功</h2>
+                    <p>服务正在启动，页面将在几秒后自动跳转...</p>
+                    <p>如果页面没有自动跳转，请 <a href="/">点击这里刷新</a>。</p>
+                    <script>setTimeout(() => { window.location.href = '/'; }, 2500);</script> </div></body></html>
+            `);
+
+            // Use process.nextTick to allow the response to be sent before closing the server
+            process.nextTick(() => {
+                server.close((err) => {
+                    if (err) {
+                        console.error('关闭登录保护服务器失败:', err);
+                        // Even if close fails, attempt to start the main server.
+                    }
+                    console.log('登录保护服务已关闭。正在启动主服务 (server.js)...');
+                    
+                    const mainAppPath = path.join(__dirname, 'server.js'); // Assuming server.js is in the same directory
+                    const child = exec(`node "${mainAppPath}"`, (error, stdout, stderr) => {
+                        // This callback is for when the process 'node server.js' terminates
+                        if (error) {
+                            console.error(`启动或运行 server.js 失败: ${error.message}`);
+                            return;
+                        }
+                        if (stderr) {
+                            // Many applications log informational messages to stderr
+                            console.error(`server.js stderr:\n${stderr}`);
+                        }
+                        if (stdout) {
+                            console.log(`server.js stdout:\n${stdout}`);
+                        }
+                    });
+
+                    child.on('exit', (code, signal) => {
+                        if (code !== null) {
+                            console.log(`主服务 (server.js) 已退出，退出码 ${code}`);
+                        } else if (signal !== null) {
+                            console.log(`主服务 (server.js) 被信号 ${signal} 终止`);
+                        } else {
+                            console.log('主服务 (server.js) 已退出。');
+                        }
+                        // Potentially restart this login gate or take other actions
+                    });
+                    // Note: This login_gate.js process will likely exit after server.close() if not kept alive by other means.
+                    // The `exec` call spawns a new process for server.js.
+                });
+            });
+
+        } else {
+            // Password incorrect
+            res.redirect('/login?error=invalid');
+        }
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            console.error("登录失败：用户密码文件未找到，但应用未处于设置模式。这不应该发生。", error);
+            isUserPasswordSetupNeeded = true; // Correct state
+            return res.redirect('/setup?error=internal_state');
+        }
+        console.error("读取用户密码文件或登录处理时发生未知错误:", error);
+        res.status(500).send("服务器内部错误，无法处理登录请求。");
+    }
+});
+
+// == Fallback for root path if authenticated (main application server.js should ideally handle this) ==
+app.get('/', (req, res) => {
+    if (isUserPasswordSetupNeeded) { // Should be caught by middleware
+         return res.redirect('/setup');
+    }
+    if (req.cookies.auth === '1') { // Authenticated
+        // This page will likely not be seen for long if server.js starts quickly and handles '/'
+        res.send(`
+            <!DOCTYPE html><html lang="zh-CN">
+            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>已登录 - 等待主应用</title><style>${pageStyles}</style></head>
+            <body><div class="container">
+                <h2>您已登录</h2>
+                <p>主应用程序 (server.js) 应该很快会接管此页面。</p>
+                <p>如果页面长时间没有变化，请尝试 <a href="/">刷新</a> 或检查主应用服务的状态。</p>
+            </div></body></html>
+        `);
+    } else { // Not authenticated, should be caught by middleware and redirected to /login
         res.redirect('/login');
     }
 });
 
 
+// --- 6. 服务器启动 ---
 const server = app.listen(PORT, () => {
-    console.log(`登录保护服务已启动：请访问 http://<你的服务器IP>:${PORT}`);
-    console.log(`此服务仅用于密码验证。验证成功后，它将关闭并启动您的主应用程序 (server.js)。`);
+    console.log(`登录保护/设置服务已在端口 ${PORT} 上启动。`);
+    if (isUserPasswordSetupNeeded) {
+        console.log(`请访问 http://<你的服务器IP或localhost>:${PORT}/setup 完成初始用户密码设置。`);
+    } else {
+        console.log(`请访问 http://<你的服务器IP或localhost>:${PORT}/login 进行登录。`);
+    }
+    console.warn(
+        "安全提示：此脚本中的用户密码加密方式（AES对称加密，主密钥派生自存储在文件中的密钥文本）仅为基础级别， " +
+        "不推荐用于高安全要求的生产环境。生产环境请务必使用加盐哈希 (如 bcrypt, Argon2) 存储用户密码。 " +
+        `请确保 ${MASTER_SECRET_KEY_FILE} 文件的安全和备份，这是解密用户密码的关键。`
+    );
 });
 
-// 优雅地处理退出信号
+// Graceful shutdown
 process.on('SIGINT', () => {
-    console.log('收到 SIGINT，关闭服务器...');
+    console.log('收到 SIGINT (Ctrl+C)，正在关闭登录保护服务...');
     server.close(() => {
-        console.log('服务器已关闭。');
+        console.log('登录保护服务已关闭。');
+        process.exit(0);
+    });
+});
+
+process.on('SIGTERM', () => {
+    console.log('收到 SIGTERM，正在关闭登录保护服务...');
+    server.close(() => {
+        console.log('登录保护服务已关闭。');
         process.exit(0);
     });
 });
