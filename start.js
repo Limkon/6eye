@@ -5,7 +5,7 @@ const { exec } = require('child_process');
 
 const app = express();
 const PORT = 8100;
-const PASSWORD = '123456';
+const PASSWORD = '20021199';
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
