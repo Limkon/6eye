@@ -19,8 +19,8 @@ function initializeEncryptionSecretKeyText() {
     if (fs.existsSync(MASTER_SECRET_KEY_FILE)) {
         console.log(`应用提示：正在从 ${MASTER_SECRET_KEY_FILE} 读取主加密密钥...`);
         const keyText = fs.readFileSync(MASTER_SECRET_KEY_FILE, 'utf8').trim();
-        if (keyText.length < 64) { // 建议一个较长的随机密钥文本, e.g. 48 bytes random hex is 96 chars
-            console.error(`安全警告：${MASTER_SECRET_KEY_FILE} 中的密钥文本长度 (${keyText.length}) 可能不足。为保证安全，如果怀疑密钥强度，可考虑删除此文件以重新生成。`);
+        if (keyText.length < 64) {
+            console.warn(`安全警告：${MASTER_SECRET_KEY_FILE} 中的密钥文本长度 (${keyText.length}) 可能不足。为保证安全，如果怀疑密钥强度，可考虑删除此文件以重新生成一个更强的密钥。`);
         }
         return keyText;
     } else {
@@ -28,23 +28,19 @@ function initializeEncryptionSecretKeyText() {
         const newKeyText = crypto.randomBytes(48).toString('hex'); // 生成96个十六进制字符的密钥文本
         try {
             fs.writeFileSync(MASTER_SECRET_KEY_FILE, newKeyText, { encoding: 'utf8', mode: 0o600 });
-            // 在某些系统上，writeFileSync中的mode可能不完全生效，显式调用chmod更可靠
-            fs.chmodSync(MASTER_SECRET_KEY_FILE, 0o600); // 权限：所有者可读写，其他用户无权限
+            fs.chmodSync(MASTER_SECRET_KEY_FILE, 0o600);
             console.log(`应用提示：新的主加密密钥已生成并保存到 ${MASTER_SECRET_KEY_FILE} (权限 600)。`);
             console.warn(`重要：请务必保护好 ${MASTER_SECRET_KEY_FILE} 文件！如果丢失，将无法解密已存储的用户密码。建议安全备份此文件。`);
             return newKeyText;
         } catch (err) {
             console.error(`严重错误：无法写入或设置主加密密钥文件 ${MASTER_SECRET_KEY_FILE} 的权限。请检查目录权限。应用无法继续。`, err);
-            process.exit(1); // 关键文件操作失败，退出程序
+            process.exit(1);
         }
     }
 }
 
 const ENCRYPTION_SECRET_KEY_TEXT = initializeEncryptionSecretKeyText();
-// 使用 scrypt 从密钥文本派生一个固定长度的二进制加密密钥 (增加暴力破解难度)
-// Salt应该是唯一的，但为了简单性，如果主密钥文本是持久且唯一的，固定salt也可以接受。
-// 更理想的情况是，salt也随机生成并与密文一起存储，但这会增加复杂性。
-const DERIVED_ENCRYPTION_KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY_TEXT, 'a_fixed_salt_for_scrypt_derivation_v1', 32); // 256-bit key
+const DERIVED_ENCRYPTION_KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY_TEXT, 'a_fixed_salt_for_scrypt_derivation_v1', 32);
 
 let isUserPasswordSetupNeeded = !fs.existsSync(USER_PASSWORD_STORAGE_FILE);
 
@@ -55,10 +51,10 @@ function encryptUserPassword(text) {
         const cipher = crypto.createCipheriv(ALGORITHM, DERIVED_ENCRYPTION_KEY, iv);
         let encrypted = cipher.update(text, 'utf8', 'hex');
         encrypted += cipher.final('hex');
-        return iv.toString('hex') + ':' + encrypted; // 将IV和密文一起存储
+        return iv.toString('hex') + ':' + encrypted;
     } catch (error) {
         console.error("用户密码加密失败:", error);
-        throw new Error("User password encryption failed."); // 传播错误以便上层处理
+        throw new Error("User password encryption failed.");
     }
 }
 
@@ -70,14 +66,14 @@ function decryptUserPassword(text) {
             return null;
         }
         const iv = Buffer.from(parts.shift(), 'hex');
-        const encryptedText = parts.join(':'); // parts[0] after shift
+        const encryptedText = parts.join(':');
         const decipher = crypto.createDecipheriv(ALGORITHM, DERIVED_ENCRYPTION_KEY, iv);
         let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
         return decrypted;
     } catch (error) {
-        console.error("用户密码解密失败:", error.message); // Log specific crypto error
-        return null; // 返回null表示解密不成功
+        console.error("用户密码解密失败:", error.message);
+        return null;
     }
 }
 
@@ -111,37 +107,33 @@ if (isUserPasswordSetupNeeded) {
 }
 
 app.use((req, res, next) => {
-    const allowedSetupPaths = ['/setup', '/do_setup']; // POST target for setup
-    const allowedLoginPaths = ['/login', '/do_login']; // POST target for login
+    const allowedSetupPaths = ['/setup', '/do_setup'];
+    const allowedLoginPaths = ['/login', '/do_login'];
 
     if (isUserPasswordSetupNeeded) {
-        // If setup is needed, only allow access to setup paths
         if (!allowedSetupPaths.includes(req.path)) {
             return res.redirect('/setup');
         }
-    } else { // Normal login mode (user password is set)
-        if (req.cookies.auth === '1') { // User is authenticated
-            // If authenticated, trying to access login or setup pages should redirect to main page
+    } else {
+        if (req.cookies.auth === '1') {
             if (allowedLoginPaths.includes(req.path) || allowedSetupPaths.includes(req.path)) {
                 return res.redirect('/');
             }
-        } else { // User is NOT authenticated
-            // If not authenticated, and not trying to access login paths, redirect to login
-            // (also prevent access to setup paths if somehow attempted post-setup without auth)
+        } else {
             if (!allowedLoginPaths.includes(req.path)) {
                 return res.redirect('/login');
             }
         }
     }
-    next(); // Proceed to the route handler
+    next();
 });
 
 
 // --- 5. 路由定义 ---
 
-// == SETUP ROUTES (for initial user password creation) ==
+// == SETUP ROUTES ==
 app.get('/setup', (req, res) => {
-    if (!isUserPasswordSetupNeeded) { // Safeguard, should be caught by middleware
+    if (!isUserPasswordSetupNeeded) {
         return res.redirect('/login');
     }
     const error = req.query.error;
@@ -150,7 +142,6 @@ app.get('/setup', (req, res) => {
     else if (error === 'short') errorMessageHtml = '<p class="message error-message">密码长度至少需要8个字符！</p>';
     else if (error === 'write_failed') errorMessageHtml = '<p class="message error-message">保存用户密码失败，请检查服务器权限或日志。</p>';
     else if (error === 'encrypt_failed') errorMessageHtml = '<p class="message error-message">密码加密失败，请检查服务器日志。</p>';
-
 
     res.send(`
         <!DOCTYPE html><html lang="zh-CN">
@@ -171,7 +162,7 @@ app.get('/setup', (req, res) => {
 });
 
 app.post('/do_setup', (req, res) => {
-    if (!isUserPasswordSetupNeeded) { // Safeguard
+    if (!isUserPasswordSetupNeeded) {
         return res.status(403).send("错误：用户密码已设置。");
     }
     const { newPassword, confirmPassword } = req.body;
@@ -186,7 +177,7 @@ app.post('/do_setup', (req, res) => {
     try {
         const encryptedPassword = encryptUserPassword(newPassword);
         fs.writeFileSync(USER_PASSWORD_STORAGE_FILE, encryptedPassword, 'utf8');
-        isUserPasswordSetupNeeded = false; // Update runtime state
+        isUserPasswordSetupNeeded = false;
         console.log("用户密码已成功设置并加密保存。应用现在进入登录模式。");
         res.send(`
             <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>设置成功</title><style>${pageStyles}</style></head>
@@ -198,7 +189,7 @@ app.post('/do_setup', (req, res) => {
     } catch (encryptError) {
         console.error("设置用户密码时加密失败:", encryptError);
         res.redirect('/setup?error=encrypt_failed');
-    } catch (writeError) {
+    } catch (writeError) { // Catching potential write error separately
         console.error("保存加密用户密码文件失败:", writeError);
         res.redirect('/setup?error=write_failed');
     }
@@ -206,17 +197,14 @@ app.post('/do_setup', (req, res) => {
 
 // == LOGIN ROUTES ==
 app.get('/login', (req, res) => {
-    if (isUserPasswordSetupNeeded) { // Safeguard
+    if (isUserPasswordSetupNeeded) {
         return res.redirect('/setup');
     }
-    // Middleware should already handle if user is authenticated (req.cookies.auth === '1') and redirect to '/'
-
     const error = req.query.error;
     let errorMessageHtml = '';
     if (error === 'invalid') errorMessageHtml = '<p class="message error-message">密码错误！</p>';
     else if (error === 'decrypt_failed') errorMessageHtml = '<p class="message error-message">无法验证密码。可能是密钥问题或文件损坏。</p>';
     else if (error === 'read_failed') errorMessageHtml = '<p class="message error-message">无法读取密码配置。请联系管理员。</p>';
-
 
     res.send(`
         <!DOCTYPE html><html lang="zh-CN">
@@ -234,11 +222,11 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/do_login', (req, res) => {
-    if (isUserPasswordSetupNeeded) { // Safeguard
+    if (isUserPasswordSetupNeeded) {
         return res.status(403).send("错误：请先完成初始用户密码设置。");
     }
     const submittedPassword = req.body.password;
-    if (!submittedPassword) { // Basic validation
+    if (!submittedPassword) {
         return res.redirect('/login?error=invalid');
     }
 
@@ -252,10 +240,7 @@ app.post('/do_login', (req, res) => {
         }
 
         if (submittedPassword === storedDecryptedPassword) {
-            // Password is correct
-            res.setHeader('Set-Cookie', 'auth=1; Max-Age=1800; HttpOnly; Path=/; SameSite=Lax'); // Secure cookie attributes
-            
-            // Send a page with a meta refresh or JavaScript redirect
+            res.setHeader('Set-Cookie', 'auth=1; Max-Age=1800; HttpOnly; Path=/; SameSite=Lax');
             res.send(`
                 <!DOCTYPE html><html lang="zh-CN">
                 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>登录成功</title><style>${pageStyles}</style></head>
@@ -263,57 +248,44 @@ app.post('/do_login', (req, res) => {
                     <h2 class="success-message">登录成功</h2>
                     <p>服务正在启动，页面将在几秒后自动跳转...</p>
                     <p>如果页面没有自动跳转，请 <a href="/">点击这里刷新</a>。</p>
-                    <script>setTimeout(() => { window.location.href = '/'; }, 2500);</script> </div></body></html>
+                    <script>setTimeout(() => { window.location.href = '/'; }, 2500);</script>
+                </div></body></html>
             `);
 
-            // Use process.nextTick to allow the response to be sent before closing the server
             process.nextTick(() => {
                 server.close((err) => {
                     if (err) {
                         console.error('关闭登录保护服务器失败:', err);
-                        // Even if close fails, attempt to start the main server.
                     }
                     console.log('登录保护服务已关闭。正在启动主服务 (server.js)...');
-                    
-                    const mainAppPath = path.join(__dirname, 'server.js'); // Assuming server.js is in the same directory
+                    const mainAppPath = path.join(__dirname, 'server.js');
                     const child = exec(`node "${mainAppPath}"`, (error, stdout, stderr) => {
-                        // This callback is for when the process 'node server.js' terminates
                         if (error) {
                             console.error(`启动或运行 server.js 失败: ${error.message}`);
                             return;
                         }
                         if (stderr) {
-                            // Many applications log informational messages to stderr
                             console.error(`server.js stderr:\n${stderr}`);
                         }
                         if (stdout) {
                             console.log(`server.js stdout:\n${stdout}`);
                         }
                     });
-
                     child.on('exit', (code, signal) => {
-                        if (code !== null) {
-                            console.log(`主服务 (server.js) 已退出，退出码 ${code}`);
-                        } else if (signal !== null) {
-                            console.log(`主服务 (server.js) 被信号 ${signal} 终止`);
-                        } else {
-                            console.log('主服务 (server.js) 已退出。');
-                        }
-                        // Potentially restart this login gate or take other actions
+                        if (code !== null) console.log(`主服务 (server.js) 已退出，退出码 ${code}`);
+                        else if (signal !== null) console.log(`主服务 (server.js) 被信号 ${signal} 终止`);
+                        else console.log('主服务 (server.js) 已退出。');
                     });
-                    // Note: This login_gate.js process will likely exit after server.close() if not kept alive by other means.
-                    // The `exec` call spawns a new process for server.js.
                 });
             });
 
         } else {
-            // Password incorrect
             res.redirect('/login?error=invalid');
         }
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            console.error("登录失败：用户密码文件未找到，但应用未处于设置模式。这不应该发生。", error);
-            isUserPasswordSetupNeeded = true; // Correct state
+        if (error.code === 'ENOENT') { // File not found
+            console.error("登录失败：用户密码文件未找到，但应用未处于设置模式。这可能是一个内部状态错误。", error);
+            isUserPasswordSetupNeeded = true; // Attempt to correct state
             return res.redirect('/setup?error=internal_state');
         }
         console.error("读取用户密码文件或登录处理时发生未知错误:", error);
@@ -321,13 +293,12 @@ app.post('/do_login', (req, res) => {
     }
 });
 
-// == Fallback for root path if authenticated (main application server.js should ideally handle this) ==
+// == Fallback for root path if authenticated ==
 app.get('/', (req, res) => {
-    if (isUserPasswordSetupNeeded) { // Should be caught by middleware
+    if (isUserPasswordSetupNeeded) {
          return res.redirect('/setup');
     }
-    if (req.cookies.auth === '1') { // Authenticated
-        // This page will likely not be seen for long if server.js starts quickly and handles '/'
+    if (req.cookies.auth === '1') {
         res.send(`
             <!DOCTYPE html><html lang="zh-CN">
             <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>已登录 - 等待主应用</title><style>${pageStyles}</style></head>
@@ -337,7 +308,7 @@ app.get('/', (req, res) => {
                 <p>如果页面长时间没有变化，请尝试 <a href="/">刷新</a> 或检查主应用服务的状态。</p>
             </div></body></html>
         `);
-    } else { // Not authenticated, should be caught by middleware and redirected to /login
+    } else {
         res.redirect('/login');
     }
 });
@@ -356,6 +327,30 @@ const server = app.listen(PORT, () => {
         "不推荐用于高安全要求的生产环境。生产环境请务必使用加盐哈希 (如 bcrypt, Argon2) 存储用户密码。 " +
         `请确保 ${MASTER_SECRET_KEY_FILE} 文件的安全和备份，这是解密用户密码的关键。`
     );
+});
+
+// **NEW**: Enhanced error handling for server.listen()
+server.on('error', (error) => {
+    if (error.syscall !== 'listen') {
+        console.error('发生了一个非监听相关的服务器错误:', error);
+        // For critical errors not related to listen, you might want to throw or exit differently
+        // For now, we'll exit to ensure the process manager knows it failed.
+        process.exit(1);
+    }
+
+    switch (error.code) {
+        case 'EACCES':
+            console.error(`错误：端口 ${PORT} 需要提升的权限 (例如，root权限才能使用1024以下的端口)。`);
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            console.error(`错误：端口 ${PORT} 已被其他应用程序占用。请关闭冲突应用或更改此脚本中的 PORT (${PORT})。`);
+            process.exit(1);
+            break;
+        default:
+            console.error('服务器启动时发生未知监听错误:', error);
+            process.exit(1);
+    }
 });
 
 // Graceful shutdown
