@@ -53,8 +53,8 @@ function encryptUserPassword(text) {
         encrypted += cipher.final('hex');
         return iv.toString('hex') + ':' + encrypted;
     } catch (error) {
-        console.error("用户密码加密失败:", error);
-        throw new Error("User password encryption failed.");
+        console.error("用户密码加密函数内部错误:", error); // 更具体的日志
+        throw new Error("User password encryption failed."); // 重新抛出，以便上层捕获
     }
 }
 
@@ -72,7 +72,7 @@ function decryptUserPassword(text) {
         decrypted += decipher.final('utf8');
         return decrypted;
     } catch (error) {
-        console.error("用户密码解密失败:", error.message);
+        console.error("用户密码解密函数内部错误:", error.message); // 更具体的日志
         return null;
     }
 }
@@ -161,6 +161,7 @@ app.get('/setup', (req, res) => {
     `);
 });
 
+// CORRECTED POST /do_setup route
 app.post('/do_setup', (req, res) => {
     if (!isUserPasswordSetupNeeded) {
         return res.status(403).send("错误：用户密码已设置。");
@@ -174,10 +175,18 @@ app.post('/do_setup', (req, res) => {
         return res.redirect('/setup?error=mismatch');
     }
 
+    let encryptedPassword;
     try {
-        const encryptedPassword = encryptUserPassword(newPassword);
-        fs.writeFileSync(USER_PASSWORD_STORAGE_FILE, encryptedPassword, 'utf8');
-        isUserPasswordSetupNeeded = false;
+        encryptedPassword = encryptUserPassword(newPassword); // 第一步：加密
+    } catch (error) {
+        // encryptUserPassword 内部已经 log 了具体错误
+        return res.redirect('/setup?error=encrypt_failed'); // 加密失败，返回并提示
+    }
+
+    // 如果加密成功，encryptedPassword 才会有值，然后尝试写入文件
+    try {
+        fs.writeFileSync(USER_PASSWORD_STORAGE_FILE, encryptedPassword, 'utf8'); // 第二步：写入文件
+        isUserPasswordSetupNeeded = false; // 更新运行时状态
         console.log("用户密码已成功设置并加密保存。应用现在进入登录模式。");
         res.send(`
             <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>设置成功</title><style>${pageStyles}</style></head>
@@ -186,14 +195,12 @@ app.post('/do_setup', (req, res) => {
                 <p>您现在可以 <a href="/login">前往登录页面</a>。</p>
             </div></body></html>
         `);
-    } catch (encryptError) {
-        console.error("设置用户密码时加密失败:", encryptError);
-        res.redirect('/setup?error=encrypt_failed');
-    } catch (writeError) { // Catching potential write error separately
-        console.error("保存加密用户密码文件失败:", writeError);
+    } catch (error) {
+        console.error("保存加密用户密码文件失败:", error);
         res.redirect('/setup?error=write_failed');
     }
 });
+
 
 // == LOGIN ROUTES ==
 app.get('/login', (req, res) => {
@@ -235,7 +242,7 @@ app.post('/do_login', (req, res) => {
         const storedDecryptedPassword = decryptUserPassword(encryptedPasswordFromFile);
 
         if (storedDecryptedPassword === null) {
-            console.error("登录尝试失败：无法解密存储的用户密码。可能主加密密钥已更改或用户密码文件已损坏。");
+            // decryptUserPassword 内部已打印错误日志
             return res.redirect('/login?error=decrypt_failed');
         }
 
@@ -283,9 +290,9 @@ app.post('/do_login', (req, res) => {
             res.redirect('/login?error=invalid');
         }
     } catch (error) {
-        if (error.code === 'ENOENT') { // File not found
+        if (error.code === 'ENOENT') {
             console.error("登录失败：用户密码文件未找到，但应用未处于设置模式。这可能是一个内部状态错误。", error);
-            isUserPasswordSetupNeeded = true; // Attempt to correct state
+            isUserPasswordSetupNeeded = true;
             return res.redirect('/setup?error=internal_state');
         }
         console.error("读取用户密码文件或登录处理时发生未知错误:", error);
@@ -329,15 +336,11 @@ const server = app.listen(PORT, () => {
     );
 });
 
-// **NEW**: Enhanced error handling for server.listen()
 server.on('error', (error) => {
     if (error.syscall !== 'listen') {
         console.error('发生了一个非监听相关的服务器错误:', error);
-        // For critical errors not related to listen, you might want to throw or exit differently
-        // For now, we'll exit to ensure the process manager knows it failed.
         process.exit(1);
     }
-
     switch (error.code) {
         case 'EACCES':
             console.error(`错误：端口 ${PORT} 需要提升的权限 (例如，root权限才能使用1024以下的端口)。`);
@@ -353,7 +356,6 @@ server.on('error', (error) => {
     }
 });
 
-// Graceful shutdown
 process.on('SIGINT', () => {
     console.log('收到 SIGINT (Ctrl+C)，正在关闭登录保护服务...');
     server.close(() => {
