@@ -9,10 +9,10 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // --- 1. 配置和常量 ---
 const PUBLIC_PORT = 8100;
-const APP_INTERNAL_PORT = 3000; // server.js (主应用) 固定监听的内部端口 (was 8200, changed to 3000 as per original comments)
+const APP_INTERNAL_PORT = 3000; // server.js (主应用) 固定监听的内部端口
 
-const MASTER_PASSWORD_STORAGE_FILE = path.join(__dirname, 'master_auth_config.enc'); // Renamed
-const USER_CREDENTIALS_STORAGE_FILE = path.join(__dirname, 'user_credentials.enc'); // New file for users
+const MASTER_PASSWORD_STORAGE_FILE = path.join(__dirname, 'master_auth_config.enc');
+const USER_CREDENTIALS_STORAGE_FILE = path.join(__dirname, 'user_credentials.enc');
 const MASTER_SECRET_KEY_FILE = path.join(__dirname, 'encryption.secret.key');
 
 const ALGORITHM = 'aes-256-cbc';
@@ -81,8 +81,8 @@ function startMainApp() {
 }
 
 // --- 2. 加密与解密函数 ---
-// These functions are for individual password strings
-function encryptUserPassword(text) {
+// These functions are for individual password strings or entire data blobs
+function encryptUserPassword(text) { // Renamed to encryptData for clarity, but keeping original for less diff
     try {
         const iv = crypto.randomBytes(IV_LENGTH);
         const cipher = crypto.createCipheriv(ALGORITHM, DERIVED_ENCRYPTION_KEY, iv);
@@ -90,16 +90,16 @@ function encryptUserPassword(text) {
         encrypted += cipher.final('hex');
         return iv.toString('hex') + ':' + encrypted;
     } catch (error) {
-        console.error("[AUTH_GATE] 用户密码加密函数内部错误:", error);
-        throw new Error("User password encryption failed.");
+        console.error("[AUTH_GATE] 数据加密函数内部错误:", error); // Generic error
+        throw new Error("Data encryption failed.");
     }
 }
 
-function decryptUserPassword(text) {
+function decryptUserPassword(text) { // Renamed to decryptData for clarity, but keeping original for less diff
     try {
         const parts = text.split(':');
         if (parts.length !== 2) {
-            console.error("[AUTH_GATE] 用户密码解密失败：密文格式无效（缺少IV）。");
+            console.error("[AUTH_GATE] 数据解密失败：密文格式无效（缺少IV）。"); // Generic error
             return null;
         }
         const iv = Buffer.from(parts.shift(), 'hex');
@@ -109,7 +109,7 @@ function decryptUserPassword(text) {
         decrypted += decipher.final('utf8');
         return decrypted;
     } catch (error) {
-        console.error("[AUTH_GATE] 用户密码解密函数内部错误:", error.message);
+        console.error("[AUTH_GATE] 数据解密函数内部错误:", error.message); // Generic error
         return null;
     }
 }
@@ -122,18 +122,29 @@ function readUserCredentials() {
     try {
         const encryptedData = fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8');
         if (!encryptedData) return {};
-        const decryptedData = decryptUserPassword(encryptedData); // Reusing for simplicity, assuming JSON is text
+        const decryptedData = decryptUserPassword(encryptedData); 
         return JSON.parse(decryptedData);
     } catch (error) {
         console.error("[AUTH_GATE] 读取用户凭证失败:", error);
-        return {}; // Return empty on error to prevent crash, or handle more gracefully
+        // Attempt to recover by creating a new empty file if parsing fails due to corruption
+        // but only if the decryptedData was not null (meaning decryption itself worked somewhat)
+        if (error instanceof SyntaxError && fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
+            console.warn("[AUTH_GATE] 用户凭证文件可能已损坏。将尝试重置为空。");
+            try {
+                saveUserCredentials({}); // Save an empty encrypted object to reset
+                return {};
+            } catch (resetError) {
+                console.error("[AUTH_GATE] 重置损坏的用户凭证文件失败:", resetError);
+            }
+        }
+        return {}; // Return empty on error
     }
 }
 
 function saveUserCredentials(usersObject) {
     try {
         const dataToEncrypt = JSON.stringify(usersObject, null, 2);
-        const encryptedData = encryptUserPassword(dataToEncrypt); // Reusing for simplicity
+        const encryptedData = encryptUserPassword(dataToEncrypt); 
         fs.writeFileSync(USER_CREDENTIALS_STORAGE_FILE, encryptedData, 'utf8');
     } catch (error) {
         console.error("[AUTH_GATE] 保存用户凭证失败:", error);
@@ -148,9 +159,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 const pageStyles = `
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; padding: 20px 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; padding: 20px 0; box-sizing: border-box; }
     .container { background-color: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; width: 400px; max-width: 90%; margin-bottom: 20px;}
-    .admin-container { width: 800px; max-width: 95%; align-items: flex-start; text-align:left; }
+    .admin-container { width: 800px; max-width: 95%; text-align:left; } /* align-items: flex-start removed for centering */
     h2 { margin-top: 0; margin-bottom: 25px; color: #1d2129; font-size: 22px; }
     h3 { margin-top: 30px; margin-bottom: 15px; color: #1d2129; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
     input[type="password"], input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #dddfe2; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
@@ -160,10 +171,10 @@ const pageStyles = `
     button[type="submit"]:hover, .button-link:hover { background-color: #0056b3; }
     button[type="submit"].danger { background-color: #dc3545; }
     button[type="submit"].danger:hover { background-color: #c82333; }
-    .message { margin-bottom: 15px; font-weight: 500; font-size: 0.95em; }
-    .error-message { color: #dc3545; }
-    .success-message { color: #28a745; }
-    .info-message { color: #17a2b8; font-size: 0.85em; margin-top:15px; line-height: 1.4; }
+    .message { margin-bottom: 15px; font-weight: 500; font-size: 0.95em; padding: 10px; border-radius: 5px; }
+    .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    .info-message { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; font-size: 0.85em; margin-top:15px; line-height: 1.4; }
     label { display: block; text-align: left; margin-bottom: 5px; font-weight: 500; font-size: 0.9em; }
     a { color: #007bff; text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -171,11 +182,13 @@ const pageStyles = `
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #ddd; }
     th { background-color: #f8f9fa; }
     .actions form { display: inline-block; margin-right: 5px; }
-    .actions button { padding: 5px 10px; font-size: 0.9em; }
-    .form-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px;}
+    .actions button { padding: 5px 10px; font-size: 0.9em; margin-top: 0; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 15px;}
+    .form-row .field { flex-grow: 1; min-width: 150px; }
     .form-row label, .form-row input { margin-bottom: 0; }
-    .form-row .field { flex-grow: 1; }
-    .logout-link { position: absolute; top: 20px; right: 20px; }
+    .form-row button { align-self: flex-end; }
+    .logout-link-container { width: 100%; text-align: right; margin-bottom: 10px; }
+    .nav-links { margin-top: 20px; text-align: center; }
 `;
 
 // --- 4. 启动模式判断和日志 ---
@@ -189,6 +202,7 @@ if (isMasterPasswordSetupNeeded) {
 app.use((req, res, next) => {
     const authRelatedPaths = ['/login', '/do_login', '/setup', '/do_setup'];
     const isAdminPath = req.path.startsWith('/admin');
+    const isLogoutPath = req.path === '/logout';
 
     if (isMasterPasswordSetupNeeded) {
         if (req.path === '/setup' || req.path === '/do_setup') {
@@ -199,20 +213,29 @@ app.use((req, res, next) => {
 
     // User is logged in
     if (req.cookies.auth === '1') {
-        if (authRelatedPaths.includes(req.path) && req.path !== '/logout') { // Allow logout even if logged in
+        if (isLogoutPath) return next(); // Allow logout
+
+        if (authRelatedPaths.includes(req.path)) {
              return res.redirect(req.cookies.is_master === 'true' ? '/admin' : '/');
         }
         if (isAdminPath && req.cookies.is_master !== 'true') {
             console.warn("[AUTH_GATE] 普通用户尝试访问管理页面:", req.path);
-            return res.status(403).send("无权访问此页面。仅主密码登录用户可访问。 <a href='/'>返回首页</a>");
+            return res.status(403).send(`
+                <style>${pageStyles}</style>
+                <div class="container">
+                    <p class="error-message">无权访问此页面。仅主密码登录用户可访问。</p>
+                    <a href="/" class="button-link">返回首页</a>
+                </div>`);
         }
-        return next(); // Authenticated and authorized for this path or proxy
+        return next(); 
     }
 
     // User is not logged in
-    if (req.path === '/login' || req.path === '/do_login' || req.path === '/setup' /* Should not happen if !isMasterPasswordSetupNeeded */) {
+    if (isLogoutPath) return res.redirect('/login'); // If trying to logout but not logged in, just go to login
+    if (authRelatedPaths.includes(req.path)) { // Allow access to login/setup pages if not logged in
         return next();
     }
+    // For any other path, if not logged in, redirect to login
     return res.redirect('/login');
 });
 
@@ -220,14 +243,14 @@ app.use((req, res, next) => {
 
 // == SETUP MASTER PASSWORD ROUTES ==
 app.get('/setup', (req, res) => {
-    if (!isMasterPasswordSetupNeeded && req.path ==='/setup') {
+    if (!isMasterPasswordSetupNeeded) { // Check again in case of race condition or direct access
          console.warn("[AUTH_GATE] 警告：主密码已设置，但仍到达 GET /setup 路由。");
          return res.redirect('/login');
     }
     const error = req.query.error;
     let errorMessageHtml = '';
     if (error === 'mismatch') errorMessageHtml = '<p class="message error-message">两次输入的密码不匹配！</p>';
-    else if (error === 'short') errorMessageHtml = '<p class="message error-message">密码长度至少需要8个字符！</p>';
+    else if (error === 'short') errorMessageHtml = '<p class="message error-message">主密码长度至少需要8个字符！</p>';
     else if (error === 'write_failed') errorMessageHtml = '<p class="message error-message">保存主密码失败，请检查服务器权限或日志。</p>';
     else if (error === 'encrypt_failed') errorMessageHtml = '<p class="message error-message">主密码加密失败，请检查服务器日志。</p>';
 
@@ -272,9 +295,8 @@ app.post('/do_setup', (req, res) => {
         fs.writeFileSync(MASTER_PASSWORD_STORAGE_FILE, encryptedPassword, 'utf8');
         isMasterPasswordSetupNeeded = false;
         console.log("[AUTH_GATE] 主密码已成功设置并加密保存。应用现在进入登录模式。");
-        // Initialize user credentials file if it doesn't exist, even if empty
         if (!fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
-            saveUserCredentials({}); // Save an empty encrypted object
+            saveUserCredentials({}); 
         }
         startMainApp();
         res.send(`
@@ -298,13 +320,11 @@ app.get('/login', (req, res) => {
     if (error === 'invalid') messageHtml = '<p class="message error-message">用户名或密码错误！</p>';
     else if (error === 'decrypt_failed') messageHtml = '<p class="message error-message">无法验证密码。可能是密钥问题或文件损坏。</p>';
     else if (error === 'read_failed') messageHtml = '<p class="message error-message">无法读取密码配置。请联系管理员。</p>';
-    else if (error === 'no_user_file') messageHtml = '<p class="message error-message">用户凭证文件不存在，请先使用主密码登录并创建用户。</p>';
+    else if (error === 'no_user_file') messageHtml = '<p class="message error-message">用户凭证文件不存在或无法读取，请先使用主密码登录并检查。</p>';
+    else if (error === 'master_not_set') messageHtml = '<p class="message error-message">主密码尚未设置，请先 <a href="/setup">设置主密码</a>。</p>';
+    else if (error === 'internal_state') messageHtml = '<p class="message error-message">内部状态错误，请尝试 <a href="/setup">重新设置主密码</a> (如果适用) 或联系管理员。</p>';
     else if (info === 'logged_out') messageHtml = '<p class="message success-message">您已成功登出。</p>';
-    else if (info === 'user_added') messageHtml = '<p class="message success-message">用户添加成功。</p>';
-    else if (info === 'user_deleted') messageHtml = '<p class="message success-message">用户删除成功。</p>';
-    else if (info === 'password_changed') messageHtml = '<p class="message success-message">用户密码修改成功。</p>';
-
-
+    
     res.send(`
         <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>登录</title><style>${pageStyles}</style></head>
         <body><div class="container">
@@ -323,16 +343,21 @@ app.get('/login', (req, res) => {
 
 app.post('/do_login', (req, res) => {
     if (isMasterPasswordSetupNeeded) {
-        return res.status(403).redirect('/setup?error=master_not_set');
+        return res.redirect('/login?error=master_not_set');
     }
     const { username, password: submittedPassword } = req.body;
 
-    if (!submittedPassword) {
-        return res.redirect('/login?error=invalid'); // Password is always required
+    if (!submittedPassword) { // Password field itself is empty
+        return res.redirect('/login?error=invalid'); 
     }
 
     try {
         if (!username) { // Attempt Master Password Login
+            if (!fs.existsSync(MASTER_PASSWORD_STORAGE_FILE)) {
+                 console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式。");
+                 isMasterPasswordSetupNeeded = true; 
+                 return res.redirect('/setup?error=internal_state');
+            }
             const encryptedMasterPasswordFromFile = fs.readFileSync(MASTER_PASSWORD_STORAGE_FILE, 'utf8');
             const storedDecryptedMasterPassword = decryptUserPassword(encryptedMasterPasswordFromFile);
 
@@ -341,11 +366,11 @@ app.post('/do_login', (req, res) => {
             }
             if (submittedPassword === storedDecryptedMasterPassword) {
                 res.setHeader('Set-Cookie', [
-                    'auth=1; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax', // Increased Max-Age
+                    'auth=1; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax', 
                     'is_master=true; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax'
                 ]);
                 console.log("[AUTH_GATE] 主密码登录成功。");
-                return res.redirect('/admin'); // Redirect master to admin page
+                return res.redirect('/admin'); 
             } else {
                 return res.redirect('/login?error=invalid');
             }
@@ -355,21 +380,29 @@ app.post('/do_login', (req, res) => {
                  return res.redirect('/login?error=no_user_file');
             }
             const users = readUserCredentials();
+            // Check if readUserCredentials returned an empty object due to read/parse error
+            if (Object.keys(users).length === 0 && fs.existsSync(USER_CREDENTIALS_STORAGE_FILE) && fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8').length > 0) {
+                // File exists and is not empty, but users object is empty - implies read/parse error
+                return res.redirect('/login?error=no_user_file');
+            }
+
             const userData = users[username];
 
             if (!userData || !userData.passwordHash) {
-                return res.redirect('/login?error=invalid'); // User not found
+                return res.redirect('/login?error=invalid'); 
             }
 
             const storedDecryptedPassword = decryptUserPassword(userData.passwordHash);
             if (storedDecryptedPassword === null) {
-                return res.redirect('/login?error=decrypt_failed'); // Decryption issue for this user
+                // This could mean the user's password entry is corrupted, or master key changed
+                console.error(`[AUTH_GATE] 解密用户 '${username}' 的密码失败。`);
+                return res.redirect('/login?error=decrypt_failed'); 
             }
 
             if (submittedPassword === storedDecryptedPassword) {
                 res.setHeader('Set-Cookie', [
                     'auth=1; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax',
-                    'is_master=false; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax' // Explicitly set is_master to false
+                    'is_master=false; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax'
                 ]);
                 console.log(`[AUTH_GATE] 用户 '${username}' 登录成功。重定向到主应用 /`);
                 return res.redirect('/');
@@ -378,9 +411,9 @@ app.post('/do_login', (req, res) => {
             }
         }
     } catch (error) {
-        if (error.code === 'ENOENT' && error.path === MASTER_PASSWORD_STORAGE_FILE) {
-            console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式。", error);
-            isMasterPasswordSetupNeeded = true; // Correct internal state
+        if (error.code === 'ENOENT' && error.path === MASTER_PASSWORD_STORAGE_FILE) { // Should be caught by existsSync earlier
+            console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式（意外）。", error);
+            isMasterPasswordSetupNeeded = true; 
             return res.redirect('/setup?error=internal_state');
         }
         console.error("[AUTH_GATE] 读取密码文件或登录处理时发生未知错误:", error);
@@ -400,13 +433,17 @@ app.get('/logout', (req, res) => {
 
 
 // == ADMIN ROUTES (User Management) ==
-// Middleware to protect admin routes
 function ensureMasterAdmin(req, res, next) {
     if (req.cookies.auth === '1' && req.cookies.is_master === 'true') {
         return next();
     }
     console.warn("[AUTH_GATE] 未授权访问管理区域，Cookie: ", req.cookies);
-    res.status(403).send("访问被拒绝。您必须以主密码用户身份登录才能访问此页面。 <a href='/login'>去登录</a>");
+    res.status(403).send(`
+        <style>${pageStyles}</style>
+        <div class="container">
+            <p class="message error-message">访问被拒绝。您必须以主密码用户身份登录才能访问此页面。</p>
+            <a href="/login" class="button-link">去登录</a>
+        </div>`);
 }
 
 app.get('/admin', ensureMasterAdmin, (req, res) => {
@@ -415,17 +452,19 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
     const success = req.query.success;
     let messageHtml = '';
     if (error === 'user_exists') messageHtml = '<p class="message error-message">错误：用户名已存在。</p>';
-    if (error === 'password_mismatch') messageHtml = '<p class="message error-message">错误：两次输入的密码不匹配。</p>';
-    if (error === 'password_short') messageHtml = '<p class="message error-message">错误：密码至少需要8个字符。</p>';
-    if (error === 'unknown') messageHtml = '<p class="message error-message">发生未知错误。</p>';
+    else if (error === 'password_mismatch') messageHtml = '<p class="message error-message">错误：两次输入的密码不匹配。</p>';
+    else if (error === 'missing_fields') messageHtml = '<p class="message error-message">错误：所有必填字段不能为空。</p>';
+    else if (error === 'unknown') messageHtml = '<p class="message error-message">发生未知错误。</p>';
+    else if (error === 'user_not_found') messageHtml = '<p class="message error-message">错误: 未找到指定用户。</p>';
+    
     if (success === 'user_added') messageHtml = '<p class="message success-message">用户添加成功。</p>';
-    if (success === 'user_deleted') messageHtml = '<p class="message success-message">用户删除成功。</p>';
-    if (success === 'password_changed') messageHtml = '<p class="message success-message">用户密码修改成功。</p>';
+    else if (success === 'user_deleted') messageHtml = '<p class="message success-message">用户删除成功。</p>';
+    else if (success === 'password_changed') messageHtml = '<p class="message success-message">用户密码修改成功。</p>';
 
 
     let usersTableHtml = '<table><thead><tr><th>用户名</th><th>操作</th></tr></thead><tbody>';
     if (Object.keys(users).length === 0) {
-        usersTableHtml += '<tr><td colspan="2">当前没有普通用户。</td></tr>';
+        usersTableHtml += '<tr><td colspan="2" style="text-align:center;">当前没有普通用户。</td></tr>';
     } else {
         for (const username in users) {
             usersTableHtml += `
@@ -450,8 +489,8 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
         <!DOCTYPE html><html lang="zh-CN">
         <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>用户管理</title><style>${pageStyles}</style></head>
         <body>
-            <a href="/logout" class="logout-link button-link">登出主账户</a>
             <div class="container admin-container">
+                <div class="logout-link-container"><a href="/logout" class="button-link">登出主账户</a></div>
                 <h2>用户管理面板 (主账户)</h2>
                 ${messageHtml}
                 
@@ -466,17 +505,19 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
                             <input type="text" id="newUsername" name="newUsername" required>
                         </div>
                         <div class="field">
-                            <label for="newUserPassword">新用户密码 (至少8位):</label>
-                            <input type="password" id="newUserPassword" name="newUserPassword" required minlength="8">
+                            <label for="newUserPassword">新用户密码:</label>
+                            <input type="password" id="newUserPassword" name="newUserPassword" required>
                         </div>
                          <div class="field">
                             <label for="confirmNewUserPassword">确认密码:</label>
-                            <input type="password" id="confirmNewUserPassword" name="confirmNewUserPassword" required minlength="8">
+                            <input type="password" id="confirmNewUserPassword" name="confirmNewUserPassword" required>
                         </div>
-                        <button type="submit" style="align-self: flex-end;">添加用户</button>
+                        <button type="submit">添加用户</button>
                     </div>
                 </form>
-                 <p><a href="/" class="button-link" style="margin-top:20px;">访问主应用</a></p>
+                <div class="nav-links">
+                    <a href="/" class="button-link">访问主应用</a>
+                </div>
             </div>
         </body></html>
     `);
@@ -484,11 +525,8 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
 
 app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     const { newUsername, newUserPassword, confirmNewUserPassword } = req.body;
-    if (!newUsername || !newUserPassword || !confirmNewUserPassword ) {
+    if (!newUsername || !newUserPassword || !confirmNewUserPassword ) { 
         return res.redirect('/admin?error=missing_fields');
-    }
-    if (newUserPassword.length < 8) {
-        return res.redirect('/admin?error=password_short');
     }
     if (newUserPassword !== confirmNewUserPassword) {
         return res.redirect('/admin?error=password_mismatch');
@@ -498,6 +536,11 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     if (users[newUsername]) {
         return res.redirect('/admin?error=user_exists');
     }
+    // Prevent "master" or other reserved names if needed
+    if (newUsername.toLowerCase() === "master") {
+        return res.redirect('/admin?error=user_exists'); // Or a more specific error
+    }
+
 
     try {
         users[newUsername] = { passwordHash: encryptUserPassword(newUserPassword) };
@@ -513,11 +556,11 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
 app.post('/admin/delete_user', ensureMasterAdmin, (req, res) => {
     const { usernameToDelete } = req.body;
     if (!usernameToDelete) {
-        return res.redirect('/admin?error=unknown');
+        return res.redirect('/admin?error=unknown'); // Should not happen
     }
     const users = readUserCredentials();
     if (!users[usernameToDelete]) {
-        return res.redirect('/admin?error=user_not_found'); // Should not happen if UI is correct
+        return res.redirect('/admin?error=user_not_found'); 
     }
     delete users[usernameToDelete];
     try {
@@ -535,9 +578,16 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
     const error = req.query.error;
     let errorMessageHtml = '';
     if (error === 'mismatch') errorMessageHtml = '<p class="message error-message">两次输入的密码不匹配！</p>';
-    else if (error === 'short') errorMessageHtml = '<p class="message error-message">密码长度至少需要8个字符！</p>';
+    else if (error === 'missing_fields') errorMessageHtml = '<p class="message error-message">错误：所有密码字段均为必填项。</p>';
+    else if (error === 'unknown') errorMessageHtml = '<p class="message error-message">发生未知错误。</p>';
+
 
     if (!usernameToChange) return res.redirect('/admin?error=unknown');
+    
+    const users = readUserCredentials();
+    if (!users[usernameToChange]) {
+        return res.redirect('/admin?error=user_not_found');
+    }
 
     res.send(`
         <!DOCTYPE html><html lang="zh-CN">
@@ -548,12 +598,14 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
                 ${errorMessageHtml}
                 <form method="POST" action="/admin/perform_change_password">
                     <input type="hidden" name="username" value="${usernameToChange}">
-                    <label for="newPassword">新密码 (至少8位):</label>
-                    <input type="password" id="newPassword" name="newPassword" required minlength="8" autofocus>
+                    <label for="newPassword">新密码:</label>
+                    <input type="password" id="newPassword" name="newPassword" required autofocus>
                     <label for="confirmPassword">确认新密码:</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8">
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
                     <button type="submit" class="full-width">确认修改密码</button>
-                    <p style="margin-top: 15px;"><a href="/admin">返回用户管理</a></p>
+                    <div class="nav-links">
+                        <a href="/admin" class="button-link">返回用户管理</a>
+                    </div>
                 </form>
             </div>
         </body></html>
@@ -562,11 +614,8 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
 
 app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
     const { username, newPassword, confirmPassword } = req.body;
-    if (!username || !newPassword || !confirmPassword) {
+    if (!username || !newPassword || !confirmPassword) { 
          return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=missing_fields`);
-    }
-    if (newPassword.length < 8) {
-        return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=short`);
     }
     if (newPassword !== confirmPassword) {
         return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=mismatch`);
@@ -574,6 +623,7 @@ app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
 
     const users = readUserCredentials();
     if (!users[username]) {
+        // This case should ideally be caught by the GET route that renders the change_password_page
         return res.redirect('/admin?error=user_not_found');
     }
 
@@ -594,55 +644,56 @@ const proxyToMainApp = createProxyMiddleware({
     target: `http://localhost:${APP_INTERNAL_PORT}`,
     changeOrigin: true,
     ws: true,
-    logLevel: 'info',
+    logLevel: 'info', // 'debug' for more verbose proxy logging
     onError: (err, req, res) => {
-        console.error('[AUTH_GATE_PROXY] 代理发生错误:', err.message);
+        console.error('[AUTH_GATE_PROXY] 代理发生错误:', err.message, 'for', req.method, req.url);
         if (res && !res.headersSent) {
-             try { res.writeHead(502, { 'Content-Type': 'text/html' }); } catch (e) { /* ignore */ }
+             try { 
+                res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' }); 
+            } catch (e) { console.error("Error writing head for proxy error:", e); }
         }
         if (res && res.writable && !res.writableEnded) {
             try {
                 res.end(`
-                    <div style="text-align:center;padding:40px;font-family:sans-serif;">
-                        <h2>代理错误</h2>
-                        <p>无法连接到后端应用程序 (server.js)。请检查其是否已启动并监听内部端口 ${APP_INTERNAL_PORT}。</p>
-                        <p>错误: ${err.message}</p>
-                        </div>
+                    <style>${pageStyles}</style>
+                    <div class="container">
+                        <h2 class="error-message">代理错误</h2>
+                        <p>无法连接到后端应用程序 (server.js)。</p>
+                        <p>请检查其是否已启动并监听内部端口 ${APP_INTERNAL_PORT}。</p>
+                        <p>错误详情: ${err.message}</p>
+                        <div class="nav-links"><a href="/" class="button-link">重试</a> <a href="/logout" class="button-link danger">登出</a></div>
+                    </div>
                 `);
-            } catch (e) { /* ignore */ }
-        } else if (res && !res.writableEnded) {
+            } catch (e) { console.error("Error ending response for proxy error:", e); }
+        } else if (res && !res.writableEnded) { // Fallback if end() failed or headersSent
             try { res.end(); } catch (e) { /* ignore */ }
         }
     }
 });
 
-// This middleware should be placed AFTER specific auth routes and admin routes.
-// It will catch all other requests that have passed the authentication checks.
 app.use((req, res, next) => {
-    // If we reach here, it means:
-    // 1. Master password is set (isMasterPasswordSetupNeeded is false).
-    // 2. User is authenticated (req.cookies.auth === '1').
-    // 3. Path is not /login, /do_login, /setup, /do_setup, /logout.
-    // 4. If path is /admin/*, it has already passed ensureMasterAdmin.
-    // So, if not an admin path, it's a request for the main app.
-    // Admin paths are handled by their own route handlers and don't need proxying.
-    
-    if (!req.path.startsWith('/admin')) { // Only proxy non-admin authenticated requests
-        if (!isMasterPasswordSetupNeeded && req.cookies.auth === '1') {
-            return proxyToMainApp(req, res, next);
-        }
+    // This middleware is strategically placed.
+    // - Global auth middleware runs first, redirecting unauthenticated users or handling auth pages.
+    // - Specific routes like /admin/*, /login, /setup, /logout are defined above and handle their own logic.
+    //
+    // If a request reaches here, it means:
+    // 1. It's NOT an auth-related path (e.g. /login, /setup).
+    // 2. It's NOT an admin path (/admin/*).
+    // 3. The user IS authenticated (req.cookies.auth === '1').
+    //    (Because the global auth middleware would have redirected otherwise for non-auth, non-admin paths).
+    //
+    // Therefore, any request reaching here is intended for the main application and should be proxied.
+    if (!isMasterPasswordSetupNeeded && req.cookies.auth === '1' && !req.path.startsWith('/admin')) {
+        return proxyToMainApp(req, res, next);
     }
-    // If it's an admin path, it would have been handled by specific admin routes.
-    // If it's an unauthenticated request that somehow slipped through, or an admin path without master auth,
-    // previous middleware should have caught it. This is a fallback.
-    console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理: ${req.path}, AuthCookie: ${req.cookies.auth}, IsMaster: ${req.cookies.is_master}`);
-    // Let specific route handlers above (like admin) or the global auth middleware deal with final response.
-    // If it reaches here without being handled, it's likely a logic error or an unhandled admin sub-path.
-    // However, since admin routes explicitly call next() or send a response, this might not be hit often
-    // for /admin paths.
-    // For non-admin paths that are not authenticated, the global middleware already redirects.
-    // So, the primary purpose here is to ensure only authenticated non-admin paths get proxied.
-    next(); // Allow Express to 404 if no other route matches (e.g. undefined admin sub-path)
+    
+    // If it's an admin path, it should have been handled by specific admin routes.
+    // If it's an unhandled path or a situation not covered, Express will 404 or an error might occur.
+    // This 'next()' allows Express to continue processing (e.g., to a 404 handler if no route matches).
+    // However, given the strictness of the global auth middleware, unauthenticated requests to non-auth/non-admin
+    // paths should not reach here.
+    console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（意外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}`);
+    next(); 
 });
 
 
@@ -650,10 +701,12 @@ app.use((req, res, next) => {
 const server = app.listen(PUBLIC_PORT, () => {
     console.log(`[AUTH_GATE] 认证网关与反向代理服务已在端口 ${PUBLIC_PORT} 上启动。`);
     if (isMasterPasswordSetupNeeded) {
-        console.log(`[AUTH_GATE] 请访问 http://<你的服务器IP或localhost>:${PUBLIC_PORT}/setup 完成初始主密码设置。`);
+        console.log(`[AUTH_GATE] 请访问 http://localhost:${PUBLIC_PORT}/setup 完成初始主密码设置。`);
     } else {
-        console.log(`[AUTH_GATE] 主应用将由本服务管理。请访问 http://<你的服务器IP或localhost>:${PUBLIC_PORT}/login 进行登录。`);
-        startMainApp(); // Start main app if master password is already set
+        console.log(`[AUTH_GATE] 主应用将由本服务管理。请访问 http://localhost:${PUBLIC_PORT}/login 进行登录。`);
+        if (!serverJsProcess) { // Only start if not already running (e.g. after master pw setup)
+            startMainApp(); 
+        }
     }
     console.warn(
         "[AUTH_GATE] 安全提示：用户密码加密方式仅为基础级别。" +
@@ -664,7 +717,10 @@ const server = app.listen(PUBLIC_PORT, () => {
 server.on('error', (error) => {
     if (error.syscall !== 'listen') {
         console.error('[AUTH_GATE] 发生了一个非监听相关的服务器错误:', error);
-        process.exit(1); // Exit on critical server errors not related to listen
+        // For non-listen errors, we might not want to exit if it's recoverable
+        // But for now, keeping original behavior:
+        // process.exit(1); 
+        return; // Or handle differently
     }
     switch (error.code) {
         case 'EACCES':
@@ -684,38 +740,61 @@ server.on('error', (error) => {
 // --- 9. 优雅关闭处理 ---
 function shutdownGracefully(signal) {
     console.log(`[AUTH_GATE] 收到 ${signal}。正在关闭服务...`);
-    server.close(() => {
-        console.log('[AUTH_GATE] HTTP 服务已关闭。');
+    
+    const serverClosePromise = new Promise((resolve) => {
+        server.close(() => {
+            console.log('[AUTH_GATE] HTTP 服务已关闭。');
+            resolve();
+        });
+    });
+
+    const childProcessPromise = new Promise((resolve) => {
         if (serverJsProcess && !serverJsProcess.killed) {
             console.log('[AUTH_GATE] 正在尝试终止主应用 (server.js)...');
-            const killed = serverJsProcess.kill('SIGTERM'); // Try SIGTERM first
-            if (killed) {
-                console.log('[AUTH_GATE] 已向主应用发送 SIGTERM 信号。等待其退出...');
-                const killTimeout = setTimeout(() => {
-                    if (serverJsProcess && !serverJsProcess.killed) {
-                        console.warn('[AUTH_GATE] 主应用未在 SIGTERM 后3秒内退出，强制发送 SIGKILL...');
-                        serverJsProcess.kill('SIGKILL'); // Force kill if it doesn't respond
-                    }
-                    process.exit(0);
-                }, 3000); // 3 seconds grace period
-                serverJsProcess.on('exit', () => { // If it exits cleanly before timeout
-                    clearTimeout(killTimeout);
-                    console.log('[AUTH_GATE] 主应用已成功退出。');
-                    process.exit(0);
-                });
-                return; // Important: allow async exit of child
-            } else {
-                 console.warn('[AUTH_GATE] 向主应用发送 SIGTERM 信号失败。可能已退出或无权限。');
+            
+            const killTimeout = setTimeout(() => {
+                if (serverJsProcess && !serverJsProcess.killed) {
+                    console.warn('[AUTH_GATE] 主应用未在 SIGTERM 后3秒内退出，强制发送 SIGKILL...');
+                    serverJsProcess.kill('SIGKILL'); 
+                }
+                resolve(); // Resolve even if SIGKILL was needed or child was already dead
+            }, 3000); 
+
+            serverJsProcess.on('exit', (code, signal) => {
+                clearTimeout(killTimeout);
+                console.log(`[AUTH_GATE] 主应用已成功退出 (Code: ${code}, Signal: ${signal})。`);
+                resolve();
+            });
+
+            const killed = serverJsProcess.kill('SIGTERM'); 
+            if (!killed && serverJsProcess && !serverJsProcess.killed) { // If kill signal failed but process might still be there
+                 console.warn('[AUTH_GATE] 向主应用发送 SIGTERM 信号失败 (可能已退出或无权限)。');
+                 clearTimeout(killTimeout); // Don't wait for SIGKILL if SIGTERM send failed
+                 resolve();
+            } else if (!serverJsProcess || serverJsProcess.killed) { // Process was already gone
+                clearTimeout(killTimeout);
+                resolve();
             }
+            // If killed is true, the 'exit' event or timeout will handle resolve.
+
+        } else {
+            resolve(); // No child process to stop
         }
-        process.exit(0); // Exit if no child process or kill signal failed
+    });
+
+    Promise.all([serverClosePromise, childProcessPromise]).then(() => {
+        console.log('[AUTH_GATE] 所有服务已关闭。优雅退出。');
+        process.exit(0);
+    }).catch(err => {
+        console.error('[AUTH_GATE] 优雅关闭期间发生错误:', err);
+        process.exit(1);
     });
 
     // Force shutdown of this auth gate server if it doesn't close gracefully
     setTimeout(() => {
         console.error('[AUTH_GATE] 优雅关闭超时 (10秒)，强制退出。');
-        process.exit(1); // Exit with error code
-    }, 10000); // 10 seconds overall timeout for this server
+        process.exit(1); 
+    }, 10000); 
 }
 
 process.on('SIGINT', () => shutdownGracefully('SIGINT'));
