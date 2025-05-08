@@ -457,7 +457,7 @@ async function main() {
         await ensureChatroomDir();
 
         // --- MODIFIED LINE ---
-        const PORT = 8200; // Forcing port 3000, ignoring process.env.PORT
+        const PORT = 3000; // Forcing port 3000, ignoring process.env.PORT
         // --- END MODIFIED LINE ---
 
         server.listen(PORT, () => {
