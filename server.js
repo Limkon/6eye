@@ -456,7 +456,10 @@ async function main() {
         }
         await ensureChatroomDir();
 
-        const PORT = process.env.PORT || 3000;
+        // --- MODIFIED LINE ---
+        const PORT = 3000; // Forcing port 3000, ignoring process.env.PORT
+        // --- END MODIFIED LINE ---
+
         server.listen(PORT, () => {
             console.log(`服务器已启动，运行在 http://localhost:${PORT}`);
             console.log(`聊天室目录: ${CHATROOM_DIR}`);
