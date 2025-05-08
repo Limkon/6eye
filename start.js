@@ -81,8 +81,7 @@ function startMainApp() {
 }
 
 // --- 2. 加密与解密函数 ---
-// These functions are for individual password strings or entire data blobs
-function encryptUserPassword(text) { // Renamed to encryptData for clarity, but keeping original for less diff
+function encryptUserPassword(text) { 
     try {
         const iv = crypto.randomBytes(IV_LENGTH);
         const cipher = crypto.createCipheriv(ALGORITHM, DERIVED_ENCRYPTION_KEY, iv);
@@ -90,16 +89,16 @@ function encryptUserPassword(text) { // Renamed to encryptData for clarity, but 
         encrypted += cipher.final('hex');
         return iv.toString('hex') + ':' + encrypted;
     } catch (error) {
-        console.error("[AUTH_GATE] 数据加密函数内部错误:", error); // Generic error
+        console.error("[AUTH_GATE] 数据加密函数内部错误:", error);
         throw new Error("Data encryption failed.");
     }
 }
 
-function decryptUserPassword(text) { // Renamed to decryptData for clarity, but keeping original for less diff
+function decryptUserPassword(text) { 
     try {
         const parts = text.split(':');
         if (parts.length !== 2) {
-            console.error("[AUTH_GATE] 数据解密失败：密文格式无效（缺少IV）。"); // Generic error
+            console.error("[AUTH_GATE] 数据解密失败：密文格式无效（缺少IV）。");
             return null;
         }
         const iv = Buffer.from(parts.shift(), 'hex');
@@ -109,7 +108,7 @@ function decryptUserPassword(text) { // Renamed to decryptData for clarity, but 
         decrypted += decipher.final('utf8');
         return decrypted;
     } catch (error) {
-        console.error("[AUTH_GATE] 数据解密函数内部错误:", error.message); // Generic error
+        console.error("[AUTH_GATE] 数据解密函数内部错误:", error.message); 
         return null;
     }
 }
@@ -117,7 +116,7 @@ function decryptUserPassword(text) { // Renamed to decryptData for clarity, but 
 // --- 2b. User Credentials Management ---
 function readUserCredentials() {
     if (!fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
-        return {}; // No users yet
+        return {}; 
     }
     try {
         const encryptedData = fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8');
@@ -126,18 +125,16 @@ function readUserCredentials() {
         return JSON.parse(decryptedData);
     } catch (error) {
         console.error("[AUTH_GATE] 读取用户凭证失败:", error);
-        // Attempt to recover by creating a new empty file if parsing fails due to corruption
-        // but only if the decryptedData was not null (meaning decryption itself worked somewhat)
         if (error instanceof SyntaxError && fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
             console.warn("[AUTH_GATE] 用户凭证文件可能已损坏。将尝试重置为空。");
             try {
-                saveUserCredentials({}); // Save an empty encrypted object to reset
+                saveUserCredentials({}); 
                 return {};
             } catch (resetError) {
                 console.error("[AUTH_GATE] 重置损坏的用户凭证文件失败:", resetError);
             }
         }
-        return {}; // Return empty on error
+        return {}; 
     }
 }
 
@@ -161,7 +158,7 @@ app.use(cookieParser());
 const pageStyles = `
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; padding: 20px 0; box-sizing: border-box; }
     .container { background-color: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; width: 400px; max-width: 90%; margin-bottom: 20px;}
-    .admin-container { width: 800px; max-width: 95%; text-align:left; } /* align-items: flex-start removed for centering */
+    .admin-container { width: 800px; max-width: 95%; text-align:left; } 
     h2 { margin-top: 0; margin-bottom: 25px; color: #1d2129; font-size: 22px; }
     h3 { margin-top: 30px; margin-bottom: 15px; color: #1d2129; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
     input[type="password"], input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #dddfe2; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
@@ -211,9 +208,8 @@ app.use((req, res, next) => {
         return res.redirect('/setup');
     }
 
-    // User is logged in
     if (req.cookies.auth === '1') {
-        if (isLogoutPath) return next(); // Allow logout
+        if (isLogoutPath) return next(); 
 
         if (authRelatedPaths.includes(req.path)) {
              return res.redirect(req.cookies.is_master === 'true' ? '/admin' : '/');
@@ -230,12 +226,10 @@ app.use((req, res, next) => {
         return next(); 
     }
 
-    // User is not logged in
-    if (isLogoutPath) return res.redirect('/login'); // If trying to logout but not logged in, just go to login
-    if (authRelatedPaths.includes(req.path)) { // Allow access to login/setup pages if not logged in
+    if (isLogoutPath) return res.redirect('/login'); 
+    if (authRelatedPaths.includes(req.path)) { 
         return next();
     }
-    // For any other path, if not logged in, redirect to login
     return res.redirect('/login');
 });
 
@@ -243,7 +237,7 @@ app.use((req, res, next) => {
 
 // == SETUP MASTER PASSWORD ROUTES ==
 app.get('/setup', (req, res) => {
-    if (!isMasterPasswordSetupNeeded) { // Check again in case of race condition or direct access
+    if (!isMasterPasswordSetupNeeded) { 
          console.warn("[AUTH_GATE] 警告：主密码已设置，但仍到达 GET /setup 路由。");
          return res.redirect('/login');
     }
@@ -328,16 +322,48 @@ app.get('/login', (req, res) => {
     res.send(`
         <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>登录</title><style>${pageStyles}</style></head>
         <body><div class="container">
-            <form method="POST" action="/do_login">
+            <form method="POST" action="/do_login" id="loginForm">
                 <h2>请输入凭证访问</h2>
                 ${messageHtml}
-                <label for="username">用户名:</label>
+                <label for="username">用户名 (主密码登录则留空):</label>
                 <input type="text" id="username" name="username" autofocus>
                 <label for="password">密码:</label>
                 <input type="password" id="password" name="password" required>
                 <button type="submit" class="full-width">登录</button>
             </form>
-        </div></body></html>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const usernameInput = document.getElementById('username');
+                const passwordInput = document.getElementById('password');
+                const loginForm = document.getElementById('loginForm');
+                const submitButton = loginForm.querySelector('button[type="submit"]');
+
+                function handleEnterKey(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault(); // Prevent default Enter key behavior
+                        if (typeof loginForm.requestSubmit === 'function') {
+                            loginForm.requestSubmit(submitButton);
+                        } else {
+                            // Fallback for older browsers or if requestSubmit is not available
+                            if (submitButton) {
+                                submitButton.click(); // This will trigger form validation
+                            } else {
+                                loginForm.submit(); // Less ideal as it might bypass some client-side validation
+                            }
+                        }
+                    }
+                }
+
+                if (usernameInput) {
+                    usernameInput.addEventListener('keydown', handleEnterKey);
+                }
+                if (passwordInput) {
+                    passwordInput.addEventListener('keydown', handleEnterKey);
+                }
+            });
+        </script>
+        </body></html>
     `);
 });
 
@@ -347,12 +373,12 @@ app.post('/do_login', (req, res) => {
     }
     const { username, password: submittedPassword } = req.body;
 
-    if (!submittedPassword) { // Password field itself is empty
+    if (!submittedPassword) { 
         return res.redirect('/login?error=invalid'); 
     }
 
     try {
-        if (!username) { // Attempt Master Password Login
+        if (!username) { 
             if (!fs.existsSync(MASTER_PASSWORD_STORAGE_FILE)) {
                  console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式。");
                  isMasterPasswordSetupNeeded = true; 
@@ -374,15 +400,13 @@ app.post('/do_login', (req, res) => {
             } else {
                 return res.redirect('/login?error=invalid');
             }
-        } else { // Attempt Regular User Login
+        } else { 
             if (!fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
                  console.warn("[AUTH_GATE] 用户尝试登录，但用户凭证文件不存在。");
                  return res.redirect('/login?error=no_user_file');
             }
             const users = readUserCredentials();
-            // Check if readUserCredentials returned an empty object due to read/parse error
             if (Object.keys(users).length === 0 && fs.existsSync(USER_CREDENTIALS_STORAGE_FILE) && fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8').length > 0) {
-                // File exists and is not empty, but users object is empty - implies read/parse error
                 return res.redirect('/login?error=no_user_file');
             }
 
@@ -394,7 +418,6 @@ app.post('/do_login', (req, res) => {
 
             const storedDecryptedPassword = decryptUserPassword(userData.passwordHash);
             if (storedDecryptedPassword === null) {
-                // This could mean the user's password entry is corrupted, or master key changed
                 console.error(`[AUTH_GATE] 解密用户 '${username}' 的密码失败。`);
                 return res.redirect('/login?error=decrypt_failed'); 
             }
@@ -411,7 +434,7 @@ app.post('/do_login', (req, res) => {
             }
         }
     } catch (error) {
-        if (error.code === 'ENOENT' && error.path === MASTER_PASSWORD_STORAGE_FILE) { // Should be caught by existsSync earlier
+        if (error.code === 'ENOENT' && error.path === MASTER_PASSWORD_STORAGE_FILE) { 
             console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式（意外）。", error);
             isMasterPasswordSetupNeeded = true; 
             return res.redirect('/setup?error=internal_state');
@@ -536,9 +559,8 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     if (users[newUsername]) {
         return res.redirect('/admin?error=user_exists');
     }
-    // Prevent "master" or other reserved names if needed
     if (newUsername.toLowerCase() === "master") {
-        return res.redirect('/admin?error=user_exists'); // Or a more specific error
+        return res.redirect('/admin?error=user_exists'); 
     }
 
 
@@ -556,7 +578,7 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
 app.post('/admin/delete_user', ensureMasterAdmin, (req, res) => {
     const { usernameToDelete } = req.body;
     if (!usernameToDelete) {
-        return res.redirect('/admin?error=unknown'); // Should not happen
+        return res.redirect('/admin?error=unknown'); 
     }
     const users = readUserCredentials();
     if (!users[usernameToDelete]) {
@@ -623,7 +645,6 @@ app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
 
     const users = readUserCredentials();
     if (!users[username]) {
-        // This case should ideally be caught by the GET route that renders the change_password_page
         return res.redirect('/admin?error=user_not_found');
     }
 
@@ -644,7 +665,7 @@ const proxyToMainApp = createProxyMiddleware({
     target: `http://localhost:${APP_INTERNAL_PORT}`,
     changeOrigin: true,
     ws: true,
-    logLevel: 'info', // 'debug' for more verbose proxy logging
+    logLevel: 'info', 
     onError: (err, req, res) => {
         console.error('[AUTH_GATE_PROXY] 代理发生错误:', err.message, 'for', req.method, req.url);
         if (res && !res.headersSent) {
@@ -665,33 +686,16 @@ const proxyToMainApp = createProxyMiddleware({
                     </div>
                 `);
             } catch (e) { console.error("Error ending response for proxy error:", e); }
-        } else if (res && !res.writableEnded) { // Fallback if end() failed or headersSent
+        } else if (res && !res.writableEnded) { 
             try { res.end(); } catch (e) { /* ignore */ }
         }
     }
 });
 
 app.use((req, res, next) => {
-    // This middleware is strategically placed.
-    // - Global auth middleware runs first, redirecting unauthenticated users or handling auth pages.
-    // - Specific routes like /admin/*, /login, /setup, /logout are defined above and handle their own logic.
-    //
-    // If a request reaches here, it means:
-    // 1. It's NOT an auth-related path (e.g. /login, /setup).
-    // 2. It's NOT an admin path (/admin/*).
-    // 3. The user IS authenticated (req.cookies.auth === '1').
-    //    (Because the global auth middleware would have redirected otherwise for non-auth, non-admin paths).
-    //
-    // Therefore, any request reaching here is intended for the main application and should be proxied.
     if (!isMasterPasswordSetupNeeded && req.cookies.auth === '1' && !req.path.startsWith('/admin')) {
         return proxyToMainApp(req, res, next);
     }
-    
-    // If it's an admin path, it should have been handled by specific admin routes.
-    // If it's an unhandled path or a situation not covered, Express will 404 or an error might occur.
-    // This 'next()' allows Express to continue processing (e.g., to a 404 handler if no route matches).
-    // However, given the strictness of the global auth middleware, unauthenticated requests to non-auth/non-admin
-    // paths should not reach here.
     console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（意外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}`);
     next(); 
 });
@@ -704,7 +708,7 @@ const server = app.listen(PUBLIC_PORT, () => {
         console.log(`[AUTH_GATE] 请访问 http://localhost:${PUBLIC_PORT}/setup 完成初始主密码设置。`);
     } else {
         console.log(`[AUTH_GATE] 主应用将由本服务管理。请访问 http://localhost:${PUBLIC_PORT}/login 进行登录。`);
-        if (!serverJsProcess) { // Only start if not already running (e.g. after master pw setup)
+        if (!serverJsProcess) { 
             startMainApp(); 
         }
     }
@@ -717,10 +721,7 @@ const server = app.listen(PUBLIC_PORT, () => {
 server.on('error', (error) => {
     if (error.syscall !== 'listen') {
         console.error('[AUTH_GATE] 发生了一个非监听相关的服务器错误:', error);
-        // For non-listen errors, we might not want to exit if it's recoverable
-        // But for now, keeping original behavior:
-        // process.exit(1); 
-        return; // Or handle differently
+        return; 
     }
     switch (error.code) {
         case 'EACCES':
@@ -757,7 +758,7 @@ function shutdownGracefully(signal) {
                     console.warn('[AUTH_GATE] 主应用未在 SIGTERM 后3秒内退出，强制发送 SIGKILL...');
                     serverJsProcess.kill('SIGKILL'); 
                 }
-                resolve(); // Resolve even if SIGKILL was needed or child was already dead
+                resolve(); 
             }, 3000); 
 
             serverJsProcess.on('exit', (code, signal) => {
@@ -767,18 +768,16 @@ function shutdownGracefully(signal) {
             });
 
             const killed = serverJsProcess.kill('SIGTERM'); 
-            if (!killed && serverJsProcess && !serverJsProcess.killed) { // If kill signal failed but process might still be there
+            if (!killed && serverJsProcess && !serverJsProcess.killed) { 
                  console.warn('[AUTH_GATE] 向主应用发送 SIGTERM 信号失败 (可能已退出或无权限)。');
-                 clearTimeout(killTimeout); // Don't wait for SIGKILL if SIGTERM send failed
+                 clearTimeout(killTimeout); 
                  resolve();
-            } else if (!serverJsProcess || serverJsProcess.killed) { // Process was already gone
+            } else if (!serverJsProcess || serverJsProcess.killed) { 
                 clearTimeout(killTimeout);
                 resolve();
             }
-            // If killed is true, the 'exit' event or timeout will handle resolve.
-
         } else {
-            resolve(); // No child process to stop
+            resolve(); 
         }
     });
 
@@ -790,7 +789,6 @@ function shutdownGracefully(signal) {
         process.exit(1);
     });
 
-    // Force shutdown of this auth gate server if it doesn't close gracefully
     setTimeout(() => {
         console.error('[AUTH_GATE] 优雅关闭超时 (10秒)，强制退出。');
         process.exit(1); 
