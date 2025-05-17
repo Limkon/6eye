@@ -10,7 +10,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // --- 1. Configuration and Constants ---
 const config = {
-    PUBLIC_PORT: parseInt(process.env.AUTH_GATE_PUBLIC_PORT, 10) || 8100,
+    PUBLIC_PORT: parseInt(process.env.AUTH_GATE_PUBLIC_PORT, 10) || 3100,
     APP_INTERNAL_PORT: parseInt(process.env.AUTH_GATE_APP_INTERNAL_PORT, 10) || 3000,
     DATA_DIR: process.env.AUTH_GATE_DATA_DIR || __dirname,
     get MASTER_PASSWORD_STORAGE_FILE() { return path.join(this.DATA_DIR, 'master_auth_config.enc'); },
