@@ -525,7 +525,7 @@ async function main() {
         const initialSize = await getChatroomDirSizeMB(); // Check initial size
         console.log(`信息: 当前聊天数据目录 (${CHATROOM_DIR}) 大小: ${initialSize.toFixed(2)}MB / ${MAX_DIR_SIZE_MB}MB`);
 
-        const PORT = process.env.PORT || 3000;
+        const PORT = 3000;//process.env.PORT || 
         server.listen(PORT, () => {
             console.log(`服务器已启动，运行在 http://localhost:${PORT}`);
             console.log(`聊天室数据目录: ${CHATROOM_DIR}`);
