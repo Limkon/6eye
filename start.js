@@ -325,7 +325,7 @@ app.get('/login', (req, res) => {
             <form method="POST" action="/do_login" id="loginForm">
                 <h2>请输入凭证访问</h2>
                 ${messageHtml}
-                <label for="username">用户名 (主密码登录则留空):</label>
+                <label for="username">用户名:</label>
                 <input type="text" id="username" name="username" autofocus>
                 <label for="password">密码:</label>
                 <input type="password" id="password" name="password" required>
