@@ -1,3 +1,4 @@
+require('dotenv').config(); // <<<<<< 新增：加载 .env 文件
 const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
