@@ -84,10 +84,12 @@ function startMainApp() {
 
 // --- 2. 加密与解密函数 ---
 function encryptUserPassword(text) {
+    // An empty string is a valid input for encryption
+    const textToEncrypt = text === null || text === undefined ? '' : text;
     try {
         const iv = crypto.randomBytes(IV_LENGTH);
         const cipher = crypto.createCipheriv(ALGORITHM, DERIVED_ENCRYPTION_KEY, iv);
-        let encrypted = cipher.update(text, 'utf8', 'hex');
+        let encrypted = cipher.update(textToEncrypt, 'utf8', 'hex');
         encrypted += cipher.final('hex');
         return iv.toString('hex') + ':' + encrypted;
     } catch (error) {
@@ -122,8 +124,12 @@ function readUserCredentials() {
     }
     try {
         const encryptedData = fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8');
-        if (!encryptedData) return {};
+        if (!encryptedData) return {}; // Handle empty file
         const decryptedData = decryptUserPassword(encryptedData);
+        if (decryptedData === null) { // Handle decryption failure
+             console.warn("[AUTH_GATE] 用户凭证解密失败，可能文件已损坏或密钥不匹配。返回空用户对象。");
+             return {};
+        }
         return JSON.parse(decryptedData);
     } catch (error) {
         console.error("[AUTH_GATE] 读取用户凭证失败:", error);
@@ -273,7 +279,7 @@ app.post('/do_setup', (req, res) => {
     }
     const { newPassword, confirmPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 8) {
+    if (!newPassword || newPassword.length < 8) { // Master password cannot be empty and must meet length requirement
         return res.redirect('/setup?error=short');
     }
     if (newPassword !== confirmPassword) {
@@ -309,9 +315,6 @@ app.post('/do_setup', (req, res) => {
 
     } catch (error) {
         console.error("[AUTH_GATE] 保存加密主密码文件失败:", error);
-        // If saving fails, we should ideally revert isMasterPasswordSetupNeeded,
-        // but the file might be partially written or in an inconsistent state.
-        // For now, redirecting to setup with an error is the existing behavior.
         isMasterPasswordSetupNeeded = true; // Revert state as setup was not successful
         return res.redirect('/setup?error=write_failed');
     }
@@ -336,10 +339,10 @@ app.get('/login', (req, res) => {
             <form method="POST" action="/do_login" id="loginForm">
                 <h2>请输入凭证访问</h2>
                 ${messageHtml}
-                <label for="username">用户名:</label>
+                <label for="username">用户名 (主账户登录请留空):</label>
                 <input type="text" id="username" name="username" autofocus>
                 <label for="password">密码:</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password">
                 <button type="submit" class="full-width">登录</button>
             </form>
         </div>
@@ -350,17 +353,25 @@ app.get('/login', (req, res) => {
                 const loginForm = document.getElementById('loginForm');
                 const submitButton = loginForm.querySelector('button[type="submit"]');
 
+                // For master login, password is required. For user login, password can be empty.
+                // The 'required' attribute is removed from the password input to allow empty submission for users.
+                // Server-side validation will handle master password requirement.
+
                 function handleEnterKey(event) {
                     if (event.key === 'Enter') {
-                        event.preventDefault(); // Prevent default Enter key behavior
+                        event.preventDefault(); 
+                        // Manually check for master login password requirement client-side for better UX
+                        if (!usernameInput.value.trim() && !passwordInput.value) {
+                             // Optionally show a message that master password cannot be empty
+                             // For now, let server handle this error display
+                        }
                         if (typeof loginForm.requestSubmit === 'function') {
                             loginForm.requestSubmit(submitButton);
                         } else {
-                            // Fallback for older browsers or if requestSubmit is not available
                             if (submitButton) {
-                                submitButton.click(); // This will trigger form validation
+                                submitButton.click(); 
                             } else {
-                                loginForm.submit(); // Less ideal as it might bypass some client-side validation
+                                loginForm.submit(); 
                             }
                         }
                     }
@@ -382,18 +393,20 @@ app.post('/do_login', (req, res) => {
     if (isMasterPasswordSetupNeeded) {
         return res.redirect('/login?error=master_not_set');
     }
-    const { username, password: submittedPassword } = req.body;
+    const { username, password: submittedPasswordInput } = req.body;
+    // Normalize submitted password: treat null/undefined as empty string
+    const submittedPassword = submittedPasswordInput === null || submittedPasswordInput === undefined ? '' : submittedPasswordInput;
 
-    if (!submittedPassword) {
-        return res.redirect('/login?error=invalid');
-    }
 
     try {
         if (!username) { // Attempting master password login (empty username)
+            if (!submittedPassword) { // Master password cannot be empty
+                return res.redirect('/login?error=invalid');
+            }
             if (!fs.existsSync(MASTER_PASSWORD_STORAGE_FILE)) {
                  console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式。");
                  isMasterPasswordSetupNeeded = true;
-                 return res.redirect('/setup?error=internal_state'); // Should redirect to setup
+                 return res.redirect('/setup?error=internal_state');
             }
             const encryptedMasterPasswordFromFile = fs.readFileSync(MASTER_PASSWORD_STORAGE_FILE, 'utf8');
             const storedDecryptedMasterPassword = decryptUserPassword(encryptedMasterPasswordFromFile);
@@ -412,21 +425,20 @@ app.post('/do_login', (req, res) => {
                 return res.redirect('/login?error=invalid');
             }
         } else { // Attempting regular user login
+            // For regular users, an empty submittedPassword IS allowed.
             if (!fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
                  console.warn("[AUTH_GATE] 用户尝试登录，但用户凭证文件不存在。");
                  return res.redirect('/login?error=no_user_file');
             }
             const users = readUserCredentials();
-            // Check if users object is empty AND the file actually had content (meaning decryption likely failed or format was wrong)
             if (Object.keys(users).length === 0 && fs.existsSync(USER_CREDENTIALS_STORAGE_FILE) && fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8').length > 0) {
-                // This implies the user file might be corrupt or unreadable by decryptUserPassword/JSON.parse
                 console.warn("[AUTH_GATE] 用户凭证文件存在但无法解析用户数据。可能已损坏。");
-                return res.redirect('/login?error=no_user_file'); // Or a more specific error like 'user_file_corrupt'
+                return res.redirect('/login?error=no_user_file');
             }
 
             const userData = users[username];
 
-            if (!userData || !userData.passwordHash) {
+            if (!userData || typeof userData.passwordHash !== 'string') { // Check if passwordHash exists and is a string
                 return res.redirect('/login?error=invalid');
             }
 
@@ -461,8 +473,8 @@ app.post('/do_login', (req, res) => {
 // == LOGOUT ROUTE ==
 app.get('/logout', (req, res) => {
     res.setHeader('Set-Cookie', [
-        'auth=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax', // Expire cookie immediately
-        'is_master=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax' // Expire cookie immediately
+        'auth=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax',
+        'is_master=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax'
     ]);
     console.log("[AUTH_GATE] 用户已登出。");
     res.redirect('/login?info=logged_out');
@@ -490,7 +502,7 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
     let messageHtml = '';
     if (error === 'user_exists') messageHtml = '<p class="message error-message">错误：用户名已存在。</p>';
     else if (error === 'password_mismatch') messageHtml = '<p class="message error-message">错误：两次输入的密码不匹配。</p>';
-    else if (error === 'missing_fields') messageHtml = '<p class="message error-message">错误：所有必填字段不能为空。</p>';
+    else if (error === 'missing_fields') messageHtml = '<p class="message error-message">错误：用户名不能为空。</p>'; // Changed message for clarity
     else if (error === 'unknown') messageHtml = '<p class="message error-message">发生未知错误。</p>';
     else if (error === 'user_not_found') messageHtml = '<p class="message error-message">错误: 未找到指定用户。</p>';
     
@@ -538,16 +550,16 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
                 <form method="POST" action="/admin/add_user">
                     <div class="form-row">
                         <div class="field">
-                            <label for="newUsername">新用户名:</label>
+                            <label for="newUsername">新用户名 (必填):</label>
                             <input type="text" id="newUsername" name="newUsername" required>
                         </div>
                         <div class="field">
-                            <label for="newUserPassword">新用户密码:</label>
-                            <input type="password" id="newUserPassword" name="newUserPassword" required>
+                            <label for="newUserPassword">新用户密码 (可留空):</label>
+                            <input type="password" id="newUserPassword" name="newUserPassword">
                         </div>
                          <div class="field">
-                            <label for="confirmNewUserPassword">确认密码:</label>
-                            <input type="password" id="confirmNewUserPassword" name="confirmNewUserPassword" required>
+                            <label for="confirmNewUserPassword">确认密码 (若设密码则必填):</label>
+                            <input type="password" id="confirmNewUserPassword" name="confirmNewUserPassword">
                         </div>
                         <button type="submit">添加用户</button>
                     </div>
@@ -562,10 +574,15 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
 
 app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     const { newUsername, newUserPassword, confirmNewUserPassword } = req.body;
-    if (!newUsername || !newUserPassword || !confirmNewUserPassword ) {
-        return res.redirect('/admin?error=missing_fields');
+    // Username is always required
+    if (!newUsername) {
+        return res.redirect('/admin?error=missing_fields'); // Error if username is missing
     }
-    if (newUserPassword !== confirmNewUserPassword) {
+    // If a password is provided, it must be confirmed. If password is empty, confirmation must also be empty or match.
+    const actualNewUserPassword = newUserPassword || ""; // Treat null/undefined as empty string
+    const actualConfirmNewUserPassword = confirmNewUserPassword || "";
+
+    if (actualNewUserPassword !== actualConfirmNewUserPassword) {
         return res.redirect('/admin?error=password_mismatch');
     }
 
@@ -573,16 +590,15 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     if (users[newUsername]) {
         return res.redirect('/admin?error=user_exists');
     }
-    // Prevent creating a user named "master" or similar reserved names if needed
-    if (newUsername.toLowerCase() === "master") { // Example: disallow "master" as a regular username
+    if (newUsername.toLowerCase() === "master") {
         return res.redirect('/admin?error=user_exists');
     }
 
-
     try {
-        users[newUsername] = { passwordHash: encryptUserPassword(newUserPassword) };
+        // Encrypt an empty string if password is not provided
+        users[newUsername] = { passwordHash: encryptUserPassword(actualNewUserPassword) };
         saveUserCredentials(users);
-        console.log(`[AUTH_GATE_ADMIN] 用户 '${newUsername}' 已添加。`);
+        console.log(`[AUTH_GATE_ADMIN] 用户 '${newUsername}' 已添加。密码状态: ${actualNewUserPassword ? "已设置" : "为空"}`);
         res.redirect('/admin?success=user_added');
     } catch (error) {
         console.error("[AUTH_GATE_ADMIN] 添加用户失败:", error);
@@ -615,7 +631,7 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
     const error = req.query.error;
     let errorMessageHtml = '';
     if (error === 'mismatch') errorMessageHtml = '<p class="message error-message">两次输入的密码不匹配！</p>';
-    else if (error === 'missing_fields') errorMessageHtml = '<p class="message error-message">错误：所有密码字段均为必填项。</p>';
+    // No longer a 'missing_fields' error here as password can be empty. Mismatch is the primary concern.
     else if (error === 'unknown') errorMessageHtml = '<p class="message error-message">发生未知错误。</p>';
 
 
@@ -635,10 +651,10 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
                 ${errorMessageHtml}
                 <form method="POST" action="/admin/perform_change_password">
                     <input type="hidden" name="username" value="${usernameToChange}">
-                    <label for="newPassword">新密码:</label>
-                    <input type="password" id="newPassword" name="newPassword" required autofocus>
-                    <label for="confirmPassword">确认新密码:</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    <label for="newPassword">新密码 (可留空):</label>
+                    <input type="password" id="newPassword" name="newPassword" autofocus>
+                    <label for="confirmPassword">确认新密码 (若设密码则必填):</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword">
                     <button type="submit" class="full-width">确认修改密码</button>
                     <div class="nav-links">
                         <a href="/admin" class="button-link">返回用户管理</a>
@@ -651,11 +667,16 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
 
 app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
     const { username, newPassword, confirmPassword } = req.body;
-    if (!username || !newPassword || !confirmPassword) {
-       // Pass username back to the redirect URL for the error page
-       return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=missing_fields`);
+    // Username is required
+    if (!username) {
+       // This case should ideally not happen if form submits correctly
+       return res.redirect(`/admin?error=unknown`);
     }
-    if (newPassword !== confirmPassword) {
+
+    const actualNewPassword = newPassword || "";
+    const actualConfirmPassword = confirmPassword || "";
+
+    if (actualNewPassword !== actualConfirmPassword) {
         return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=mismatch`);
     }
 
@@ -665,9 +686,9 @@ app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
     }
 
     try {
-        users[username].passwordHash = encryptUserPassword(newPassword);
+        users[username].passwordHash = encryptUserPassword(actualNewPassword);
         saveUserCredentials(users);
-        console.log(`[AUTH_GATE_ADMIN] 用户 '${username}' 的密码已修改。`);
+        console.log(`[AUTH_GATE_ADMIN] 用户 '${username}' 的密码已修改。新密码状态: ${actualNewPassword ? "已设置" : "为空"}`);
         res.redirect('/admin?success=password_changed');
     } catch (error) {
         console.error(`[AUTH_GATE_ADMIN] 修改用户 '${username}' 密码失败:`, error);
@@ -710,18 +731,10 @@ const proxyToMainApp = createProxyMiddleware({
 
 // Apply the proxy middleware for authenticated users not accessing admin paths
 app.use((req, res, next) => {
-    // Only proxy if master password IS set up, user IS authenticated, AND it's NOT an admin path
     if (!isMasterPasswordSetupNeeded && req.cookies.auth === '1' && !req.path.startsWith('/admin')) {
         return proxyToMainApp(req, res, next);
     }
-    // If the request was not handled by previous routes (like /login, /setup, /admin/*)
-    // and it didn't meet proxy conditions, it falls through.
-    // This could happen if an unauthenticated user tries to access a path not explicitly handled.
-    // The global auth middleware (section 5) should have already redirected them to /login or /setup.
-    // So, reaching here might indicate an unhandled case or a logic flaw if not intended.
     console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（可能为预期外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}, SetupNeeded: ${isMasterPasswordSetupNeeded}`);
-    // If it's an unhandled path and we are here, it's often best to send a 404 or let it be handled by a subsequent generic error handler if any.
-    // For now, calling next() will likely result in a 404 if no other middleware handles it.
     next();
 });
 
@@ -733,7 +746,7 @@ const server = app.listen(PUBLIC_PORT, () => {
         console.log(`[AUTH_GATE] 请访问 http://localhost:${PUBLIC_PORT}/setup 完成初始主密码设置。`);
     } else {
         console.log(`[AUTH_GATE] 主应用将由本服务管理。请访问 http://localhost:${PUBLIC_PORT}/login 进行登录。`);
-        if (!serverJsProcess) { // Start main app if not already running (e.g. after restart of auth_gate)
+        if (!serverJsProcess) {
             startMainApp();
         }
     }
@@ -746,7 +759,7 @@ const server = app.listen(PUBLIC_PORT, () => {
 server.on('error', (error) => {
     if (error.syscall !== 'listen') {
         console.error('[AUTH_GATE] 发生了一个非监听相关的服务器错误:', error);
-        return; // Don't exit for non-listen errors, but log them.
+        return;
     }
     switch (error.code) {
         case 'EACCES':
@@ -759,7 +772,7 @@ server.on('error', (error) => {
             break;
         default:
             console.error('[AUTH_GATE] 服务器启动时发生未知监听错误:', error);
-            process.exit(1); // Exit for other listen errors
+            process.exit(1);
     }
 });
 
@@ -783,8 +796,8 @@ function shutdownGracefully(signal) {
                     console.warn('[AUTH_GATE] 主应用未在 SIGTERM 后3秒内退出，强制发送 SIGKILL...');
                     serverJsProcess.kill('SIGKILL');
                 }
-                resolve(); // Resolve even if SIGKILL was needed or if it was already killed
-            }, 3000); // 3 seconds timeout for SIGTERM
+                resolve();
+            }, 3000);
 
             serverJsProcess.on('exit', (code, signal) => {
                 clearTimeout(killTimeout);
@@ -793,16 +806,16 @@ function shutdownGracefully(signal) {
             });
 
             const killed = serverJsProcess.kill('SIGTERM');
-            if (!killed && serverJsProcess && !serverJsProcess.killed) { // If kill returned false and process still seems alive
+            if (!killed && serverJsProcess && !serverJsProcess.killed) {
                  console.warn('[AUTH_GATE] 向主应用发送 SIGTERM 信号失败 (可能已退出或无权限)。');
-                 clearTimeout(killTimeout); // Don't wait for timeout if sending signal failed
+                 clearTimeout(killTimeout);
                  resolve();
-            } else if (!serverJsProcess || serverJsProcess.killed) { // If process was already killed or doesn't exist
+            } else if (!serverJsProcess || serverJsProcess.killed) {
                 clearTimeout(killTimeout);
                 resolve();
             }
         } else {
-            resolve(); // No child process to kill
+            resolve();
         }
     });
 
@@ -811,14 +824,13 @@ function shutdownGracefully(signal) {
         process.exit(0);
     }).catch(err => {
         console.error('[AUTH_GATE] 优雅关闭期间发生错误:', err);
-        process.exit(1); // Exit with error code
+        process.exit(1);
     });
 
-    // Force exit after a timeout, in case graceful shutdown hangs
     setTimeout(() => {
         console.error('[AUTH_GATE] 优雅关闭超时 (10秒)，强制退出。');
-        process.exit(1); // Exit with error code
-    }, 10000); // 10 seconds overall timeout
+        process.exit(1);
+    }, 10000);
 }
 
 process.on('SIGINT', () => shutdownGracefully('SIGINT'));
