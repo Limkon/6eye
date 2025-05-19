@@ -1,69 +1,59 @@
-/* public/style.css */
+/* 基础布局 */
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    touch-action: manipulation; /* Helps prevent double-tap zoom on touch buttons */
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background-color: #f0f0f0; /* Default light mode background */
-    color: #333; /* Default light mode text */
+    touch-action: manipulation;
 }
 
 #app {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    max-height: 100vh;
-    margin: 0;
-    background-color: inherit;
+    margin: 0; /* 确保无外边距 */
 }
 
 header {
     background: #4CAF50;
     color: white;
-    padding: 10px 15px;
+    padding: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0;
 }
 
 header h1 {
     margin: 0;
-    font-size: 1.5em;
 }
 
 .controls {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
 }
 
 .controls #current-room-id {
     color: white;
     font-size: 14px;
-    margin-right: 10px;
 }
 
 .controls input[type="text"] {
-    padding: 8px;
-    margin-right: 5px;
+    padding: 6px;
+    margin: 0 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 14px;
 }
 
 .controls button {
-    padding: 8px 12px;
+    margin: 0 10px;
+    padding: 6px 12px;
     background: #fff;
     color: #333;
     border: 1px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 .controls button:hover {
@@ -73,218 +63,127 @@ header h1 {
 .controls button:disabled {
     background: #ccc;
     cursor: not-allowed;
-    opacity: 0.7;
 }
 
 main {
     flex: 1;
     display: flex;
-    flex-direction: row;
+    flex-direction: row; /* 改为横向排列，userlist 在左侧 */
     overflow: hidden;
-    background-color: #fff;
+    margin: 0; /* 移除外边距 */
 }
 
 #chat {
-    flex: 3;
-    padding: 10px;
+    flex: 3; /* 占主要空间 */
+    padding: 8px;
     overflow-y: auto;
     background: #f9f9f9;
-    border-right: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
+    white-space: pre-wrap;
+    margin: 0; /* 移除外边距 */
 }
 
 #userlist {
-    flex: 1;
-    padding: 10px;
-    border-left: 1px solid #ddd;
+    flex: 1; /* 占较少空间 */
+    padding: 8px;
+    border-right: 1px solid #ccc; /* 改为右边框 */
+    border-left: none; /* 移除左边框 */
     overflow-y: auto;
     background: #fff;
-    order: 1; /* Default order */
+    order: -1; /* 确保 userlist 在 chat 左侧 */
 }
 
 #userlist.hidden {
     display: none;
 }
 
-#userlist h3 {
-    margin-top: 0;
-    font-size: 1.1em;
-    color: #555;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 5px;
-}
-.userlist-entry, .userlist-empty {
-    padding: 5px 0;
-    font-size: 0.95em;
-}
-
 footer {
     display: flex;
-    padding: 10px;
+    padding: 8px;
     background: #eee;
     align-items: center;
-    flex-shrink: 0;
-    gap: 8px;
-    border-top: 1px solid #ddd;
+    margin: 0; /* 移除外边距 */
 }
 
 footer label {
-    margin-right: 5px;
+    margin-right: 10px;
     font-size: 14px;
-    white-space: nowrap;
+    height: 56px; /* 统一高度 */
+    line-height: 56px; /* 文字垂直居中 */
+    box-sizing: border-box;
+    border: 1px solid #aaa; /* 添加边框，稍深颜色增强立体感 */
+    border-radius: 4px; /* 与输入框一致的圆角 */
+    background-color: #f5f5f5; /* 浅灰背景，增加立体感 */
+    padding: 0 10px; /* 水平内边距，文字不贴边 */
 }
 
-footer input[type="text"]#username {
+footer input[type="text"],
+footer textarea {
     padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    margin-right: 10px;
     font-size: 14px;
-    width: 150px;
-}
-
-footer textarea#message {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-    resize: none;
-    min-height: 40px;
-    max-height: 100px;
-    overflow-y: auto;
     box-sizing: border-box;
 }
 
+footer #username {
+    width: 150px;
+    height: 56px; /* 统一高度 */
+}
+
+footer #message {
+    flex: 1;
+    resize: vertical;
+    min-height: 56px; /* 统一高度 */
+    max-height: 100px;
+}
+
 footer button {
-    padding: 8px 15px;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
+    padding: 8px 16px;
+    height: 56px; /* 统一高度 */
+    line-height: normal; /* 文字垂直居中 */
+    box-sizing: border-box;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
-/* Style for the new attach file button */
-footer button#attach-file {
-    background-color: #5c6bc0; /* A different color, e.g., indigo */
-}
-footer button#attach-file:hover {
-    background-color: #3f51b5;
-}
-
-
-footer button:hover {
-    background: #45a049;
-}
-
-footer button:disabled {
-    background: #aaa;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-/* Message Bubbles */
-.message {
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    border-radius: 12px;
-    max-width: 70%;
-    word-wrap: break-word;
-    display: flex;
-    flex-direction: column;
+/* 消息气泡 */
+.message-left,
+.message-right {
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    white-space: pre-wrap;
 }
 
 .message-left {
     background: #e0f7fa;
     color: #333;
-    align-self: flex-start;
-    margin-right: auto;
+    text-align: left;
 }
 
 .message-right {
     background: #c8e6c9;
     color: #333;
-    align-self: flex-end;
-    margin-left: auto;
-}
-
-.message-username {
-    font-weight: bold;
-    font-size: 0.8em;
-    margin-bottom: 4px;
-    color: #555;
-}
-.message-right .message-username {
     text-align: right;
 }
-.message-left .message-username {
-    text-align: left;
-}
 
-.message-text {
-    font-size: 0.95em;
-    white-space: pre-wrap;
-}
-
-/* Styling for file messages (images and videos) */
-.message-file img,
-.message-file video {
-    max-width: 100%; /* Ensure files fit within the bubble */
-    max-height: 300px; /* Limit height for large images/videos */
-    border-radius: 8px; /* Rounded corners for media */
-    margin-top: 5px; /* Space between username/text and file */
-    display: block; /* Ensure it takes block space */
-    background-color: #eee; /* Placeholder background for media */
-}
-
-.message-file video {
-    /* You can add specific styling for video controls or container if needed */
-    outline: none; /* Remove default focus outline if desired */
-}
-
-.message-file a { /* For file links if not directly embedded */
-    color: #007bff;
-    text-decoration: underline;
-}
-
-/* System messages styling */
-.system-message {
-    text-align: center;
-    color: #888;
-    font-style: italic;
-    font-size: 0.9em;
-    margin: 10px 0;
-    background-color: transparent !important; /* Override bubble background */
-    align-self: center !important; /* Center system messages */
-    max-width: 90%;
-}
-
-
-/* Dark Mode */
+/* 深色模式 */
 body.dark-mode {
-    background-color: #121212;
+    background: #121212;
     color: #e0e0e0;
-}
-
-body.dark-mode #app {
-    background-color: #1e1e1e;
 }
 
 body.dark-mode header {
     background: #333;
-    border-bottom: 1px solid #444;
 }
+
 body.dark-mode .controls #current-room-id {
     color: #e0e0e0;
 }
 
 body.dark-mode .controls input[type="text"],
-body.dark-mode footer input[type="text"]#username,
-body.dark-mode footer textarea#message {
-    background: #2c2c2c;
+body.dark-mode footer textarea {
+    background: #444;
     color: #e0e0e0;
     border-color: #555;
 }
@@ -294,144 +193,157 @@ body.dark-mode .controls button {
     color: #e0e0e0;
     border-color: #555;
 }
+
 body.dark-mode .controls button:hover {
     background: #555;
 }
+
 body.dark-mode .controls button:disabled {
-    background: #3a3a3a;
-    opacity: 0.6;
+    background: #666;
 }
 
-body.dark-mode main {
-     background-color: #1e1e1e;
-}
 body.dark-mode #chat {
-    background: #242424;
-    border-right-color: #333;
+    background: #1e1e1e;
 }
 
 body.dark-mode #userlist {
     background: #2c2c2c;
-    border-left-color: #333;
-}
-body.dark-mode #userlist h3 {
-    color: #bbb;
-    border-bottom-color: #444;
 }
 
 body.dark-mode footer {
     background: #333;
-    border-top-color: #444;
 }
-body.dark-mode footer button {
-    background: #555;
-    color: #e0e0e0;
-}
-body.dark-mode footer button#attach-file {
-    background-color: #4a5a9a; /* Dark mode attach button */
-}
-body.dark-mode footer button#attach-file:hover {
-    background-color: #394989;
-}
-body.dark-mode footer button:hover {
-    background: #666;
-}
-body.dark-mode footer button:disabled {
-    background: #404040;
-    opacity: 0.6;
+
+body.dark-mode footer label {
+    border-color: #555; /* 深色模式边框 */
+    background-color: #444; /* 深色背景 */
+    color: #e0e0e0; /* 文字颜色 */
 }
 
 body.dark-mode .message-left {
-    background: #3a4a52;
+    background: #4a636e;
     color: #f0f0f0;
 }
 
 body.dark-mode .message-right {
-    background: #3a5a3a;
+    background: #4a704a;
     color: #f0f0f0;
 }
-body.dark-mode .message-username {
-    color: #aaa;
-}
-body.dark-mode .message-file img,
-body.dark-mode .message-file video {
-    background-color: #333; /* Darker placeholder for media */
-}
-body.dark-mode .message-file a {
-    color: #66bfff;
-}
-body.dark-mode .system-message {
-    color: #aaa;
-}
 
-
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
+/* 移动端适配 */
+@media (max-width: 600px) {
     header {
         flex-direction: column;
-        align-items: stretch;
-        padding: 10px;
+        align-items: flex-start;
+        padding: 8px;
     }
-    header h1 {
-        text-align: center;
-        margin-bottom: 10px;
-    }
+
     .controls {
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
         width: 100%;
     }
-    .controls input[type="text"] {
-        width: auto;
-        margin-right: 0;
-    }
-    .controls button {
-         width: 100%;
-         margin-bottom: 5px;
-    }
+
     .controls #current-room-id {
-        text-align: center;
         width: 100%;
-        margin-bottom: 5px;
+        margin: 0;
+        text-align: left;
+        padding-left: 10px;
+    }
+
+    .controls input[type="text"] {
+        width: calc(100% - 20px);
+        margin: 5px 10px;
+        padding: 6px;
+        font-size: 12px;
+    }
+
+    .controls button {
+        margin: 5px 10px;
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 80px;
+    }
+
+    footer {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+        margin: 0; /* 确保无外边距 */
+    }
+
+    footer label {
+        width: 100%;
+        margin: 0 10px;
+        text-align: left;
+        font-size: 12px;
+        height: 42px; /* 统一移动端高度 */
+        line-height: 42px; /* 文字垂直居中 */
+        box-sizing: border-box;
+        border: 1px solid #aaa; /* 保持边框 */
+        border-radius: 4px;
+        background-color: #f5f5f5;
+        padding: 0 10px;
+    }
+
+    footer #username {
+        width: calc(100% - 20px);
+        margin: 5px 10px;
+        padding: 6px;
+        font-size: 12px;
+        height: 42px; /* 统一移动端高度 */
+        box-sizing: border-box;
+    }
+
+    footer #message {
+        width: calc(100% - 20px);
+        margin: 5px 10px;
+        padding: 6px;
+        font-size: 12px;
+        min-height: 42px; /* 统一移动端高度 */
+        max-height: 80px;
+        box-sizing: border-box;
+    }
+
+    footer button {
+        padding: 6px 12px;
+        margin: 5px 10px;
+        font-size: 12px;
+        min-width: 80px;
+        height: 42px; /* 统一移动端高度 */
+        line-height: normal; /* 文字垂直居中 */
+        box-sizing: border-box;
     }
 
     main {
-        flex-direction: column;
+        flex-direction: column; /* 移动端保持垂直排列 */
+        margin: 0; /* 确保无外边距 */
     }
+
     #chat {
-        border-right: none;
-        flex-grow: 1;
+        flex: 1; /* 填充所有剩余空间 */
+        padding: 8px;
+        margin: 0; /* 移除外边距 */
+        overflow-y: auto;
     }
+
     #userlist {
-        flex: 0 0 150px;
+        flex: none;
+        display: none; /* 默认隐藏 */
         border-left: none;
-        border-top: 1px solid #ddd;
-        order: 0;
+        border-right: none; /* 移除边框，适应移动端 */
+        border-top: 1px solid #ccc;
+        padding: 8px;
+        height: 100px; /* 显示时的固定高度 */
+        width: 100%; /* 占满宽度 */
     }
-    body.dark-mode #userlist {
-        border-top-color: #333;
-    }
+
     #userlist.hidden {
         display: none;
     }
 
-    footer {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    footer #username-label, footer #username {
-        width: auto;
-        margin-bottom: 8px;
-    }
-    footer textarea#message {
-        margin-bottom: 8px;
-        min-height: 60px;
-    }
-    footer button {
-        width: 100%;
-        margin-bottom: 5px;
-    }
-    .message {
-        max-width: 90%;
+    #userlist:not(.hidden) {
+        display: block;
     }
 }
