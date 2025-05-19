@@ -1,5 +1,5 @@
 // server.js
-require('dotenv').config(); // <<<<<< 新增：加载 .env 文件
+//require('dotenv').config(); // <<<<<< 新增：加载 .env 文件
 const express = require('express');
 const WebSocket = require('ws');
 const http = require('http');
