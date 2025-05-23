@@ -409,43 +409,52 @@ body.dark-mode .system-message {
 
 @media (max-width: 600px) {
     header {
-        /* flex-direction: column; /* Already set in user's full CSS if header itself stacks */
-        /* align-items: flex-start; */
+        flex-direction: column; /* Stack header items vertically */
+        align-items: stretch; /* Stretch items to fill width */
     }
     header h1 {
         font-size: 1.2em;
-        margin-bottom: 8px; /* Space between title and controls */
+        margin-bottom: 10px; /* Space between title and controls container */
+        text-align: center; /* Center the title */
     }
 
     header .controls {
         display: flex;
-        flex-direction: column; /* Stack control items vertically */
+        flex-direction: row; /* Arrange items in a row */
+        flex-wrap: wrap;    /* Allow items to wrap to the next line */
         width: 100%;
-        gap: 8px; /* Space between stacked control items */
+        gap: 8px; /* Space between control items */
+        justify-content: space-between; /* Distribute space for wrapped items */
     }
 
     header .controls #current-room-id {
-        width: 100%;
+        width: 100%; /* Span full width on its own line if it wraps */
         font-size: 0.9em;
-        text-align: left; /* Or center */
-        margin-bottom: 0; /* Gap from parent will handle spacing */
+        text-align: center; /* Center current room ID text */
+        margin-bottom: 5px; /* Space below current room ID if it's on its own line */
+        order: -1; /* Ensure current room ID is at the top if wrapping occurs */
     }
 
     header .controls input[type="text"] {
-        width: 100%;
-        padding: 8px 10px; /* Consistent padding */
-        font-size: 0.9em;  /* Consistent font size */
+        flex-grow: 1; /* Allow input to grow */
+        min-width: calc(50% - 4px); /* Try to fit two items per row, accounting for gap */
+        padding: 7px 10px; /* Slightly smaller padding */
+        font-size: 0.85em;  /* Slightly smaller font */
         box-sizing: border-box;
         border: 1px solid #ccc;
         border-radius: 4px;
+        height: 34px; /* Explicit height to match buttons */
     }
 
     header .controls button {
-        width: 100%;
-        padding: 8px 10px; /* Consistent padding for height */
-        font-size: 0.9em;  /* Consistent font size from user's spec */
+        flex-grow: 1; /* Allow buttons to grow */
+        min-width: calc(50% - 4px); /* Try to fit two items per row, accounting for gap */
+        padding: 7px 10px; /* Consistent padding for height */
+        font-size: 0.85em;  /* Consistent font size */
         box-sizing: border-box;
         margin-left: 0; /* Override desktop margin */
+        height: 34px; /* Explicit height */
+        line-height: normal; /* Ensure text is vertically centered */
     }
     /* Dark mode for mobile header controls */
     body.dark-mode header .controls input[type="text"] {
