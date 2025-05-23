@@ -19,8 +19,8 @@ header {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    /* position: relative; /* Moved to media query for specificity */
-    /* z-index: 10;      /* Moved to media query for specificity */
+    position: relative; /* 确保 header 有自己的堆叠上下文 */
+    z-index: 10;        /* 使 header 在页面上层，低于模态框等 */
 }
 
 header h1 {
@@ -42,6 +42,8 @@ header .controls input[type="text"] {
     box-sizing: border-box;
     font-size: 1em; /* Assuming base font size for alignment */
     height: auto; /* Or set an explicit height matching buttons */
+    pointer-events: auto !important;
+    cursor: text;
 }
 
 header .controls button { /* Combined common button styles for header */
@@ -55,6 +57,7 @@ header .controls button { /* Combined common button styles for header */
     transition: background-color 0.2s;
     box-sizing: border-box;
     font-size: 1em; /* Assuming base font size */
+    pointer-events: auto !important;
 }
 
 .controls button:hover { /* Specific hover for general controls button, might need header scope if different */
@@ -69,7 +72,7 @@ main {
 
 #chat {
     flex: 3;
-    padding: 15px; /* 為外部用戶名保留一些空間，如果用戶名很長，可能需要調整 */
+    padding: 15px;
     overflow-y: auto;
     background: #f9f9f9;
     border-right: 1px solid #ddd;
@@ -163,7 +166,8 @@ footer #image-button:hover:not(:disabled) {
 /* 訊息氣泡 */
 .message-left, .message-right {
     padding: 10px 15px;
-    margin: 15px 0; /* 增加垂直間距以容納尾巴 */
+    margin-top: 15px;    /* Vertical spacing */
+    margin-bottom: 15px; /* Vertical spacing */
     border-radius: 12px; /* 整體圓角 */
     max-width: 65%; /* 聊天框的最大寬度上限 */
     width: -webkit-fit-content; /* 讓寬度適應內容 (Chrome/Safari) */
@@ -225,7 +229,6 @@ footer #image-button:hover:not(:disabled) {
     position: absolute;
     bottom: 0px;        /* 與氣泡尾巴底部大致對齊 */
     font-size: 0.8em;   /* 使字型略小於訊息內文 */
-    /* font-weight: bold; 被移除，根據圖片效果 */
     white-space: nowrap; /* 防止用戶名換行 */
     padding: 0 2px;      /* 微調內邊距 */
     line-height: 1;      /* 調整行高以更好地垂直對齊 */
@@ -252,13 +255,11 @@ footer #image-button:hover:not(:disabled) {
     object-fit: contain; /* 确保图片在调整大小时保持其纵横比并且不会被裁剪 */
 }
 
-/* 自身用戶發送的圖片靠右對齊 */
 .message-right .chat-image {
     margin-left: auto;
     margin-right: 0;
 }
 
-/* 其他用戶發送的圖片（默認靠左） */
 .message-left .chat-image {
     margin-right: auto;
     margin-left: 0;
@@ -283,12 +284,12 @@ body.dark-mode header {
     background: #1e1e1e;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
-body.dark-mode header .controls input[type="text"] { /* Dark mode for header input */
+body.dark-mode header .controls input[type="text"] {
     background-color: #333;
     border-color: #444;
     color: #e0e0e0;
 }
-body.dark-mode header .controls button { /* Dark mode for header buttons */
+body.dark-mode header .controls button {
     background: #333;
     color: #e0e0e0;
     border-color: #444;
@@ -311,17 +312,17 @@ body.dark-mode footer {
     background: #1e1e1e;
     border-top-color: #2c2c2c;
 }
-body.dark-mode footer input[type="text"] { /* Dark mode for footer input */
+body.dark-mode footer input[type="text"] {
     background-color: #2c2c2c;
     border-color: #444;
     color: #e0e0e0;
 }
-body.dark-mode footer #message { /* Dark mode for footer textarea */
+body.dark-mode footer #message {
     background-color: #2c2c2c;
     border-color: #444;
     color: #e0e0e0;
 }
-body.dark-mode footer button { /* Dark mode for footer buttons */
+body.dark-mode footer button {
     background-color: #0056b3;
     border-color: #0056b3;
 }
@@ -341,19 +342,16 @@ body.dark-mode footer #image-button:hover:not(:disabled) {
 }
 
 body.dark-mode .message-left {
-    background: #2c3e50; /* 深色蓝灰色 */
+    background: #2c3e50;
     color: #ecf0f1;
-    text-align: left;
-    border-bottom-left-radius: 0px; /* 同樣，深色模式下也使左下角變直角 */
+    border-bottom-left-radius: 0px;
 }
 body.dark-mode .message-right {
-    background: #27ae60; /* 深色绿色 */
+    background: #27ae60;
     color: #ecf0f1;
-    text-align: right;
-    border-bottom-right-radius: 0px; /* 同樣，深色模式下也使右下角變直角 */
+    border-bottom-right-radius: 0px;
 }
 
-/* 深色模式下的语音气泡尾巴 */
 body.dark-mode .message-left::after {
     border-right-color: #2c3e50;
 }
@@ -361,12 +359,11 @@ body.dark-mode .message-right::after {
     border-left-color: #27ae60;
 }
 
-
 body.dark-mode .message-right .message-username-display {
-    color: #a6e22e; /* 深色绿上的亮色 */
+    color: #a6e22e;
 }
 body.dark-mode .message-left .message-username-display {
-    color: #bdc3c7; /* 深色模式下其他用戶的用戶名顏色 */
+    color: #bdc3c7;
 }
 
 body.dark-mode .system-message {
@@ -380,13 +377,13 @@ body.dark-mode .system-message {
     }
     #chat {
         flex: 1;
-        height: 60vh; /* Or use flex-grow more dynamically */
+        height: 60vh;
         border-right: none;
     }
     #userlist {
-        flex: 1; /* Or set a specific height like 30vh */
-        height: auto; /* Let content define height or set a specific one */
-        min-height: 150px; /* Example min-height */
+        flex: 1;
+        height: auto;
+        min-height: 150px;
         border-left: none;
         border-top: 1px solid #ccc;
     }
@@ -394,13 +391,22 @@ body.dark-mode .system-message {
         border-top-color: #2c2c2c;
     }
     #userlist.hidden {
-        display: none !important; /* Ensure it's hidden */
+        display: none !important;
     }
-    .message-left, .message-right {
+
+    /* --- 修改開始 --- */
+    .message-left {
         max-width: 85%;
-        margin-left: 35px; /* 移動端調整用戶名空間 */
-        margin-right: 35px;
+        margin-left: 35px; /* 移動端用戶名空間 */
+        margin-right: auto; /* 確保靠左 */
     }
+    .message-right {
+        max-width: 85%;
+        margin-right: 35px; /* 移動端用戶名空間 */
+        margin-left: auto;  /* 確保靠右 */
+    }
+    /* --- 修改結束 --- */
+
     .message-right .message-username-display {
         left: calc(100% + 8px);
     }
@@ -411,61 +417,54 @@ body.dark-mode .system-message {
 
 @media (max-width: 600px) {
     header {
-        flex-direction: column; /* Stack header items vertically */
-        align-items: stretch; /* Stretch items to fill width */
-        position: relative; /* 确保 header 有自己的堆叠上下文 */
-        z-index: 10;        /* 使 header 在页面上层，低于模态框等 */
+        flex-direction: column;
+        align-items: stretch;
     }
     header h1 {
         font-size: 1.2em;
-        margin-bottom: 10px; /* Space between title and controls container */
-        text-align: center; /* Center the title */
+        margin-bottom: 10px;
+        text-align: center;
     }
 
     header .controls {
         display: flex;
-        flex-direction: row; /* Arrange items in a row */
-        flex-wrap: wrap;    /* Allow items to wrap to the next line */
+        flex-direction: row;
+        flex-wrap: wrap;
         width: 100%;
-        gap: 8px; /* Space between control items */
-        justify-content: space-between; /* Distribute space for wrapped items */
+        gap: 8px;
+        justify-content: space-between;
     }
 
     header .controls #current-room-id {
-        width: 100%; /* Span full width on its own line if it wraps */
+        width: 100%;
         font-size: 0.9em;
-        text-align: center; /* Center current room ID text */
-        margin-bottom: 5px; /* Space below current room ID if it's on its own line */
-        order: -1; /* Ensure current room ID is at the top if wrapping occurs */
-        pointer-events: none; /* This span is not interactive */
+        text-align: center;
+        margin-bottom: 5px;
+        order: -1;
+        pointer-events: none;
     }
 
     header .controls input[type="text"] {
-        flex-grow: 1; /* Allow input to grow */
-        min-width: calc(50% - 4px); /* Try to fit two items per row, accounting for gap */
-        padding: 7px 10px; /* Slightly smaller padding */
-        font-size: 0.85em;  /* Slightly smaller font */
+        flex-grow: 1;
+        min-width: calc(50% - 4px);
+        padding: 7px 10px;
+        font-size: 0.85em;
         box-sizing: border-box;
         border: 1px solid #ccc;
         border-radius: 4px;
-        height: 34px; /* Explicit height to match buttons */
-        pointer-events: auto !important; /* 确保可交互 */
-        cursor: text; /* 标准文本输入光标 */
+        height: 34px;
     }
 
     header .controls button {
-        flex-grow: 1; /* Allow buttons to grow */
-        min-width: calc(50% - 4px); /* Try to fit two items per row, accounting for gap */
-        padding: 7px 10px; /* Consistent padding for height */
-        font-size: 0.85em;  /* Consistent font size from user's spec */
+        flex-grow: 1;
+        min-width: calc(50% - 4px);
+        padding: 7px 10px;
+        font-size: 0.85em;
         box-sizing: border-box;
-        margin-left: 0; /* Override desktop margin */
-        height: 34px; /* Explicit height */
-        line-height: normal; /* Ensure text is vertically centered */
-        pointer-events: auto !important; /* 确保可交互 */
-        cursor: pointer; /* 明确指针样式 */
+        margin-left: 0;
+        height: 34px;
+        line-height: normal;
     }
-    /* Dark mode for mobile header controls */
     body.dark-mode header .controls input[type="text"] {
         background-color: #333;
         border-color: #444;
@@ -480,7 +479,6 @@ body.dark-mode .system-message {
         background: #444;
     }
 
-
     footer {
         flex-wrap: wrap;
         gap: 8px;
@@ -489,56 +487,40 @@ body.dark-mode .system-message {
         width: 100%;
         margin-right: 0;
         text-align: left;
-        margin-bottom: -5px; /* As per user CSS */
+        margin-bottom: -5px;
     }
-    footer #username { /* Footer username input */
-        width: calc(70% - 8px); /* As per user CSS */
+    footer #username {
+        width: calc(70% - 8px);
     }
-    footer #join { /* Footer join button */
-        width: calc(30% - 8px); /* As per user CSS */
+    footer #join {
+        width: calc(30% - 8px);
     }
-    footer #message { /* Footer message textarea */
-        width: calc(100% - 58px - 58px - 16px); /* As per user CSS */
-        order: 1; /* As per user CSS */
+    footer #message {
+        width: calc(100% - 58px - 58px - 16px);
+        order: 1;
     }
-     footer #image-button, footer #send { /* Footer image and send buttons */
-        padding: 8px; /* As per user CSS */
-        min-width: 45px; /* As per user CSS */
-        order: 2; /* As per user CSS */
+     footer #image-button, footer #send {
+        padding: 8px;
+        min-width: 45px;
+        order: 2;
     }
-    .message-left, .message-right {
+
+    /* --- 修改開始 --- */
+    .message-left {
         max-width: 90%;
-        margin-left: 30px; /* 更小移動端調整用戶名空間 */
-        margin-right: 30px;
+        margin-left: 30px; /* 更小移動端用戶名空間 */
+        margin-right: auto; /* 確保靠左 */
     }
+    .message-right {
+        max-width: 90%;
+        margin-right: 30px; /* 更小移動端用戶名空間 */
+        margin-left: auto;  /* 確保靠右 */
+    }
+    /* --- 修改結束 --- */
 }
 
-/* 旧的销毁房间按钮样式（未在HTML中实现，但保留以供参考） */
-/* This style was for a button with class .destroy-room, the current HTML uses id #destroy-room */
-/*
-.controls .destroy-room {
-    margin-left: 10px;
-    padding: 6px 12px;
-    background: #dc3545;
-    color: white;
-    border: 1px solid #dc3545;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.controls .destroy-room:hover {
-    background: #c82333;
-}
-body.dark-mode .controls .destroy-room {
-    background: #c82333;
-    border-color: #c82333;
-}
-body.dark-mode .controls .destroy-room:hover {
-    background: #a71d2a;
-}
-*/
-/* Style for the actual #destroy-room button if needed, currently uses generic .controls button style */
 header .controls button#destroy-room {
-    background-color: #dc3545; /* Example: Destructive action color */
+    background-color: #dc3545;
     border-color: #dc3545;
     color: white;
 }
