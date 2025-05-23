@@ -19,6 +19,8 @@ header {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    /* position: relative; /* Moved to media query for specificity */
+    /* z-index: 10;      /* Moved to media query for specificity */
 }
 
 header h1 {
@@ -411,6 +413,8 @@ body.dark-mode .system-message {
     header {
         flex-direction: column; /* Stack header items vertically */
         align-items: stretch; /* Stretch items to fill width */
+        position: relative; /* 确保 header 有自己的堆叠上下文 */
+        z-index: 10;        /* 使 header 在页面上层，低于模态框等 */
     }
     header h1 {
         font-size: 1.2em;
@@ -433,6 +437,7 @@ body.dark-mode .system-message {
         text-align: center; /* Center current room ID text */
         margin-bottom: 5px; /* Space below current room ID if it's on its own line */
         order: -1; /* Ensure current room ID is at the top if wrapping occurs */
+        pointer-events: none; /* This span is not interactive */
     }
 
     header .controls input[type="text"] {
@@ -444,17 +449,21 @@ body.dark-mode .system-message {
         border: 1px solid #ccc;
         border-radius: 4px;
         height: 34px; /* Explicit height to match buttons */
+        pointer-events: auto !important; /* 确保可交互 */
+        cursor: text; /* 标准文本输入光标 */
     }
 
     header .controls button {
         flex-grow: 1; /* Allow buttons to grow */
         min-width: calc(50% - 4px); /* Try to fit two items per row, accounting for gap */
         padding: 7px 10px; /* Consistent padding for height */
-        font-size: 0.85em;  /* Consistent font size */
+        font-size: 0.85em;  /* Consistent font size from user's spec */
         box-sizing: border-box;
         margin-left: 0; /* Override desktop margin */
         height: 34px; /* Explicit height */
         line-height: normal; /* Ensure text is vertically centered */
+        pointer-events: auto !important; /* 确保可交互 */
+        cursor: pointer; /* 明确指针样式 */
     }
     /* Dark mode for mobile header controls */
     body.dark-mode header .controls input[type="text"] {
