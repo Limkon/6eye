@@ -1,497 +1,361 @@
 /* 基础布局 */
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
     touch-action: manipulation; /* From new CSS */
 }
 
-#app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    margin: 0; /* From new CSS */
+\#app {
+display: flex;
+flex-direction: column;
+height: 100vh;
+margin: 0; /\* From new CSS \*/
 }
 
 header {
-    background: #4CAF50;
-    color: white;
-    padding: 10px; /* From new CSS */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+background: \#4CAF50;
+color: white;
+padding: 10px; /\* From new CSS \*/
+display: flex;
+justify-content: space-between;
+align-items: center;
 }
 
 header h1 {
-    margin: 0;
+margin: 0;
 }
 
-.controls { /* From new CSS */
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+.controls { /\* From new CSS \*/
+display: flex;
+align-items: center;
+flex-wrap: wrap;
 }
 
-.controls #current-room-id { /* From new CSS */
-    color: white;
-    font-size: 14px;
+.controls \#current-room-id { /\* From new CSS \*/
+color: white;
+font-size: 14px;
 }
 
-.controls input[type="text"] { /* From new CSS */
-    padding: 6px;
-    margin: 0 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
+.controls input[type="text"] { /\* From new CSS \*/
+padding: 6px;
+margin: 0 10px;
+border: 1px solid \#ccc;
+border-radius: 4px;
+font-size: 14px;
 }
 
-.controls button { /* From new CSS */
-    margin: 0 10px;
-    padding: 6px 12px;
-    background: #fff;
-    color: #333;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-    pointer-events: auto;
-    touch-action: manipulation;
+.controls button { /\* From new CSS \*/
+margin: 0 10px;
+padding: 6px 12px;
+background: \#fff;
+color: \#333;
+border: 1px solid \#ccc;
+border-radius: 4px;
+cursor: pointer;
+pointer-events: auto;
+touch-action: manipulation;
 }
 
-.controls button:hover { /* From new CSS */
-    background: #f0f0f0;
+.controls button:hover { /\* From new CSS \*/
+background: \#f0f0f0;
 }
 
-.controls button:disabled { /* From new CSS */
-    background: #ccc;
-    cursor: not-allowed;
+.controls button:disabled { /\* From new CSS \*/
+background: \#ccc;
+cursor: not-allowed;
 }
 
 main {
-    flex: 1;
-    display: flex;
-    flex-direction: row; /* 改为横向排列，userlist 在左侧 - From new CSS */
-    overflow: hidden;
-    margin: 0; /* From new CSS */
+flex: 1;
+display: flex;
+flex-direction: row; /\* 改为横向排列，userlist 在左侧 - From new CSS */
+overflow: hidden;
+margin: 0; /* From new CSS \*/
 }
 
-#chat {
-    flex: 3; /* 占主要空间 - From new CSS */
-    padding: 8px; /* From new CSS - might need adjustment for external usernames */
-    overflow-y: auto;
-    background: #f9f9f9;
-    /* white-space: pre-wrap; Already in .message-left/right, not needed here directly */
-    margin: 0; /* From new CSS */
+\#chat {
+flex: 3; /\* 占主要空间 - From new CSS */
+padding: 8px; /* From new CSS - might need adjustment for external usernames */
+overflow-y: auto;
+background: \#f9f9f9;
+/* white-space: pre-wrap; Already in .message-left/right, not needed here directly */
+margin: 0; /* From new CSS \*/
 }
 
-#userlist {
-    flex: 1; /* 占较少空间 - From new CSS */
-    padding: 8px; /* From new CSS */
-    border-right: 1px solid #ccc; /* 改为右边框 - From new CSS */
-    border-left: none; /* 移除左边框 - From new CSS */
-    overflow-y: auto;
-    background: #fff;
-    order: -1; /* 确保 userlist 在 chat 左侧 - From new CSS */
+\#userlist {
+flex: 1; /\* 占较少空间 - From new CSS */
+padding: 8px; /* From new CSS */
+border-right: 1px solid \#ccc; /* 改为右边框 - From new CSS */
+border-left: none; /* 移除左边框 - From new CSS */
+overflow-y: auto;
+background: \#fff;
+order: -1; /* 确保 userlist 在 chat 左侧 - From new CSS \*/
 }
 
-#userlist.hidden { /* From new CSS */
-    display: none;
+\#userlist.hidden { /\* From new CSS \*/
+display: none;
 }
 
-footer { /* From new CSS */
-    display: flex;
-    padding: 8px;
-    background: #eee;
-    align-items: center;
-    margin: 0;
+footer { /\* From new CSS \*/
+display: flex;
+padding: 8px;
+background: \#eee;
+align-items: center;
+margin: 0;
 }
 
-footer label { /* From new CSS */
-    margin-right: 10px;
-    font-size: 14px;
-    height: 56px;
-    line-height: 56px;
-    box-sizing: border-box;
-    border: 1px solid #aaa;
-    border-radius: 4px;
-    background-color: #f5f5f5;
-    padding: 0 10px;
+footer label { /\* From new CSS \*/
+margin-right: 10px;
+font-size: 14px;
+height: 56px;
+line-height: 56px;
+box-sizing: border-box;
+border: 1px solid \#aaa;
+border-radius: 4px;
+background-color: \#f5f5f5;
+padding: 0 10px;
 }
 
-footer input[type="text"], /* From new CSS */
+footer input[type="text"], /\* From new CSS \*/
 footer textarea {
-    padding: 8px;
-    margin-right: 10px;
-    font-size: 14px;
-    box-sizing: border-box;
+padding: 8px;
+margin-right: 10px;
+font-size: 14px;
+box-sizing: border-box;
 }
 
-footer #username { /* From new CSS */
-    width: 150px;
-    height: 56px;
+footer \#username { /\* From new CSS \*/
+width: 150px;
+height: 56px;
 }
 
-footer #message { /* From new CSS */
-    flex: 1;
-    resize: vertical;
-    min-height: 56px;
-    max-height: 100px;
+footer \#message { /\* From new CSS \*/
+flex: 1;
+resize: vertical;
+min-height: 56px;
+max-height: 100px;
 }
 
-footer button { /* From new CSS */
-    padding: 8px 16px;
-    height: 56px;
-    line-height: normal;
-    box-sizing: border-box;
-    cursor: pointer;
-    pointer-events: auto;
-    touch-action: manipulation;
+footer button { /\* From new CSS \*/
+padding: 8px 16px;
+height: 56px;
+line-height: normal;
+box-sizing: border-box;
+cursor: pointer;
+pointer-events: auto;
+touch-action: manipulation;
 }
 
-/* 消息气泡 - Integrating previous successful styles with new base */
+/\* 消息气泡 - Integrating previous successful styles with new base */
 .message-left,
 .message-right {
-    padding: 8px 12px; /* Adjusted padding slightly from new CSS's 8px for better look */
-    margin: 10px 0;    /* Vertical margin between bubbles, side margins will be more specific */
-    border-radius: 12px;/* Overall rounding for a softer look */
-    max-width: 70%;    /* Max width for bubbles */
-    width: -webkit-fit-content;
-    width: -moz-fit-content;
-    width: fit-content;
-    word-wrap: break-word; /* Changed from pre-wrap to break-word for better bubble fit */
-    line-height: 1.4;
-    position: relative;
-    white-space: pre-wrap; /* Keep this for preserving newlines in messages */
+padding: 8px 12px; /* Adjusted padding slightly from new CSS's 8px for better look */
+margin: 10px 0;    /* Vertical margin between bubbles, side margins will be more specific */
+border-radius: 12px;/* Overall rounding for a softer look */
+max-width: 70%;    /* Max width for bubbles */
+width: -webkit-fit-content;
+width: -moz-fit-content;
+width: fit-content;
+word-wrap: break-word; /* Changed from pre-wrap to break-word for better bubble fit */
+line-height: 1.4;
+position: relative;
+white-space: pre-wrap; /* Keep this for preserving newlines in messages \*/
 }
 
 .message-left {
-    background: #e0f7fa;
-    color: #333;
-    /* text-align: left; Will be handled by .message-content */
-    margin-left: 50px; /* Space for external username on the left */
-    margin-right: auto; /* Align bubble to the left */
-    border-bottom-left-radius: 0px; /* Smooth tail connection */
+background: \#e0f7fa;
+color: \#333;
+/\* text-align: left; Will be handled by .message-content */
+margin-left: 50px; /* Space for external username on the left */
+margin-right: auto; /* Align bubble to the left */
+border-bottom-left-radius: 0px; /* Smooth tail connection \*/
 }
 
 .message-right {
-    background: #c8e6c9;
-    color: #333;
-    /* text-align: right; Will be handled by .message-content */
-    margin-right: 50px; /* Space for external username on the right */
-    margin-left: auto;  /* Align bubble to the right */
-    border-bottom-right-radius: 0px; /* Smooth tail connection */
+background: \#c8e6c9;
+color: \#333;
+/\* text-align: right; Will be handled by .message-content */
+margin-right: 50px; /* Space for external username on the right */
+margin-left: auto;  /* Align bubble to the right */
+border-bottom-right-radius: 0px; /* Smooth tail connection \*/
 }
 
-/* Speech bubble tails */
+/\* Speech bubble tails */
 .message-left::after {
-    content: '';
-    position: absolute;
-    bottom: 0px;
-    left: -10px;
-    width: 0;
-    height: 0;
-    border: 10px solid transparent; /* Slightly smaller tail to match 8px padding better */
-    border-right-color: #e0f7fa;
-    border-left: 0;
-    border-bottom: 0;
-    margin-top: -5px; /* Adjust vertical alignment for 10px tail */
+content: '';
+position: absolute;
+bottom: 0px;
+left: -10px;
+width: 0;
+height: 0;
+border: 10px solid transparent; /* Slightly smaller tail to match 8px padding better */
+border-right-color: \#e0f7fa;
+border-left: 0;
+border-bottom: 0;
+margin-top: -5px; /* Adjust vertical alignment for 10px tail \*/
 }
 
 .message-right::after {
-    content: '';
-    position: absolute;
-    bottom: 0px;
-    right: -10px;
-    width: 0;
-    height: 0;
-    border: 10px solid transparent; /* Slightly smaller tail */
-    border-left-color: #c8e6c9;
-    border-right: 0;
-    border-bottom: 0;
-    margin-top: -5px; /* Adjust vertical alignment for 10px tail */
+content: '';
+position: absolute;
+bottom: 0px;
+right: -10px;
+width: 0;
+height: 0;
+border: 10px solid transparent; /\* Slightly smaller tail */
+border-left-color: \#c8e6c9;
+border-right: 0;
+border-bottom: 0;
+margin-top: -5px; /* Adjust vertical alignment for 10px tail \*/
 }
 
-/* Username display (external to bubble) */
+/\* Username display (external to bubble) */
 .message-username-display {
-    position: absolute;
-    bottom: 0px; /* Align with the bottom of the bubble/start of tail */
-    font-size: 0.8em;
-    white-space: nowrap;
-    padding: 0 2px;
-    line-height: 1; /* For better vertical alignment */
-    /* font-weight: bold; /* Removed as per image likeness */
+position: absolute;
+bottom: 0px; /* Align with the bottom of the bubble/start of tail */
+font-size: 0.8em;
+white-space: nowrap;
+padding: 0 2px;
+line-height: 1; /* For better vertical alignment */
+/* font-weight: bold; /\* Removed as per image likeness \*/
 }
 
 .message-right .message-username-display {
-    left: calc(100% + 12px); /* Position to the right of the bubble + tail + gap */
-    color: #387002; /* Dark green for own username */
+left: calc(100% + 12px); /\* Position to the right of the bubble + tail + gap */
+color: \#387002; /* Dark green for own username \*/
 }
 
 .message-left .message-username-display {
-    right: calc(100% + 12px); /* Position to the left of the bubble + tail + gap */
-    color: #00796b; /* Teal for other usernames */
+right: calc(100% + 12px); /\* Position to the left of the bubble + tail + gap */
+color: \#00796b; /* Teal for other usernames \*/
 }
 
-/* Message content alignment within the bubble */
+/\* Message content alignment within the bubble */
 .message-content {
-    /* This div will wrap text and images */
+/* This div will wrap text and images \*/
 }
 .message-left .message-content {
-    text-align: left;
+text-align: left;
 }
 .message-right .message-content {
-    text-align: right;
+text-align: right;
 }
 
-
-/* Chat image styling */
+/\* Chat image styling */
 .chat-image {
-    max-width: 100%; /* Max width relative to its container (.message-content) */
-    max-height: 200px;
-    border-radius: 8px;
-    margin-top: 5px;
-    display: block; /* Or inline-block if preferred for alignment */
-    object-fit: contain;
+max-width: 100%; /* Max width relative to its container (.message-content) */
+max-height: 200px;
+border-radius: 8px;
+margin-top: 5px;
+display: block; /* Or inline-block if preferred for alignment \*/
+object-fit: contain;
 }
 
 .message-right .message-content .chat-image {
-    margin-left: auto; /* Align image to the right within a right-aligned bubble */
-    margin-right: 0;
+margin-left: auto; /\* Align image to the right within a right-aligned bubble */
+margin-right: 0;
 }
 .message-left .message-content .chat-image {
-    margin-left: 0; /* Align image to the left within a left-aligned bubble */
-    margin-right: auto;
+margin-left: 0; /* Align image to the left within a left-aligned bubble \*/
+margin-right: auto;
 }
 
-.system-message { /* Added from previous versions for system messages */
-    font-style: italic;
-    color: #777;
-    text-align: center;
-    margin: 10px 0;
-    font-size: 0.9em;
+.system-message { /\* Added from previous versions for system messages \*/
+font-style: italic;
+color: \#777;
+text-align: center;
+margin: 10px 0;
+font-size: 0.9em;
 }
 
-
-/* 深色模式 */
-body.dark-mode { /* From new CSS */
-    background: #121212;
-    color: #e0e0e0;
+/\* 深色模式 */
+body.dark-mode { /* From new CSS \*/
+background: \#121212;
+color: \#e0e0e0;
 }
 
-body.dark-mode header { /* From new CSS */
-    background: #333;
+body.dark-mode header { /\* From new CSS \*/
+background: \#333;
 }
 
-body.dark-mode .controls #current-room-id { /* From new CSS */
-    color: #e0e0e0;
+body.dark-mode .controls \#current-room-id { /\* From new CSS \*/
+color: \#e0e0e0;
 }
 
-body.dark-mode .controls input[type="text"], /* From new CSS */
+body.dark-mode .controls input[type="text"], /\* From new CSS \*/
 body.dark-mode footer textarea {
-    background: #444;
-    color: #e0e0e0;
-    border-color: #555;
+background: \#444;
+color: \#e0e0e0;
+border-color: \#555;
 }
 
-body.dark-mode .controls button { /* From new CSS */
-    background: #444;
-    color: #e0e0e0;
-    border-color: #555;
+body.dark-mode .controls button { /\* From new CSS \*/
+background: \#444;
+color: \#e0e0e0;
+border-color: \#555;
 }
 
-body.dark-mode .controls button:hover { /* From new CSS */
-    background: #555;
+body.dark-mode .controls button:hover { /\* From new CSS \*/
+background: \#555;
 }
 
-body.dark-mode .controls button:disabled { /* From new CSS */
-    background: #666;
+body.dark-mode .controls button:disabled { /\* From new CSS \*/
+background: \#666;
 }
 
-body.dark-mode #chat { /* From new CSS */
-    background: #1e1e1e;
+body.dark-mode \#chat { /\* From new CSS \*/
+background: \#1e1e1e;
 }
 
-body.dark-mode #userlist { /* From new CSS */
-    background: #2c2c2c;
-    border-right-color: #444; /* Adjust border color for dark mode */
+body.dark-mode \#userlist { /\* From new CSS */
+background: \#2c2c2c;
+border-right-color: \#444; /* Adjust border color for dark mode \*/
 }
 
-body.dark-mode footer { /* From new CSS */
-    background: #333;
+body.dark-mode footer { /\* From new CSS \*/
+background: \#333;
 }
 
-body.dark-mode footer label { /* From new CSS */
-    border-color: #555;
-    background-color: #444;
-    color: #e0e0e0;
+body.dark-mode footer label { /\* From new CSS \*/
+border-color: \#555;
+background-color: \#444;
+color: \#e0e0e0;
 }
 
 body.dark-mode .message-left {
-    background: #2c3e50; /* Darker blue-grey */
-    color: #ecf0f1;
-    border-bottom-left-radius: 0px;
+background: \#2c3e50; /\* Darker blue-grey \*/
+color: \#ecf0f1;
+border-bottom-left-radius: 0px;
 }
 
 body.dark-mode .message-right {
-    background: #27ae60; /* Darker green */
-    color: #ecf0f1;
-    border-bottom-right-radius: 0px;
+background: \#27ae60; /\* Darker green \*/
+color: \#ecf0f1;
+border-bottom-right-radius: 0px;
 }
 
 body.dark-mode .message-left::after {
-    border-right-color: #2c3e50;
+border-right-color: \#2c3e50;
 }
 
 body.dark-mode .message-right::after {
-    border-left-color: #27ae60;
+border-left-color: \#27ae60;
 }
 
 body.dark-mode .message-right .message-username-display {
-    color: #a6e22e; /* Brighter green for dark mode */
+color: \#a6e22e; /\* Brighter green for dark mode */
 }
 body.dark-mode .message-left .message-username-display {
-    color: #bdc3c7; /* Lighter grey for dark mode */
+color: \#bdc3c7; /* Lighter grey for dark mode \*/
 }
 body.dark-mode .system-message {
-    color: #aaa;
+color: \#aaa;
 }
 
-
-/* 移动端适配 */
+/\* 移动端适配 */
 @media (max-width: 600px) {
-    header { /* From new CSS */
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 8px;
-    }
-
-    .controls { /* From new CSS */
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
-        width: 100%;
-    }
-
-    .controls #current-room-id { /* From new CSS */
-        width: 100%;
-        margin: 0;
-        text-align: left;
-        padding-left: 10px;
-    }
-
-    .controls input[type="text"] { /* From new CSS */
-        width: calc(100% - 20px);
-        margin: 5px 10px;
-        padding: 6px;
-        font-size: 12px;
-    }
-
-    .controls button { /* From new CSS */
-        margin: 5px 10px;
-        padding: 6px 10px;
-        font-size: 12px;
-        min-width: 80px;
-    }
-
-    footer { /* From new CSS */
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 8px;
-        margin: 0;
-    }
-
-    footer label { /* From new CSS */
-        width: 100%;
-        margin: 0 10px;
-        text-align: left;
-        font-size: 12px;
-        height: 42px;
-        line-height: 42px;
-        box-sizing: border-box;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-        background-color: #f5f5f5;
-        padding: 0 10px;
-    }
-    body.dark-mode footer label { /* Dark mode for mobile label */
-        border-color: #555;
-        background-color: #444;
-        color: #e0e0e0;
-    }
-
-
-    footer #username { /* From new CSS */
-        width: calc(100% - 20px);
-        margin: 5px 10px;
-        padding: 6px;
-        font-size: 12px;
-        height: 42px;
-        box-sizing: border-box;
-    }
-
-    footer #message { /* From new CSS */
-        width: calc(100% - 20px);
-        margin: 5px 10px;
-        padding: 6px;
-        font-size: 12px;
-        min-height: 42px;
-        max-height: 80px;
-        box-sizing: border-box;
-    }
-
-    footer button { /* From new CSS */
-        padding: 6px 12px;
-        margin: 5px 10px;
-        font-size: 12px;
-        min-width: 80px;
-        height: 42px;
-        line-height: normal;
-        box-sizing: border-box;
-    }
-
-    main { /* From new CSS */
-        flex-direction: column; 
-        margin: 0;
-    }
-
-    #chat { /* From new CSS */
-        flex: 1; 
-        padding: 8px;
-        margin: 0;
-        overflow-y: auto;
-    }
-
-    #userlist { /* From new CSS, modified */
-        flex: none;
-        display: none; /* Default hidden on mobile */
-        border-left: none;
-        border-right: none;
-        border-top: 1px solid #ccc;
-        padding: 8px;
-        height: 100px; 
-        width: 100%; 
-    }
-    body.dark-mode #userlist { /* Dark mode for mobile userlist border */
-      border-top-color: #444;
-    }
-
-
-    #userlist.hidden { /* From new CSS */
-        display: none;
-    }
-
-    #userlist:not(.hidden) { /* From new CSS */
-        display: block;
-    }
-
-    /* Mobile adjustments for message bubbles and external username */
-    .message-left, .message-right {
-        max-width: 85%; /* Wider bubbles on mobile */
-        margin-left: 35px; /* Adjust space for username */
-        margin-right: 35px;/* Adjust space for username */
-    }
-    .message-right .message-username-display {
-      left: calc(100% + 8px); /* Closer username on mobile */
-    }
-    .message-left .message-username-display {
-      right: calc(100% + 8px); /* Closer username on mobile */
-    }
+header { /* From new CSS \*/
+flex-direction: column;
+align-items: flex-start;
+padding: 8px;
 }
