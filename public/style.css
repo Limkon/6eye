@@ -218,6 +218,7 @@ footer button:disabled {
     color: #333;
     border-bottom-left-radius: 4px; /* 连接尾巴的角变直 */
     text-align: left;
+    margin-bottom: 0; /* 修改：移除或减小下方外边距 */
 }
 
 .message-right .message-content {
@@ -225,6 +226,7 @@ footer button:disabled {
     color: #333;
     border-bottom-right-radius: 4px; /* 连接尾巴的角变直 */
     text-align: right;
+    margin-bottom: 0; /* 修改：移除或减小下方外边距 */
 }
 
 /* 气泡尾巴 - 现在相对于 .message-content */
@@ -264,7 +266,8 @@ footer button:disabled {
     padding: 0 2px;
     color: #555; /* 默认用户名颜色 */
     line-height: 1;
-    bottom: -15px; /* 将用户名移动到气泡下方 */
+    bottom: -14px; /* 修改：调整此值以控制用户名与气泡底部的精确距离 */
+                   /* 假设 0.8em 字体高度约 12-13px，-14px 会使顶部非常接近气泡 */
 }
 
 .message-left .message-username-display {
@@ -277,11 +280,11 @@ footer button:disabled {
     color: #387002;
 }
 
-/* 为用户名腾出下方空间 */
-.message-left .message-content,
-.message-right .message-content {
-    margin-bottom: 18px; /* 确保内容和下方用户名之间有足够间距 */
-}
+/* 为用户名腾出下方空间 - 这部分不再需要大的 margin-bottom */
+/* .message-left .message-content, */
+/* .message-right .message-content { */
+    /* margin-bottom: 18px; */ /* 确保内容和下方用户名之间有足够间距 */
+/* } */
 
 
 /* 聊天图片样式 */
@@ -564,7 +567,7 @@ body.dark-mode .custom-confirm-cancel:hover {
 
 
     .message { max-width: 85%; } /* 移动端气泡更宽 */
-    .message-username-display { bottom: -14px; font-size: 0.75em; }
+    .message-username-display { bottom: -13px; font-size: 0.75em; } /* 移动端微调 */
 }
 
 
@@ -597,6 +600,9 @@ body.dark-mode .custom-confirm-cancel:hover {
 
     .message-left .message-content,
     .message-right .message-content {
-        margin-bottom: 16px; /* 调整用户名下方空间 */
+      /* 在此断点下，如果需要，可以进一步调整 margin-bottom，但通常父级 .message 的 margin-bottom 已经提供了消息间的间隔 */
+    }
+    .message-username-display {
+        bottom: -13px; /* 确保在小屏幕上也调整好位置 */
     }
 }
