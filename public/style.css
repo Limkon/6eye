@@ -1,358 +1,494 @@
-/* 基礎佈局 */
+/* 基础布局 */
 body {
     margin: 0;
-    font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     touch-action: manipulation;
 }
 
-\#app {
-display: flex;
-flex-direction: column;
-height: 100vh;
-margin: 0;
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
 }
 
 header {
-background: \#4CAF50;
-color: white;
-padding: 10px;
-display: flex;
-justify-content: space-between;
-align-items: center;
+    background: #4CAF50;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 header h1 {
-margin: 0;
+    margin: 0;
 }
 
 .controls {
-display: flex;
-align-items: center;
-flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
-.controls \#current-room-id {
-color: white;
-font-size: 14px;
+.controls #current-room-id {
+    color: white;
+    font-size: 14px;
 }
 
 .controls input[type="text"] {
-padding: 6px;
-margin: 0 10px;
-border: 1px solid \#ccc;
-border-radius: 4px;
-font-size: 14px;
+    padding: 6px;
+    margin: 0 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
 }
 
 .controls button {
-margin: 0 10px;
-padding: 6px 12px;
-background: \#fff;
-color: \#333;
-border: 1px solid \#ccc;
-border-radius: 4px;
-cursor: pointer;
-pointer-events: auto;
-touch-action: manipulation;
+    margin: 0 10px;
+    padding: 6px 12px;
+    background: #fff;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 .controls button:hover {
-background: \#f0f0f0;
+    background: #f0f0f0;
 }
 
 .controls button:disabled {
-background: \#ccc;
-cursor: not-allowed;
+    background: #ccc;
+    cursor: not-allowed;
 }
 
 main {
-flex: 1;
-display: flex;
-flex-direction: row; /\* 用戶列表在左側 \*/
-overflow: hidden;
-margin: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: row; /* 用户列表在左侧 */
+    overflow: hidden;
+    margin: 0;
 }
 
-\#chat {
-flex: 3; /\* 主要空間 \*/
-padding: 8px;
-overflow-y: auto;
-background: \#f9f9f9;
-margin: 0;
+#chat {
+    flex: 3; /* 主要空间 */
+    padding: 8px;
+    overflow-y: auto;
+    background: #f9f9f9;
+    margin: 0;
 }
 
-\#userlist {
-flex: 1; /\* 較少空間 */
-padding: 8px;
-border-right: 1px solid \#ccc; /* 右邊框 */
-border-left: none; /* 移除左邊框 */
-overflow-y: auto;
-background: \#fff;
-order: -1; /* 確保 userlist 在 chat 左側 \*/
+#userlist {
+    flex: 1; /* 较少空间 */
+    padding: 8px;
+    border-right: 1px solid #ccc; /* 右边框 */
+    border-left: none; /* 移除左边框 */
+    overflow-y: auto;
+    background: #fff;
+    order: -1; /* 确保 userlist 在 chat 左侧 */
 }
 
-\#userlist.hidden {
-display: none;
+#userlist.hidden {
+    display: none;
 }
 
 footer {
-display: flex;
-padding: 8px;
-background: \#eee;
-align-items: center;
-margin: 0;
+    display: flex;
+    padding: 8px;
+    background: #eee;
+    align-items: center;
+    margin: 0;
 }
 
 footer label {
-margin-right: 10px;
-font-size: 14px;
-height: 56px;
-line-height: 56px;
-box-sizing: border-box;
-border: 1px solid \#aaa;
-border-radius: 4px;
-background-color: \#f5f5f5;
-padding: 0 10px;
+    margin-right: 10px;
+    font-size: 14px;
+    height: 56px;
+    line-height: 56px;
+    box-sizing: border-box;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    padding: 0 10px;
 }
 
 footer input[type="text"],
 footer textarea {
-padding: 8px;
-margin-right: 10px;
-font-size: 14px;
-box-sizing: border-box;
+    padding: 8px;
+    margin-right: 10px;
+    font-size: 14px;
+    box-sizing: border-box;
 }
 
-footer \#username {
-width: 150px;
-height: 56px;
+footer #username {
+    width: 150px;
+    height: 56px;
 }
 
-footer \#message {
-flex: 1;
-resize: vertical;
-min-height: 56px;
-max-height: 100px;
+footer #message {
+    flex: 1;
+    resize: vertical;
+    min-height: 56px;
+    max-height: 100px;
 }
 
 footer button {
-padding: 8px 16px;
-height: 56px;
-line-height: normal;
-box-sizing: border-box;
-cursor: pointer;
-pointer-events: auto;
-touch-action: manipulation;
+    padding: 8px 16px;
+    height: 56px;
+    line-height: normal;
+    box-sizing: border-box;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
-/\* 訊息氣泡 */
+/* 消息气泡 */
 .message-left,
 .message-right {
-padding: 8px 12px;
-margin: 10px 0;
-border-radius: 12px;
-max-width: 70%;
-width: -webkit-fit-content;
-width: -moz-fit-content;
-width: fit-content;
-word-wrap: break-word;
-line-height: 1.4;
-position: relative;
-white-space: pre-wrap; /* 保留訊息中的換行 \*/
+    padding: 8px 12px;
+    margin: 10px 0;
+    border-radius: 12px;
+    max-width: 70%;
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    width: fit-content;
+    word-wrap: break-word;
+    line-height: 1.4;
+    position: relative;
+    white-space: pre-wrap; /* 保留讯息中的换行 */
 }
 
 .message-left {
-background: \#e0f7fa;
-color: \#333;
-margin-left: 50px; /\* 為左側外部用戶名留出空間 */
-margin-right: auto; /* 氣泡靠左 */
-border-bottom-left-radius: 0px; /* 連接尾巴的角變直 \*/
+    background: #e0f7fa;
+    color: #333;
+    margin-left: 50px; /* 为左侧外部用户名留出空间 */
+    margin-right: auto; /* 气泡靠左 */
+    border-bottom-left-radius: 0px; /* 连接尾巴的角变直 */
 }
 
 .message-right {
-background: \#c8e6c9;
-color: \#333;
-margin-right: 50px; /\* 為右側外部用戶名留出空間 */
-margin-left: auto;  /* 氣泡靠右 */
-border-bottom-right-radius: 0px; /* 連接尾巴的角變直 \*/
+    background: #c8e6c9;
+    color: #333;
+    margin-right: 50px; /* 为右侧外部用户名留出空间 */
+    margin-left: auto;  /* 气泡靠右 */
+    border-bottom-right-radius: 0px; /* 连接尾巴的角变直 */
 }
 
-/\* 氣泡尾巴 \*/
+/* 气泡尾巴 */
 .message-left::after {
-content: '';
-position: absolute;
-bottom: 0px;
-left: -10px;
-width: 0;
-height: 0;
-border: 10px solid transparent;
-border-right-color: \#e0f7fa;
-border-left: 0;
-border-bottom: 0;
-margin-top: -5px;
+    content: '';
+    position: absolute;
+    bottom: 0px;
+    left: -10px;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-right-color: #e0f7fa;
+    border-left: 0;
+    border-bottom: 0;
+    margin-top: -5px;
 }
 
 .message-right::after {
-content: '';
-position: absolute;
-bottom: 0px;
-right: -10px;
-width: 0;
-height: 0;
-border: 10px solid transparent;
-border-left-color: \#c8e6c9;
-border-right: 0;
-border-bottom: 0;
-margin-top: -5px;
+    content: '';
+    position: absolute;
+    bottom: 0px;
+    right: -10px;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-left-color: #c8e6c9;
+    border-right: 0;
+    border-bottom: 0;
+    margin-top: -5px;
 }
 
-/\* 用戶名顯示 (氣泡外部) */
+/* 用户名显示 (气泡外部) */
 .message-username-display {
-position: absolute;
-bottom: 0px; /* 與氣泡底部/尾巴起點對齊 */
-font-size: 0.8em;
-white-space: nowrap; /* 防止用戶名換行 */
-padding: 0 2px;
-line-height: 1; /* 更好地垂直對齊 \*/
+    position: absolute;
+    bottom: 0px; /* 与气泡底部/尾巴起点对齐 */
+    font-size: 0.8em;
+    white-space: nowrap; /* 防止用户名换行 */
+    padding: 0 2px;
+    line-height: 1; /* 更好地垂直对齐 */
 }
 
 .message-right .message-username-display {
-left: calc(100% + 12px); /\* 定位到氣泡右側 + 尾巴寬度 + 間隙 */
-color: \#387002; /* 您自己用戶名的顏色 \*/
+    left: calc(100% + 12px); /* 定位到气泡右侧 + 尾巴宽度 + 间隙 */
+    color: #387002; /* 您自己用户名的颜色 */
 }
 
 .message-left .message-username-display {
-right: calc(100% + 12px); /\* 定位到氣泡左側 + 尾巴寬度 + 間隙 */
-color: \#00796b; /* 其他用戶名的顏色 \*/
+    right: calc(100% + 12px); /* 定位到气泡左侧 + 尾巴宽度 + 间隙 */
+    color: #00796b; /* 其他用户名的颜色 */
 }
 
-/\* 訊息內容在氣泡內的對齊 */
+/* 讯息内容在气泡内的对齐 */
 .message-content {
-/* 這個 div 包裹文字和圖片 \*/
+    /* 这个 div 包裹文字和图片 */
 }
 .message-left .message-content {
-text-align: left;
+    text-align: left;
 }
 .message-right .message-content {
-text-align: right;
+    text-align: right;
 }
 
-/\* 聊天圖片樣式 */
+
+/* 聊天图片样式 */
 .chat-image {
-max-width: 100%; /* 相對於其容器 (.message-content) 的最大寬度 \*/
-max-height: 200px;
-border-radius: 8px;
-margin-top: 5px;
-display: block;
-object-fit: contain;
+    max-width: 100%; /* 相对于其容器 (.message-content) 的最大宽度 */
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 5px;
+    display: block;
+    object-fit: contain;
 }
 
 .message-right .message-content .chat-image {
-margin-left: auto; /\* 圖片在右對齊氣泡中靠右 */
-margin-right: 0;
+    margin-left: auto; /* 图片在右对齐气泡中靠右 */
+    margin-right: 0;
 }
 .message-left .message-content .chat-image {
-margin-left: 0; /* 圖片在左對齊氣泡中靠左 \*/
-margin-right: auto;
+    margin-left: 0; /* 图片在左对齐气泡中靠左 */
+    margin-right: auto;
 }
 
-/\* 系統訊息樣式 \*/
+/* 系统讯息样式 */
 .system-message {
-font-style: italic;
-color: \#777;
-text-align: center;
-margin: 10px 0;
-font-size: 0.9em;
+    font-style: italic;
+    color: #777;
+    text-align: center;
+    margin: 10px 0;
+    font-size: 0.9em;
 }
 
-/\* 深色模式 \*/
+
+/* 深色模式 */
 body.dark-mode {
-background: \#121212;
-color: \#e0e0e0;
+    background: #121212;
+    color: #e0e0e0;
 }
 
 body.dark-mode header {
-background: \#333;
+    background: #333;
 }
 
-body.dark-mode .controls \#current-room-id {
-color: \#e0e0e0;
+body.dark-mode .controls #current-room-id {
+    color: #e0e0e0;
 }
 
 body.dark-mode .controls input[type="text"],
 body.dark-mode footer textarea {
-background: \#444;
-color: \#e0e0e0;
-border-color: \#555;
+    background: #444;
+    color: #e0e0e0;
+    border-color: #555;
 }
 
 body.dark-mode .controls button {
-background: \#444;
-color: \#e0e0e0;
-border-color: \#555;
+    background: #444;
+    color: #e0e0e0;
+    border-color: #555;
 }
 
 body.dark-mode .controls button:hover {
-background: \#555;
+    background: #555;
 }
 
 body.dark-mode .controls button:disabled {
-background: \#666;
+    background: #666;
 }
 
-body.dark-mode \#chat {
-background: \#1e1e1e;
+body.dark-mode #chat {
+    background: #1e1e1e;
 }
 
-body.dark-mode \#userlist {
-background: \#2c2c2c;
-border-right-color: \#444; /\* 深色模式邊框顏色調整 \*/
+body.dark-mode #userlist {
+    background: #2c2c2c;
+    border-right-color: #444; /* 深色模式边框颜色调整 */
 }
 
 body.dark-mode footer {
-background: \#333;
+    background: #333;
 }
 
 body.dark-mode footer label {
-border-color: \#555;
-background-color: \#444;
-color: \#e0e0e0;
+    border-color: #555;
+    background-color: #444;
+    color: #e0e0e0;
 }
 
 body.dark-mode .message-left {
-background: \#2c3e50; /\* 深藍灰色 \*/
-color: \#ecf0f1;
-border-bottom-left-radius: 0px;
+    background: #2c3e50; /* 深蓝灰色 */
+    color: #ecf0f1;
+    border-bottom-left-radius: 0px;
 }
 
 body.dark-mode .message-right {
-background: \#27ae60; /\* 深綠色 \*/
-color: \#ecf0f1;
-border-bottom-right-radius: 0px;
+    background: #27ae60; /* 深绿色 */
+    color: #ecf0f1;
+    border-bottom-right-radius: 0px;
 }
 
 body.dark-mode .message-left::after {
-border-right-color: \#2c3e50;
+    border-right-color: #2c3e50;
 }
 
 body.dark-mode .message-right::after {
-border-left-color: \#27ae60;
+    border-left-color: #27ae60;
 }
 
 body.dark-mode .message-right .message-username-display {
-color: \#a6e22e; /\* 深色模式下更亮的綠色 */
+    color: #a6e22e; /* 深色模式下更亮的绿色 */
 }
 body.dark-mode .message-left .message-username-display {
-color: \#bdc3c7; /* 深色模式下更淺的灰色 \*/
+    color: #bdc3c7; /* 深色模式下更浅的灰色 */
 }
 body.dark-mode .system-message {
-color: \#aaa;
+    color: #aaa;
 }
 
-/\* 移動端適配 \*/
+
+/* 移动端适配 */
 @media (max-width: 600px) {
-header {
-flex-direction: column;
-align-items: flex-start;
-padding: 8px;
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 8px;
+    }
+
+    .controls {
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+        width: 100%;
+    }
+
+    .controls #current-room-id {
+        width: 100%;
+        margin: 0;
+        text-align: left;
+        padding-left: 10px;
+    }
+
+    .controls input[type="text"] {
+        width: calc(100% - 20px);
+        margin: 5px 10px;
+        padding: 6px;
+        font-size: 12px;
+    }
+
+    .controls button {
+        margin: 5px 10px;
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 80px;
+    }
+
+    footer {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+        margin: 0;
+    }
+
+    footer label {
+        width: 100%;
+        margin: 0 10px;
+        text-align: left;
+        font-size: 12px;
+        height: 42px;
+        line-height: 42px;
+        box-sizing: border-box;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        background-color: #f5f5f5;
+        padding: 0 10px;
+    }
+    body.dark-mode footer label { /* 移动端深色模式标签 */
+        border-color: #555;
+        background-color: #444;
+        color: #e0e0e0;
+    }
+
+
+    footer #username {
+        width: calc(100% - 20px);
+        margin: 5px 10px;
+        padding: 6px;
+        font-size: 12px;
+        height: 42px;
+        box-sizing: border-box;
+    }
+
+    footer #message {
+        width: calc(100% - 20px);
+        margin: 5px 10px;
+        padding: 6px;
+        font-size: 12px;
+        min-height: 42px;
+        max-height: 80px;
+        box-sizing: border-box;
+    }
+
+    footer button {
+        padding: 6px 12px;
+        margin: 5px 10px;
+        font-size: 12px;
+        min-width: 80px;
+        height: 42px;
+        line-height: normal;
+        box-sizing: border-box;
+    }
+
+    main {
+        flex-direction: column; 
+        margin: 0;
+    }
+
+    #chat {
+        flex: 1; 
+        padding: 8px;
+        margin: 0;
+        overflow-y: auto;
+    }
+
+    #userlist {
+        flex: none;
+        display: none; /* 移动端默认隐藏 */
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid #ccc;
+        padding: 8px;
+        height: 100px; 
+        width: 100%; 
+    }
+    body.dark-mode #userlist { /* 移动端深色模式用户列表边框 */
+      border-top-color: #444;
+    }
+
+
+    #userlist.hidden {
+        display: none;
+    }
+
+    #userlist:not(.hidden) {
+        display: block;
+    }
+
+    /* 移动端讯息气泡和外部用户名调整 */
+    .message-left, .message-right {
+        max-width: 85%; /* 移动端气泡更宽 */
+        margin-left: 35px; /* 调整用户名空间 */
+        margin-right: 35px;/* 调整用户名空间 */
+    }
+    .message-right .message-username-display {
+      left: calc(100% + 8px); /* 移动端用户名更靠近气泡 */
+    }
+    .message-left .message-username-display {
+      right: calc(100% + 8px); /* 移动端用户名更靠近气泡 */
+    }
 }
