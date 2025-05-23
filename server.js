@@ -1,484 +1,457 @@
-const express = require('express');
-const WebSocket = require('ws');
-const http = require('http');
-const path = require('path');
-const crypto = require('crypto');
-const fs = require('fs').promises;
-const { URL } = require('url');
+let ws;
+let username = '';
+let joined = false;
+let roomId = '';
+let roomLocked = false;
 
-// --- 配置常量 ---
-const KEY_FILE_PATH = path.join(__dirname, '.encryption_key'); // 存储加密密钥的文件
-let ENCRYPTION_KEY; // 将在此处加载或生成
+const MESSAGE_TYPES = {
+    USER_LIST: 'userList',
+    MESSAGE: 'message',
+    HISTORY: 'history',
+    JOIN_SUCCESS: 'joinSuccess',
+    JOIN_ERROR: 'joinError',
+    ROOM_DESTROYED: 'roomDestroyed',
+    INACTIVE: 'inactive',
+    JOIN: 'join',
+    DESTROY: 'destroy',
+    SYSTEM: 'system', // 新增系统消息类型
+    ERROR: 'error' // 新增错误消息类型 (从服务器)
+};
 
-const IV_LENGTH = 16;
-const CHATROOM_DIR = path.join(__dirname, 'chatroom');
-const MAX_DIR_SIZE_MB = 80; // MB
-const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 分钟
-const messagesCache = new Map();
-const MAX_MESSAGES_PER_ROOM_FILE = 100;
-const MAX_MESSAGES_IN_MEMORY = 100;
+// DOM Elements (fetched in DOMContentLoaded)
+let roomIdInput, joinRoomButton, currentRoomIdElement, usernameLabel, usernameInput, joinButton,
+    messageInput, sendButton, chatElement, userListElement, destroyRoomButton,
+    themeToggleButton, userlistToggleButton;
 
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-const chatRooms = {};
-
-/**
- * 加载或生成加密密钥。
- */
-async function loadOrGenerateEncryptionKey() {
-    const envKeyHex = process.env.CHAT_ENCRYPTION_KEY;
-    if (envKeyHex) {
-        if (envKeyHex.length === 64 && /^[0-9a-fA-F]+$/.test(envKeyHex)) {
-            console.log("已从 CHAT_ENCRYPTION_KEY 环境变量加载加密密钥。");
-            return Buffer.from(envKeyHex, 'hex');
-        } else {
-            console.warn("警告: CHAT_ENCRYPTION_KEY 环境变量格式无效 (需要64位十六进制字符串)，将尝试从文件加载或生成新密钥。");
+// --- Custom Alert and Confirm ---
+function showCustomAlert(message, type = 'info') { // type can be 'info', 'error', 'success'
+    const alertBox = document.createElement('div');
+    alertBox.className = `custom-alert custom-alert-${type}`;
+    alertBox.textContent = message;
+    document.body.appendChild(alertBox);
+    setTimeout(() => {
+        if (alertBox.parentNode) {
+            alertBox.remove();
         }
-    }
-
-    try {
-        const fileKeyHex = await fs.readFile(KEY_FILE_PATH, 'utf8');
-        if (fileKeyHex && fileKeyHex.trim().length === 64 && /^[0-9a-fA-F]+$/.test(fileKeyHex.trim())) {
-            console.log(`已从文件 ${KEY_FILE_PATH} 加载加密密钥。`);
-            return Buffer.from(fileKeyHex.trim(), 'hex');
-        } else {
-            console.warn(`警告: 文件 ${KEY_FILE_PATH} 中的密钥无效或格式不正确。将生成新密钥。`);
-        }
-    } catch (error) {
-        if (error.code !== 'ENOENT') {
-            console.warn(`警告: 读取密钥文件 ${KEY_FILE_PATH} 失败 (错误: ${error.message})。将生成新密钥。`);
-        } else {
-            console.log(`信息: 密钥文件 ${KEY_FILE_PATH} 未找到。这是首次运行的正常情况，将生成新密钥。`);
-        }
-    }
-
-    console.log(`正在生成新的加密密钥...`);
-    const newKeyBuffer = crypto.randomBytes(32);
-    const newKeyHex = newKeyBuffer.toString('hex');
-    try {
-        await fs.writeFile(KEY_FILE_PATH, newKeyHex, { encoding: 'utf8', mode: 0o600 });
-        console.log(`新的加密密钥已生成并保存到 ${KEY_FILE_PATH}。`);
-        console.warn(`重要提示:`);
-        console.warn(`  - 请务必备份 ${KEY_FILE_PATH} 文件，或将其中的密钥字符串记录在安全的地方。`);
-        console.warn(`  - 如果此文件或密钥丢失，所有已加密的聊天记录将永久无法恢复！`);
-        console.warn(`  - 强烈建议将 '.encryption_key' 添加到您的 .gitignore 文件中，以避免意外将其提交到版本控制系统。`);
-        return newKeyBuffer;
-    } catch (writeError) {
-        console.error(`致命错误: 无法将新的加密密钥保存到 ${KEY_FILE_PATH}: ${writeError.message}`);
-        console.error("由于无法持久化加密密钥，服务器无法安全启动。请检查文件系统权限。");
-        console.error("您也可以尝试手动设置 CHAT_ENCRYPTION_KEY 环境变量来绕过文件写入问题。");
-        process.exit(1);
-    }
+    }, 3500); // Auto-remove after 3.5 seconds
 }
 
-/**
- * 确保聊天室目录存在，并清理无效的聊天文件。
- */
-async function ensureChatroomDir() {
-    try {
-        await fs.mkdir(CHATROOM_DIR, { recursive: true });
-        const files = await fs.readdir(CHATROOM_DIR);
-        const fileRegex = new RegExp('^chat_[0-9a-f]{64}\\.json$');
-        for (const file of files) {
-            if (file.startsWith('chat_') && !file.match(fileRegex)) {
-                try {
-                    console.log(`信息: 删除无效的聊天文件: ${file}`);
-                    await fs.unlink(path.join(CHATROOM_DIR, file));
-                } catch (unlinkError) {
-                    console.error(`错误: 删除文件 ${file} 失败: ${unlinkError.message}`);
-                }
-            }
-        }
-    } catch (error) {
-        console.error(`错误: 初始化聊天室目录失败: ${error.message}`);
-        throw error;
-    }
+function showCustomConfirm(message, callback) {
+    const confirmContainer = document.createElement('div');
+    confirmContainer.className = 'custom-confirm-container';
+
+    const confirmBox = document.createElement('div');
+    confirmBox.className = 'custom-confirm-box';
+
+    const messageP = document.createElement('p');
+    messageP.textContent = message;
+    confirmBox.appendChild(messageP);
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'custom-confirm-button-container';
+
+    const okButton = document.createElement('button');
+    okButton.textContent = '确定';
+    okButton.className = 'custom-confirm-button custom-confirm-ok';
+    okButton.onclick = () => {
+        confirmContainer.remove();
+        if (callback) callback(true);
+    };
+
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = '取消';
+    cancelButton.className = 'custom-confirm-button custom-confirm-cancel';
+    cancelButton.onclick = () => {
+        confirmContainer.remove();
+        if (callback) callback(false);
+    };
+
+    buttonContainer.appendChild(okButton);
+    buttonContainer.appendChild(cancelButton);
+    confirmBox.appendChild(buttonContainer);
+    confirmContainer.appendChild(confirmBox);
+    document.body.appendChild(confirmContainer);
 }
+// --- End Custom Alert and Confirm ---
 
-/**
- * 检查聊天室目录大小，如果超过限制则清空。
- */
-async function checkAndClearChatroomDir() {
-    try {
-        const files = await fs.readdir(CHATROOM_DIR);
-        let totalSize = 0;
-        for (const file of files) {
-            try {
-                const stats = await fs.stat(path.join(CHATROOM_DIR, file));
-                totalSize += stats.size;
-            } catch (statError) {
-                // console.error(`获取文件 ${file} 大小失败: ${statError.message}`); // Can be noisy
-            }
-        }
-        const totalSizeMB = totalSize / (1024 * 1024);
-        if (totalSizeMB > MAX_DIR_SIZE_MB) {
-            console.warn(`警告: 聊天室目录大小 (${totalSizeMB.toFixed(2)}MB) 已超过限制 (${MAX_DIR_SIZE_MB}MB)，将清空目录。`);
-            for (const file of files) {
-                try {
-                    await fs.unlink(path.join(CHATROOM_DIR, file));
-                } catch (unlinkError) {
-                    console.error(`错误: 清空目录时删除文件 ${file} 失败: ${unlinkError.message}`);
-                }
-            }
-            messagesCache.clear();
-            for (const roomId_iterator in chatRooms) {
-                if (chatRooms[roomId_iterator]) {
-                    chatRooms[roomId_iterator].messages = [];
-                }
-            }
-            console.log("信息: 聊天室目录已清空。");
-        }
-    } catch (error) {
-        console.error(`错误: 检查并清理聊天室目录失败: ${error.message}`);
-    }
-}
-
-function encryptRoomIdForFilename(roomId) {
-    return crypto.createHash('sha256').update(roomId).digest('hex');
-}
-
-function encryptMessage(message) {
-    if (!ENCRYPTION_KEY) {
-        console.error("致命错误: 加密密钥未初始化。");
-        return null;
-    }
-    try {
-        const iv = crypto.randomBytes(IV_LENGTH);
-        const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-        let encrypted = cipher.update(message, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-        return { iv: iv.toString('hex'), encrypted };
-    } catch (error) {
-        console.error(`错误: 消息加密失败: ${error.message}`);
-        return null;
-    }
-}
-
-function decryptMessage(encryptedData) {
-    if (!ENCRYPTION_KEY) {
-        console.error("致命错误: 解密密钥未初始化。");
-        return null;
-    }
-    if (!encryptedData || !encryptedData.iv || !encryptedData.encrypted) {
-        console.error("错误: 解密数据无效。");
-        return null;
-    }
-    try {
-        const iv = Buffer.from(encryptedData.iv, 'hex');
-        const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-        let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
-    } catch (error) {
-        console.error(`错误: 消息解密失败: ${error.message}. 可能原因：密钥不匹配或数据损坏。`);
-        return null;
-    }
-}
-
-async function saveMessages(roomId) {
-    const room = chatRooms[roomId];
-    if (!room || room.messages.length === 0) return;
-
-    const encryptedRoomId = encryptRoomIdForFilename(roomId);
-    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
-    try {
-        const messagesToSave = room.messages.slice(-MAX_MESSAGES_PER_ROOM_FILE);
-        const contentToWrite = JSON.stringify(messagesToSave);
-        await fs.writeFile(filePath, contentToWrite);
-        console.log(`[${new Date().toISOString()}] INFO: Successfully wrote messages for room '${roomId}' to '${filePath}'`);
-
-        // Invalidate cache for this room after successful save
-        if (messagesCache.has(roomId)) {
-            messagesCache.delete(roomId);
-            console.log(`[${new Date().toISOString()}] INFO: Invalidated messagesCache for room '${roomId}' after saving new messages.`);
-        }
-        
-        await checkAndClearChatroomDir();
-    } catch (error) {
-        console.error(`[${new Date().toISOString()}] ERROR: 保存房间 '${roomId}' 的消息失败: ${error.message}`, error.stack);
-    }
-}
-
-async function loadDecryptedMessagesForClient(roomId) {
-    if (messagesCache.has(roomId)) {
-        return messagesCache.get(roomId);
-    }
-    const encryptedRoomId = encryptRoomIdForFilename(roomId);
-    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
-    try {
-        const data = await fs.readFile(filePath, 'utf8');
-        const encryptedMessagesFromFile = JSON.parse(data);
-        const decryptedMessages = encryptedMessagesFromFile.map(msgObj => {
-            const decryptedContent = decryptMessage(msgObj.message);
-            if (decryptedContent !== null) {
-                return { username: msgObj.username, message: decryptedContent, timestamp: msgObj.timestamp };
-            }
-            return null;
-        }).filter(msg => msg !== null);
-        
-        if (decryptedMessages.length > 0) { // Only cache if there's something to cache
-            messagesCache.set(roomId, decryptedMessages);
-        }
-        return decryptedMessages;
-    } catch (error) {
-        if (error.code !== 'ENOENT') { // File not found is normal for new rooms
-            console.error(`错误: 为客户端加载房间 ${roomId} 的解密消息失败: ${error.message}`);
-        }
-        return [];
-    }
-}
-
-async function destroyRoom(roomId) {
-    if (!chatRooms[roomId]) return;
-    console.log(`信息: 正在销毁房间: ${roomId}`);
-    wss.clients.forEach(client => {
-        if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-                type: 'roomDestroyed',
-                message: `房间 "${roomId}" 已被管理员销毁。`
-            }));
-            client.close(1000, 'Room destroyed');
-        }
-    });
-    delete chatRooms[roomId];
-    messagesCache.delete(roomId);
-    const encryptedRoomId = encryptRoomIdForFilename(roomId);
-    const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
-    try {
-        await fs.unlink(filePath);
-        console.log(`信息: 已删除房间 ${roomId} 的聊天记录文件: ${filePath}`);
-    } catch (error) {
-        if (error.code !== 'ENOENT') {
-            console.error(`错误: 删除房间 ${roomId} 的聊天记录文件 ${filePath} 失败: ${error.message}`);
-        }
-    }
-}
-
-function checkInactiveClients() {
-    const now = Date.now();
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN && client.lastActive && (now - client.lastActive > INACTIVITY_TIMEOUT)) {
-            console.log(`信息: 客户端 ${client.username || '未知用户'} (房间: ${client.roomId}) 由于不活动被断开。`);
-            client.send(JSON.stringify({
-                type: 'inactive',
-                message: '由于长时间未活动（超过10分钟），您已被移出房间。'
-            }));
-            client.close(1000, 'Inactive due to timeout');
-            if (client.username && client.roomId && chatRooms[client.roomId]) {
-                const room = chatRooms[client.roomId];
-                room.users = room.users.filter(user => user !== client.username);
-                if (room.users.length > 0) {
-                    broadcast(client.roomId, { type: 'userList', users: room.users });
-                } else {
-                     console.log(`信息: 房间 ${client.roomId} 因最后一位用户不活动超时而变为空。`);
-                }
-            }
-        }
-    });
-}
-setInterval(checkInactiveClients, 60 * 1000);
-
-wss.on('connection', async (ws, req) => {
-    let roomIdFromUrl;
-    try {
-        const parsedUrl = new URL(req.url, `ws://${req.headers.host}`);
-        roomIdFromUrl = parsedUrl.pathname.split('/')[1] || 'default';
-        roomIdFromUrl = decodeURIComponent(roomIdFromUrl);
-    } catch (urlParseError) {
-        console.error("错误: 解析 WebSocket URL 失败:", urlParseError);
-        ws.close(1011, "无效的房间ID格式");
-        return;
-    }
-
-    const roomId = roomIdFromUrl;
-    ws.roomId = roomId;
-    ws.lastActive = Date.now();
-    ws.username = null;
-
-    console.log(`[${new Date().toISOString()}] INFO: New client connected to room '${roomId}'`);
-
-    let createdNewRoomInMemory = false;
-    if (!chatRooms[roomId]) {
-        chatRooms[roomId] = { users: [], messages: [] };
-        createdNewRoomInMemory = true;
-    }
-
-    const room = chatRooms[roomId];
-
-    if (createdNewRoomInMemory || room.messages.length === 0) {
-        const encryptedRoomId = encryptRoomIdForFilename(roomId);
-        const filePath = path.join(CHATROOM_DIR, `chat_${encryptedRoomId}.json`);
+function connect() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
         try {
-            const data = await fs.readFile(filePath, 'utf8');
-            const messagesFromFile = JSON.parse(data);
-
-            if (messagesFromFile && messagesFromFile.length > 0) {
-                room.messages = messagesFromFile.slice(-MAX_MESSAGES_IN_MEMORY);
-                console.log(`[${new Date().toISOString()}] INFO: Room '${roomId}': Loaded ${room.messages.length} messages from file into memory.`);
-            } else if (createdNewRoomInMemory) {
-                console.log(`[${new Date().toISOString()}] INFO: Room '${roomId}' (new in memory): Chat file is empty or not found. Starting with empty message list.`);
-            } else { // Existing room in memory, messages.length === 0, file also empty/not found
-                console.log(`[${new Date().toISOString()}] INFO: Room '${roomId}' (existing in memory, messages empty): Chat file is also empty or not found. No messages loaded.`);
-            }
-        } catch (err) {
-            if (err.code === 'ENOENT') {
-                console.log(`[${new Date().toISOString()}] INFO: Room '${roomId}': Chat file not found. Starting with empty message list (if new or memory was empty).`);
-            } else {
-                console.error(`[${new Date().toISOString()}] WARNING: Room '${roomId}': Error loading messages from file '${filePath}': ${err.message}. In-memory messages unchanged.`);
-            }
+            ws.close(1000, 'New connection requested');
+        } catch (e) {
+            console.warn("Error closing existing WebSocket:", e);
         }
     }
+    // 确保使用正确的协议 (ws 或 wss)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${location.host}/${roomId}`);
 
-    const decryptedHistory = await loadDecryptedMessagesForClient(roomId);
-    if (decryptedHistory.length > 0) {
-        ws.send(JSON.stringify({ type: 'history', messages: decryptedHistory }));
-    }
+    ws.onopen = () => {
+        console.log('WebSocket connection established.');
+        if (destroyRoomButton) destroyRoomButton.disabled = false;
+    };
 
-    ws.on('message', (messageData) => {
-        ws.lastActive = Date.now();
-        let data;
+    ws.onmessage = (event) => {
         try {
-            data = JSON.parse(messageData);
+            const data = JSON.parse(event.data);
+            switch (data.type) {
+                case MESSAGE_TYPES.USER_LIST:
+                    updateUserList(data.users);
+                    break;
+                case MESSAGE_TYPES.MESSAGE:
+                    addMessage(data.username, data.message);
+                    break;
+                case MESSAGE_TYPES.HISTORY:
+                    data.messages.forEach(msg => addMessage(msg.username, msg.message));
+                    break;
+                case MESSAGE_TYPES.JOIN_SUCCESS:
+                    joined = true;
+                    if (messageInput) messageInput.disabled = false;
+                    if (sendButton) sendButton.disabled = false;
+                    if (usernameLabel) usernameLabel.style.display = 'none';
+                    if (usernameInput) usernameInput.style.display = 'none';
+                    if (joinButton) joinButton.style.display = 'none';
+                    console.log('Successfully joined room.');
+                    showCustomAlert(`成功加入房间 ${roomId}，用户名为 ${username}`, 'success');
+                    break;
+                case MESSAGE_TYPES.JOIN_ERROR:
+                    showCustomAlert(data.message || '用户名已存在，请重新输入', 'error');
+                    joined = false;
+                    username = '';
+                    if (usernameInput) usernameInput.value = '';
+                    if (usernameLabel) usernameLabel.style.display = 'block'; // Or 'inline-block' or 'flex' depending on layout
+                    if (usernameInput) usernameInput.style.display = 'block'; // Or 'inline-block'
+                    if (joinButton) joinButton.style.display = 'block'; // Or 'inline-block'
+                    if (messageInput) messageInput.disabled = true;
+                    if (sendButton) sendButton.disabled = true;
+                    break;
+                case MESSAGE_TYPES.ROOM_DESTROYED:
+                    showCustomAlert(data.message || '房间已被销毁。', 'info');
+                    if (chatElement) chatElement.innerHTML = '';
+                    updateUserList([]);
+                    if (ws) ws.close(1000, 'RoomDestroyed');
+                    break;
+                case MESSAGE_TYPES.INACTIVE:
+                    showCustomAlert(data.message || '由于长时间未活动，您已断开连接。', 'info');
+                    if (ws) ws.close(1000, 'Inactive');
+                    break;
+                case MESSAGE_TYPES.SYSTEM: // 处理系统消息
+                    addSystemMessage(data.message);
+                    break;
+                case MESSAGE_TYPES.ERROR: // 处理服务器发送的通用错误消息
+                     showCustomAlert(`服务器错误: ${data.message}`, 'error');
+                     break;
+                default:
+                    console.warn('Received unknown message type:', data.type, data);
+            }
         } catch (error) {
-            console.error(`错误: 解析消息失败: ${error.message}`);
-            ws.send(JSON.stringify({ type: 'error', message: '无效的消息格式。' }));
+            console.error('消息解析失败或处理失败:', error, event.data);
+            showCustomAlert('处理消息时发生错误。', 'error');
+        }
+    };
+
+    ws.onclose = (event) => {
+        console.log(`WebSocket connection closed. Code: ${event.code}, Reason: "${event.reason}", Clean: ${event.wasClean}`);
+        joined = false;
+        // username = ''; // Username is reset if join fails or on explicit disconnect actions
+
+        if (messageInput) messageInput.disabled = true;
+        if (sendButton) sendButton.disabled = true;
+        if (destroyRoomButton) destroyRoomButton.disabled = true;
+
+        if (usernameLabel) usernameLabel.style.display = 'block';
+        if (usernameInput) {
+            usernameInput.style.display = 'block';
+        }
+        if (joinButton) joinButton.style.display = 'block';
+
+        if (chatElement) chatElement.innerHTML = ''; // Clear chat on close
+        updateUserList([]); // Clear user list
+
+        const handledReasons = [MESSAGE_TYPES.INACTIVE, MESSAGE_TYPES.ROOM_DESTROYED, 'New connection requested', 'UserLeft', 'Room destroyed'];
+        if (!handledReasons.includes(event.reason)) {
+            if (event.code !== 1000 && event.code !== 1005 ) { // 1000 is normal, 1005 means no status code was present
+                showCustomAlert(`连接意外断开 (Code: ${event.code})，请重新加入`, 'error');
+            } else if (event.code === 1000 && event.reason) {
+                console.log(`连接正常关闭: ${event.reason}`);
+                 // showCustomAlert(`连接已关闭: ${event.reason}`, 'info'); // Optional: notify for specific normal closes
+            } else if (!event.reason && event.code === 1000) {
+                console.log('连接已关闭 (例如，关闭标签页)。');
+                // showCustomAlert('连接已关闭。', 'info'); // Optional
+            }
+        }
+        resetRoom();
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+        showCustomAlert('WebSocket连接发生错误，请尝试重新加入。', 'error');
+    };
+}
+
+function resetRoom() {
+    roomId = '';
+    roomLocked = false;
+    if (roomIdInput) roomIdInput.value = '';
+    if (currentRoomIdElement) currentRoomIdElement.textContent = '当前房间: 未加入';
+    if (destroyRoomButton) destroyRoomButton.disabled = true;
+    if (messageInput) messageInput.disabled = true;
+    if (sendButton) sendButton.disabled = true;
+
+    // Only show username fields if not currently in a "joined" state UI-wise
+    // This logic might need refinement based on exact flow desired after disconnects
+    if (usernameLabel && usernameInput && joinButton) {
+        if (!joined || (ws && ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING)) {
+             usernameLabel.style.display = 'block';
+             usernameInput.style.display = 'block';
+             joinButton.style.display = 'block';
+        }
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    roomIdInput = document.getElementById('room-id');
+    joinRoomButton = document.getElementById('join-room');
+    currentRoomIdElement = document.getElementById('current-room-id');
+    usernameLabel = document.getElementById('username-label');
+    usernameInput = document.getElementById('username');
+    joinButton = document.getElementById('join');
+    messageInput = document.getElementById('message');
+    sendButton = document.getElementById('send');
+    chatElement = document.getElementById('chat');
+    userListElement = document.getElementById('userlist');
+    destroyRoomButton = document.getElementById('destroy-room');
+    themeToggleButton = document.getElementById('theme-toggle');
+    userlistToggleButton = document.getElementById('userlist-toggle');
+
+    const criticalElements = [roomIdInput, joinRoomButton, currentRoomIdElement, usernameInput, joinButton, messageInput, sendButton, chatElement, userListElement, destroyRoomButton, themeToggleButton, userlistToggleButton];
+    if (criticalElements.some(el => !el)) {
+        console.error("一个或多个必要的DOM元素未找到。请检查HTML的ID是否正确。");
+        showCustomAlert("页面初始化失败，部分功能可能无法使用。请刷新页面或联系管理员。", "error");
+    }
+    resetRoom();
+
+    const handleJoinRoom = () => {
+        if (roomLocked && ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+            showCustomAlert('您已在房间中或正在连接，请等待或刷新页面以加入其他房间。', 'info');
             return;
         }
+        const id = roomIdInput.value.trim();
+        if (!id) {
+            showCustomAlert('请输入房间 ID', 'error');
+            return;
+        }
+        roomId = id;
+        roomLocked = true;
+        if(currentRoomIdElement) currentRoomIdElement.textContent = `当前房间: ${roomId}`;
+        if(roomIdInput) roomIdInput.value = '';
+        connect();
+    };
+    if (joinRoomButton) {
+        joinRoomButton.addEventListener('click', handleJoinRoom);
+        joinRoomButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleJoinRoom(); });
+    }
+
+    const handleJoin = () => {
+        const name = usernameInput.value.trim();
+        if (!name) {
+            showCustomAlert('请输入用户名', 'error');
+            return;
+        }
+        if (joined) {
+            showCustomAlert('已加入聊天室', 'info');
+            return;
+        }
+        if (!roomId) {
+            showCustomAlert('请先进入一个房间', 'error');
+            return;
+        }
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.log('WebSocket not open, attempting to connect before joining...');
+            // connect(); // connect() is called by handleJoinRoom. If ws is not open here, it might be still connecting or failed.
+            showCustomAlert('正在连接到房间，请稍候...', 'info');
+            // We rely on onopen to enable features, or onclose/onerror to signal failure.
+            // A more robust way: queue join or disable button until ws.onopen.
+            // For now, if user clicks join and not connected, they get an info message.
+            // If connect() was called and failed, onclose/onerror should have handled UI.
+            // If connect() is in progress, they should wait.
+            setTimeout(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendJoinRequest(name);
+                } else if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+                    showCustomAlert('连接尚未建立或已断开，请先确保已成功进入房间。', 'error');
+                }
+            }, 700); // Give a bit more time for connection attempt.
+            return;
+        }
+        sendJoinRequest(name);
+    };
+
+    function sendJoinRequest(name) {
+        username = name; // Set username here, as it's confirmed for sending
         try {
-            const currentRoomForMessage = chatRooms[ws.roomId];
-            if (!currentRoomForMessage) {
-                console.error(`[${new Date().toISOString()}] CRITICAL: Room object for '${ws.roomId}' not found in chatRooms during message handling.`);
-                ws.send(JSON.stringify({ type: 'error', message: '房间不存在或已销毁。' }));
+            ws.send(JSON.stringify({ type: MESSAGE_TYPES.JOIN, username }));
+        } catch (error) {
+            console.error("发送加入请求失败:", error);
+            showCustomAlert("发送加入请求失败，连接可能已断开。", "error");
+        }
+    }
+
+    if (joinButton) {
+        joinButton.addEventListener('click', handleJoin);
+        joinButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleJoin(); });
+    }
+
+    const handleSend = () => {
+        if (!messageInput) return;
+        const msg = messageInput.value.trim();
+        if (!msg) return;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            if (!joined) {
+                showCustomAlert("请先设置您的称呼并加入聊天。", "error");
                 return;
             }
+            try {
+                ws.send(JSON.stringify({ type: MESSAGE_TYPES.MESSAGE, message: msg }));
+                messageInput.value = '';
+                messageInput.focus();
+            } catch (error) {
+                console.error("发送消息失败:", error);
+                showCustomAlert("发送消息失败，连接可能已断开。", "error");
+            }
+        } else {
+            showCustomAlert("未连接到聊天室，无法发送消息。", "error");
+        }
+    };
 
-            if (data.type === 'join') {
-                if (typeof data.username !== 'string' || data.username.trim() === '' || data.username.length > 30) {
-                    ws.send(JSON.stringify({ type: 'joinError', message: '无效的用户名。' }));
-                    return;
-                }
-                const cleanUsername = data.username.trim();
-                if (currentRoomForMessage.users.includes(cleanUsername)) {
-                    ws.send(JSON.stringify({ type: 'joinError', message: '用户名已被占用。' }));
-                } else {
-                    ws.username = cleanUsername;
-                    currentRoomForMessage.users = currentRoomForMessage.users.filter(user => user); 
-                    currentRoomForMessage.users.push(cleanUsername);
-                    broadcast(ws.roomId, { type: 'userList', users: currentRoomForMessage.users });
-                    ws.send(JSON.stringify({ type: 'joinSuccess', username: cleanUsername, message: '加入成功！' }));
-                    console.log(`[${new Date().toISOString()}] INFO: User '${cleanUsername}' joined room '${ws.roomId}'`);
-                    broadcast(ws.roomId, { type: 'system', message: `用户 ${cleanUsername} 加入了房间。` });
-                }
+    if (sendButton) {
+        sendButton.addEventListener('click', handleSend);
+        sendButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleSend(); });
+    }
 
-            } else if (data.type === 'message') {
-                if (!ws.username) {
-                    ws.send(JSON.stringify({ type: 'error', message: '发送消息前请先加入房间。' }));
-                    return;
-                }
-                if (typeof data.message !== 'string' || data.message.trim() === '') {
-                    ws.send(JSON.stringify({ type: 'error', message: '消息内容不能为空。' }));
-                    return;
-                }
-                if (data.message.length > 1000) {
-                    ws.send(JSON.stringify({ type: 'error', message: '消息过长。' }));
-                    return;
-                }
-                const encryptedMessage = encryptMessage(data.message);
+    if (messageInput) {
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+    }
 
-                if (encryptedMessage) {
-                    const messageObject = { username: ws.username, message: encryptedMessage, timestamp: Date.now() };
-                    currentRoomForMessage.messages.push(messageObject);
+    const handleThemeToggle = () => {
+        document.body.classList.toggle('dark-mode');
+        document.body.classList.toggle('light-mode');
+        themeToggleButton.textContent = document.body.classList.contains('dark-mode') ? '☀️ 日间主题' : '🌗 暗黑主题';
+    };
+    if (themeToggleButton) {
+        themeToggleButton.addEventListener('click', handleThemeToggle);
+        themeToggleButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleThemeToggle(); });
+    }
 
-                    if (currentRoomForMessage.messages.length > MAX_MESSAGES_IN_MEMORY) {
-                        currentRoomForMessage.messages.shift();
+    const handleUserlistToggle = () => {
+        if (userListElement) {
+            const isHidden = userListElement.classList.toggle('hidden');
+            // On mobile, #main is flex-direction: column. #userlist is initially display: none.
+            // We need to ensure it becomes display: block when not hidden.
+            if (!isHidden && window.innerWidth <= 600) {
+                userListElement.style.display = 'block'; // Explicitly show
+            } else if (isHidden && window.innerWidth <= 600) {
+                 userListElement.style.display = 'none'; // Explicitly hide
+            }
+        }
+    };
+    if (userlistToggleButton) {
+        userlistToggleButton.addEventListener('click', handleUserlistToggle);
+        userlistToggleButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleUserlistToggle(); });
+    }
+
+    const handleDestroyRoom = () => {
+        if (destroyRoomButton && destroyRoomButton.disabled) return;
+        showCustomConfirm('确定要销毁房间吗？所有聊天记录将被删除！', (confirmed) => {
+            if (confirmed) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    try {
+                        ws.send(JSON.stringify({ type: MESSAGE_TYPES.DESTROY }));
+                    } catch (error) {
+                        console.error("发送销毁房间请求失败:", error);
+                        showCustomAlert("发送销毁房间请求失败，连接可能已断开。", "error");
                     }
-                    broadcast(ws.roomId, { type: 'message', username: ws.username, message: data.message, timestamp: messageObject.timestamp });
-                    saveMessages(ws.roomId);
                 } else {
-                    ws.send(JSON.stringify({ type: 'error', message: '消息加密失败，无法发送。' }));
-                }
-            } else if (data.type === 'destroy') {
-                console.log(`信息: 收到来自用户 ${ws.username || '未知'} 的销毁房间 ${ws.roomId} 请求。`);
-                destroyRoom(ws.roomId);
-            }
-        } catch (handlerError) {
-            console.error(`[${new Date().toISOString()}] ERROR: 消息处理逻辑错误 (房间: ${ws.roomId}, 用户: ${ws.username}): ${handlerError.message}`, handlerError.stack);
-            ws.send(JSON.stringify({ type: 'error', message: '服务器内部错误。' }));
-        }
-    });
-
-    ws.on('close', (code, reason) => {
-        const reasonString = reason ? reason.toString() : '无';
-        console.log(`[${new Date().toISOString()}] INFO: Client disconnected (Room: ${ws.roomId}, User: ${ws.username || 'N/A'}, Code: ${code}, Reason: ${reasonString})`);
-        if (ws.username && ws.roomId) { 
-            const currentRoomOnClose = chatRooms[ws.roomId];
-            if (currentRoomOnClose) {
-                currentRoomOnClose.users = currentRoomOnClose.users.filter(user => user !== ws.username);
-                if (currentRoomOnClose.users.length > 0) {
-                    broadcast(ws.roomId, { type: 'userList', users: currentRoomOnClose.users });
-                    broadcast(ws.roomId, { type: 'system', message: `用户 ${ws.username} 离开了房间。` });
-                } else {
-                    console.log(`[${new Date().toISOString()}] INFO: Room '${ws.roomId}' is now empty.`);
+                    showCustomAlert("未连接到聊天室，无法销毁房间。", "error");
                 }
             }
-        }
-    });
-    ws.on('error', (error) => {
-        console.error(`[${new Date().toISOString()}] ERROR: WebSocket error (Room: ${ws.roomId}, User: ${ws.username}): ${error.message}`);
-    });
+        });
+    };
+    if (destroyRoomButton) {
+        destroyRoomButton.addEventListener('click', handleDestroyRoom);
+        destroyRoomButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleDestroyRoom(); });
+    }
 });
 
-function broadcast(roomId, data) {
-    wss.clients.forEach(client => {
-        if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
-            try {
-                client.send(JSON.stringify(data));
-            } catch (sendError) {
-                console.error(`错误: 向客户端 ${client.username} (房间: ${roomId}) 广播消息失败: ${sendError.message}`);
-            }
-        }
-    });
+function addMessage(user, message) {
+    if (!chatElement) return;
+    const div = document.createElement('div');
+    const messageOwnerClass = (user === username && username !== '') ? 'message-right' : 'message-left';
+    div.className = `message ${messageOwnerClass}`;
+
+    const userSpan = document.createElement('span');
+    // 修改类名以匹配CSS中的外部用户名样式
+    userSpan.className = 'message-username-display';
+    userSpan.textContent = user;
+
+    const messageSpan = document.createElement('span');
+    messageSpan.className = 'message-text';
+    messageSpan.textContent = message; // For text messages
+
+    // TODO: Add image handling if messages can be images.
+    // For now, assuming all messages are text.
+    // If message can be an image URL or base64:
+    // if (message.startsWith('data:image') || /\.(jpeg|jpg|gif|png)$/i.test(message)) {
+    // const img = document.createElement('img');
+    // img.src = message;
+    // img.className = 'chat-image';
+    // contentDiv.appendChild(img);
+    // } else {
+    // messageSpan.textContent = message;
+    // contentDiv.appendChild(messageSpan);
+    // }
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.appendChild(messageSpan);
+
+    div.appendChild(userSpan);
+    div.appendChild(contentDiv);
+
+    chatElement.appendChild(div);
+    chatElement.scrollTop = chatElement.scrollHeight;
 }
 
-async function main() {
-    try {
-        ENCRYPTION_KEY = await loadOrGenerateEncryptionKey();
-        if (!ENCRYPTION_KEY) {
-            console.error("致命错误: 未能初始化加密密钥。服务器无法启动。");
-            process.exit(1);
-        }
-        await ensureChatroomDir();
+function addSystemMessage(message) {
+    if (!chatElement) return;
+    const div = document.createElement('div');
+    div.className = 'system-message'; // CSS class for styling system messages
+    div.textContent = message;
+    chatElement.appendChild(div);
+    chatElement.scrollTop = chatElement.scrollHeight;
+}
 
-        // --- MODIFIED LINE ---
-        const PORT = 3000; // Forcing port 3000, ignoring process.env.PORT
-        // --- END MODIFIED LINE ---
-
-        server.listen(PORT, () => {
-            console.log(`服务器已启动，运行在 http://localhost:${PORT}`);
-            console.log(`聊天室目录: ${CHATROOM_DIR}`);
-        });
-    } catch (error) {
-        console.error("致命错误: 服务器启动过程中发生错误:", error.message, error.stack);
-        process.exit(1);
+function updateUserList(users) {
+    if (!userListElement) return;
+    userListElement.innerHTML = '<h3>当前在线用户：</h3>';
+    if (users && users.length > 0) {
+        users.filter(user => user && typeof user === 'string' && user.trim() !== '')
+            .forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'userlist-entry';
+                div.textContent = user;
+                userListElement.appendChild(div);
+            });
+    } else {
+        const div = document.createElement('div');
+        div.textContent = "暂无其他用户";
+        div.className = 'userlist-empty';
+        userListElement.appendChild(div);
     }
 }
-
-main();
-
-process.on('SIGINT', () => {
-    console.log("信息: 收到 SIGINT，正在关闭服务器...");
-    wss.clients.forEach(client => {
-        client.close(1012, "服务器正在关闭");
-    });
-    server.close(() => {
-        console.log("信息: 服务器已关闭。");
-        process.exit(0);
-    });
-});
