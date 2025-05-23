@@ -117,8 +117,8 @@ function connect() {
             if (event.code !== 1000 && event.code !== 1005 ) { // 1000 is normal, 1005 means no status code was present
                  alert(`连接意外断开 (Code: ${event.code})，请重新加入`);
             } else if (event.code === 1000 && event.reason && event.reason !== 'New connection requested' && event.reason !== 'UserLeft') { // UserLeft could be custom reason for explicit leave
-                 // Log normal closures with specific reasons if not handled by onmessage
-                 console.log(`连接正常关闭: ${event.reason}`);
+                // Log normal closures with specific reasons if not handled by onmessage
+                console.log(`连接正常关闭: ${event.reason}`);
             } else if (!event.reason && event.code === 1000) { // Normal close without specific server reason (e.g. client closed tab)
                 // No alert here usually, as it might be intentional.
                 // Or if you want to prompt for every close: alert('连接已关闭，请重新加入');
@@ -216,8 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Attempt to connect if not already, or if connection dropped before username join
             console.log('WebSocket not open, attempting to connect before joining...');
             connect(); // This is async, ideally wait for onopen before sending join.
-                       // For simplicity, we assume connect() will establish soon or was already trying.
-                       // A more robust way would be to queue the join message until ws.onopen.
+                        // For simplicity, we assume connect() will establish soon or was already trying.
+                        // A more robust way would be to queue the join message until ws.onopen.
             // A brief timeout might allow connection, or disable join button until ws.onopen sets a flag.
             setTimeout(() => { // Adding a small delay to allow ws to potentially open
                 if (ws && ws.readyState === WebSocket.OPEN) {
@@ -328,14 +328,38 @@ function addMessage(user, message) {
 
     const userSpan = document.createElement('span');
     userSpan.className = 'message-username';
-    userSpan.textContent = `${user}: `;
+    userSpan.textContent = user; // MODIFIED: Removed colon and space
 
     const messageSpan = document.createElement('span');
     messageSpan.className = 'message-text';
     messageSpan.textContent = message;
 
-    div.appendChild(userSpan);
-    div.appendChild(messageSpan);
+    // This structure assumes your CSS for external username display is applied to 'message-username'
+    // and the message content alignment is applied to 'message-text' or the parent 'div.message'
+    // If your CSS relies on a '.message-content' wrapper, you might need to adjust this part.
+    // For now, this matches the structure in *this* provided script.
+    
+    // If your CSS for external username display (like in chat_app_css_final_v3)
+    // expects the username to be outside the main content flow of the bubble,
+    // you might need a different DOM structure here.
+    // The CSS `chat_app_css_final_v3` positions `.message-username-display` absolutely
+    // relative to `.message-left` or `.message-right`.
+    // The current JS structure (username span + message span directly in the bubble div)
+    // might not perfectly align with the CSS if the CSS expects username to be a sibling
+    // of a "content" div rather than a child.
+
+    // Let's adjust to match the structure implied by the CSS for external username display:
+    // The CSS positions `message-username-display` absolutely.
+    // The `message-content` div is used for text-alignment of the actual message.
+    // So, the username should be a direct child of `div` (the bubble),
+    // and the message text/image should be wrapped in `message-content`.
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content'; // As per CSS for text-align
+    contentDiv.appendChild(messageSpan); // Put the message text span inside contentDiv
+
+    div.appendChild(userSpan);    // Username first (its position is absolute via CSS)
+    div.appendChild(contentDiv);  // Then the content wrapper
 
     chatElement.appendChild(div);
     chatElement.scrollTop = chatElement.scrollHeight;
