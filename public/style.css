@@ -26,8 +26,24 @@ header h1 {
     font-size: 1.5em;
 }
 
-.controls button {
-    margin-left: 10px;
+/* Styles for controls in the header */
+header .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Gap between control elements */
+}
+
+header .controls input[type="text"] {
+    padding: 6px 10px; /* Adjusted padding for height consistency */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em; /* Assuming base font size for alignment */
+    height: auto; /* Or set an explicit height matching buttons */
+}
+
+header .controls button { /* Combined common button styles for header */
+    margin-left: 0; /* Replaced individual margin-left: 10px with gap on parent */
     padding: 6px 12px;
     background: #fff;
     color: #333;
@@ -35,9 +51,11 @@ header h1 {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
+    box-sizing: border-box;
+    font-size: 1em; /* Assuming base font size */
 }
 
-.controls button:hover {
+.controls button:hover { /* Specific hover for general controls button, might need header scope if different */
     background: #f0f0f0;
 }
 
@@ -93,10 +111,11 @@ footer label {
     white-space: nowrap;
 }
 
-footer input[type="text"] {
+footer input[type="text"] { /* This specifically targets footer inputs */
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    box-sizing: border-box; /* Added for consistency */
 }
 
 footer #username {
@@ -105,9 +124,13 @@ footer #username {
 
 footer #message {
     flex: 1; /* 訊息輸入框佔據剩餘空間 */
+    padding: 8px; /* Added padding for consistency */
+    border: 1px solid #ccc; /* Added border */
+    border-radius: 4px; /* Added border-radius */
+    box-sizing: border-box; /* Added for consistency */
 }
 
-footer button {
+footer button { /* This specifically targets footer buttons */
     padding: 8px 12px; /* 統一內邊距 */
     border: 1px solid #007bff;
     background-color: #007bff;
@@ -115,6 +138,7 @@ footer button {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
+    box-sizing: border-box; /* Added for consistency */
 }
 footer button:hover {
     background-color: #0056b3;
@@ -257,12 +281,17 @@ body.dark-mode header {
     background: #1e1e1e;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
-body.dark-mode .controls button {
+body.dark-mode header .controls input[type="text"] { /* Dark mode for header input */
+    background-color: #333;
+    border-color: #444;
+    color: #e0e0e0;
+}
+body.dark-mode header .controls button { /* Dark mode for header buttons */
     background: #333;
     color: #e0e0e0;
     border-color: #444;
 }
-body.dark-mode .controls button:hover {
+body.dark-mode header .controls button:hover {
     background: #444;
 }
 body.dark-mode #chat {
@@ -280,12 +309,17 @@ body.dark-mode footer {
     background: #1e1e1e;
     border-top-color: #2c2c2c;
 }
-body.dark-mode footer input[type="text"] {
+body.dark-mode footer input[type="text"] { /* Dark mode for footer input */
     background-color: #2c2c2c;
     border-color: #444;
     color: #e0e0e0;
 }
-body.dark-mode footer button {
+body.dark-mode footer #message { /* Dark mode for footer textarea */
+    background-color: #2c2c2c;
+    border-color: #444;
+    color: #e0e0e0;
+}
+body.dark-mode footer button { /* Dark mode for footer buttons */
     background-color: #0056b3;
     border-color: #0056b3;
 }
@@ -344,12 +378,13 @@ body.dark-mode .system-message {
     }
     #chat {
         flex: 1;
-        height: 60vh;
+        height: 60vh; /* Or use flex-grow more dynamically */
         border-right: none;
     }
     #userlist {
-        flex: 1;
-        height: 30vh;
+        flex: 1; /* Or set a specific height like 30vh */
+        height: auto; /* Let content define height or set a specific one */
+        min-height: 150px; /* Example min-height */
         border-left: none;
         border-top: 1px solid #ccc;
     }
@@ -357,7 +392,7 @@ body.dark-mode .system-message {
         border-top-color: #2c2c2c;
     }
     #userlist.hidden {
-        display: none !important;
+        display: none !important; /* Ensure it's hidden */
     }
     .message-left, .message-right {
         max-width: 85%;
@@ -373,13 +408,61 @@ body.dark-mode .system-message {
 }
 
 @media (max-width: 600px) {
+    header {
+        /* flex-direction: column; /* Already set in user's full CSS if header itself stacks */
+        /* align-items: flex-start; */
+    }
     header h1 {
         font-size: 1.2em;
+        margin-bottom: 8px; /* Space between title and controls */
     }
-    .controls button {
-        padding: 5px 8px;
+
+    header .controls {
+        display: flex;
+        flex-direction: column; /* Stack control items vertically */
+        width: 100%;
+        gap: 8px; /* Space between stacked control items */
+    }
+
+    header .controls #current-room-id {
+        width: 100%;
         font-size: 0.9em;
+        text-align: left; /* Or center */
+        margin-bottom: 0; /* Gap from parent will handle spacing */
     }
+
+    header .controls input[type="text"] {
+        width: 100%;
+        padding: 8px 10px; /* Consistent padding */
+        font-size: 0.9em;  /* Consistent font size */
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    header .controls button {
+        width: 100%;
+        padding: 8px 10px; /* Consistent padding for height */
+        font-size: 0.9em;  /* Consistent font size from user's spec */
+        box-sizing: border-box;
+        margin-left: 0; /* Override desktop margin */
+    }
+    /* Dark mode for mobile header controls */
+    body.dark-mode header .controls input[type="text"] {
+        background-color: #333;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+     body.dark-mode header .controls button {
+        background: #333;
+        color: #e0e0e0;
+        border-color: #444;
+    }
+    body.dark-mode header .controls button:hover {
+        background: #444;
+    }
+
+
     footer {
         flex-wrap: wrap;
         gap: 8px;
@@ -388,22 +471,22 @@ body.dark-mode .system-message {
         width: 100%;
         margin-right: 0;
         text-align: left;
-        margin-bottom: -5px;
+        margin-bottom: -5px; /* As per user CSS */
     }
-    footer #username {
-        width: calc(70% - 8px);
+    footer #username { /* Footer username input */
+        width: calc(70% - 8px); /* As per user CSS */
     }
-    footer #join {
-        width: calc(30% - 8px);
+    footer #join { /* Footer join button */
+        width: calc(30% - 8px); /* As per user CSS */
     }
-    footer #message {
-        width: calc(100% - 58px - 58px - 16px);
-        order: 1;
+    footer #message { /* Footer message textarea */
+        width: calc(100% - 58px - 58px - 16px); /* As per user CSS */
+        order: 1; /* As per user CSS */
     }
-     footer #image-button, footer #send {
-        padding: 8px;
-        min-width: 45px;
-        order: 2;
+     footer #image-button, footer #send { /* Footer image and send buttons */
+        padding: 8px; /* As per user CSS */
+        min-width: 45px; /* As per user CSS */
+        order: 2; /* As per user CSS */
     }
     .message-left, .message-right {
         max-width: 90%;
@@ -413,6 +496,8 @@ body.dark-mode .system-message {
 }
 
 /* 旧的销毁房间按钮样式（未在HTML中实现，但保留以供参考） */
+/* This style was for a button with class .destroy-room, the current HTML uses id #destroy-room */
+/*
 .controls .destroy-room {
     margin-left: 10px;
     padding: 6px 12px;
@@ -431,4 +516,23 @@ body.dark-mode .controls .destroy-room {
 }
 body.dark-mode .controls .destroy-room:hover {
     background: #a71d2a;
+}
+*/
+/* Style for the actual #destroy-room button if needed, currently uses generic .controls button style */
+header .controls button#destroy-room {
+    background-color: #dc3545; /* Example: Destructive action color */
+    border-color: #dc3545;
+    color: white;
+}
+header .controls button#destroy-room:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+}
+body.dark-mode header .controls button#destroy-room {
+    background-color: #c82333;
+    border-color: #c82333;
+}
+body.dark-mode header .controls button#destroy-room:hover {
+    background-color: #a71d2a;
+    border-color: #a71d2a;
 }
