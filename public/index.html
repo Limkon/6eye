@@ -11,7 +11,7 @@
         <header>
             <h1>MO留書</h1>
             <div class="controls">
-                <span id="current-room-id" style="margin-right: 10px;"></span>
+                <span id="current-room-id" style="margin-right: 10px;">当前房间: 未加入</span>
                 <input type="text" id="room-id" placeholder="输入房间 ID...">
                 <button id="join-room" ontouchstart="">🚪 进入房间</button>
                 <button id="theme-toggle" ontouchstart="">🌗 暗黑主题</button>
@@ -23,7 +23,7 @@
             <section id="chat"></section>
             <section id="userlist" class="hidden"></section>
         </main>
-        <footer>
+        <div id="userlist-overlay"></div> <footer>
             <label id="username-label" for="username">您的称呼：</label>
             <input type="text" id="username" placeholder="请输入您的称呼...">
             <button id="join" ontouchstart="">加入</button>
