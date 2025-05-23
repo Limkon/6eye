@@ -1,21 +1,21 @@
-/* 基础布局 */
+/* 基礎佈局 */
 body {
     margin: 0;
     font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
-    touch-action: manipulation; /* From new CSS */
+    touch-action: manipulation;
 }
 
 \#app {
 display: flex;
 flex-direction: column;
 height: 100vh;
-margin: 0; /\* From new CSS \*/
+margin: 0;
 }
 
 header {
 background: \#4CAF50;
 color: white;
-padding: 10px; /\* From new CSS \*/
+padding: 10px;
 display: flex;
 justify-content: space-between;
 align-items: center;
@@ -25,18 +25,18 @@ header h1 {
 margin: 0;
 }
 
-.controls { /\* From new CSS \*/
+.controls {
 display: flex;
 align-items: center;
 flex-wrap: wrap;
 }
 
-.controls \#current-room-id { /\* From new CSS \*/
+.controls \#current-room-id {
 color: white;
 font-size: 14px;
 }
 
-.controls input[type="text"] { /\* From new CSS \*/
+.controls input[type="text"] {
 padding: 6px;
 margin: 0 10px;
 border: 1px solid \#ccc;
@@ -44,7 +44,7 @@ border-radius: 4px;
 font-size: 14px;
 }
 
-.controls button { /\* From new CSS \*/
+.controls button {
 margin: 0 10px;
 padding: 6px 12px;
 background: \#fff;
@@ -56,11 +56,11 @@ pointer-events: auto;
 touch-action: manipulation;
 }
 
-.controls button:hover { /\* From new CSS \*/
+.controls button:hover {
 background: \#f0f0f0;
 }
 
-.controls button:disabled { /\* From new CSS \*/
+.controls button:disabled {
 background: \#ccc;
 cursor: not-allowed;
 }
@@ -68,35 +68,34 @@ cursor: not-allowed;
 main {
 flex: 1;
 display: flex;
-flex-direction: row; /\* 改为横向排列，userlist 在左侧 - From new CSS */
+flex-direction: row; /\* 用戶列表在左側 \*/
 overflow: hidden;
-margin: 0; /* From new CSS \*/
+margin: 0;
 }
 
 \#chat {
-flex: 3; /\* 占主要空间 - From new CSS */
-padding: 8px; /* From new CSS - might need adjustment for external usernames */
+flex: 3; /\* 主要空間 \*/
+padding: 8px;
 overflow-y: auto;
 background: \#f9f9f9;
-/* white-space: pre-wrap; Already in .message-left/right, not needed here directly */
-margin: 0; /* From new CSS \*/
+margin: 0;
 }
 
 \#userlist {
-flex: 1; /\* 占较少空间 - From new CSS */
-padding: 8px; /* From new CSS */
-border-right: 1px solid \#ccc; /* 改为右边框 - From new CSS */
-border-left: none; /* 移除左边框 - From new CSS */
+flex: 1; /\* 較少空間 */
+padding: 8px;
+border-right: 1px solid \#ccc; /* 右邊框 */
+border-left: none; /* 移除左邊框 */
 overflow-y: auto;
 background: \#fff;
-order: -1; /* 确保 userlist 在 chat 左侧 - From new CSS \*/
+order: -1; /* 確保 userlist 在 chat 左側 \*/
 }
 
-\#userlist.hidden { /\* From new CSS \*/
+\#userlist.hidden {
 display: none;
 }
 
-footer { /\* From new CSS \*/
+footer {
 display: flex;
 padding: 8px;
 background: \#eee;
@@ -104,7 +103,7 @@ align-items: center;
 margin: 0;
 }
 
-footer label { /\* From new CSS \*/
+footer label {
 margin-right: 10px;
 font-size: 14px;
 height: 56px;
@@ -116,7 +115,7 @@ background-color: \#f5f5f5;
 padding: 0 10px;
 }
 
-footer input[type="text"], /\* From new CSS \*/
+footer input[type="text"],
 footer textarea {
 padding: 8px;
 margin-right: 10px;
@@ -124,19 +123,19 @@ font-size: 14px;
 box-sizing: border-box;
 }
 
-footer \#username { /\* From new CSS \*/
+footer \#username {
 width: 150px;
 height: 56px;
 }
 
-footer \#message { /\* From new CSS \*/
+footer \#message {
 flex: 1;
 resize: vertical;
 min-height: 56px;
 max-height: 100px;
 }
 
-footer button { /\* From new CSS \*/
+footer button {
 padding: 8px 16px;
 height: 56px;
 line-height: normal;
@@ -146,41 +145,39 @@ pointer-events: auto;
 touch-action: manipulation;
 }
 
-/\* 消息气泡 - Integrating previous successful styles with new base */
+/\* 訊息氣泡 */
 .message-left,
 .message-right {
-padding: 8px 12px; /* Adjusted padding slightly from new CSS's 8px for better look */
-margin: 10px 0;    /* Vertical margin between bubbles, side margins will be more specific */
-border-radius: 12px;/* Overall rounding for a softer look */
-max-width: 70%;    /* Max width for bubbles */
+padding: 8px 12px;
+margin: 10px 0;
+border-radius: 12px;
+max-width: 70%;
 width: -webkit-fit-content;
 width: -moz-fit-content;
 width: fit-content;
-word-wrap: break-word; /* Changed from pre-wrap to break-word for better bubble fit */
+word-wrap: break-word;
 line-height: 1.4;
 position: relative;
-white-space: pre-wrap; /* Keep this for preserving newlines in messages \*/
+white-space: pre-wrap; /* 保留訊息中的換行 \*/
 }
 
 .message-left {
 background: \#e0f7fa;
 color: \#333;
-/\* text-align: left; Will be handled by .message-content */
-margin-left: 50px; /* Space for external username on the left */
-margin-right: auto; /* Align bubble to the left */
-border-bottom-left-radius: 0px; /* Smooth tail connection \*/
+margin-left: 50px; /\* 為左側外部用戶名留出空間 */
+margin-right: auto; /* 氣泡靠左 */
+border-bottom-left-radius: 0px; /* 連接尾巴的角變直 \*/
 }
 
 .message-right {
 background: \#c8e6c9;
 color: \#333;
-/\* text-align: right; Will be handled by .message-content */
-margin-right: 50px; /* Space for external username on the right */
-margin-left: auto;  /* Align bubble to the right */
-border-bottom-right-radius: 0px; /* Smooth tail connection \*/
+margin-right: 50px; /\* 為右側外部用戶名留出空間 */
+margin-left: auto;  /* 氣泡靠右 */
+border-bottom-right-radius: 0px; /* 連接尾巴的角變直 \*/
 }
 
-/\* Speech bubble tails */
+/\* 氣泡尾巴 \*/
 .message-left::after {
 content: '';
 position: absolute;
@@ -188,11 +185,11 @@ bottom: 0px;
 left: -10px;
 width: 0;
 height: 0;
-border: 10px solid transparent; /* Slightly smaller tail to match 8px padding better */
+border: 10px solid transparent;
 border-right-color: \#e0f7fa;
 border-left: 0;
 border-bottom: 0;
-margin-top: -5px; /* Adjust vertical alignment for 10px tail \*/
+margin-top: -5px;
 }
 
 .message-right::after {
@@ -202,37 +199,36 @@ bottom: 0px;
 right: -10px;
 width: 0;
 height: 0;
-border: 10px solid transparent; /\* Slightly smaller tail */
+border: 10px solid transparent;
 border-left-color: \#c8e6c9;
 border-right: 0;
 border-bottom: 0;
-margin-top: -5px; /* Adjust vertical alignment for 10px tail \*/
+margin-top: -5px;
 }
 
-/\* Username display (external to bubble) */
+/\* 用戶名顯示 (氣泡外部) */
 .message-username-display {
 position: absolute;
-bottom: 0px; /* Align with the bottom of the bubble/start of tail */
+bottom: 0px; /* 與氣泡底部/尾巴起點對齊 */
 font-size: 0.8em;
-white-space: nowrap;
+white-space: nowrap; /* 防止用戶名換行 */
 padding: 0 2px;
-line-height: 1; /* For better vertical alignment */
-/* font-weight: bold; /\* Removed as per image likeness \*/
+line-height: 1; /* 更好地垂直對齊 \*/
 }
 
 .message-right .message-username-display {
-left: calc(100% + 12px); /\* Position to the right of the bubble + tail + gap */
-color: \#387002; /* Dark green for own username \*/
+left: calc(100% + 12px); /\* 定位到氣泡右側 + 尾巴寬度 + 間隙 */
+color: \#387002; /* 您自己用戶名的顏色 \*/
 }
 
 .message-left .message-username-display {
-right: calc(100% + 12px); /\* Position to the left of the bubble + tail + gap */
-color: \#00796b; /* Teal for other usernames \*/
+right: calc(100% + 12px); /\* 定位到氣泡左側 + 尾巴寬度 + 間隙 */
+color: \#00796b; /* 其他用戶名的顏色 \*/
 }
 
-/\* Message content alignment within the bubble */
+/\* 訊息內容在氣泡內的對齊 */
 .message-content {
-/* This div will wrap text and images \*/
+/* 這個 div 包裹文字和圖片 \*/
 }
 .message-left .message-content {
 text-align: left;
@@ -241,26 +237,27 @@ text-align: left;
 text-align: right;
 }
 
-/\* Chat image styling */
+/\* 聊天圖片樣式 */
 .chat-image {
-max-width: 100%; /* Max width relative to its container (.message-content) */
+max-width: 100%; /* 相對於其容器 (.message-content) 的最大寬度 \*/
 max-height: 200px;
 border-radius: 8px;
 margin-top: 5px;
-display: block; /* Or inline-block if preferred for alignment \*/
+display: block;
 object-fit: contain;
 }
 
 .message-right .message-content .chat-image {
-margin-left: auto; /\* Align image to the right within a right-aligned bubble */
+margin-left: auto; /\* 圖片在右對齊氣泡中靠右 */
 margin-right: 0;
 }
 .message-left .message-content .chat-image {
-margin-left: 0; /* Align image to the left within a left-aligned bubble \*/
+margin-left: 0; /* 圖片在左對齊氣泡中靠左 \*/
 margin-right: auto;
 }
 
-.system-message { /\* Added from previous versions for system messages \*/
+/\* 系統訊息樣式 \*/
+.system-message {
 font-style: italic;
 color: \#777;
 text-align: center;
@@ -268,68 +265,68 @@ margin: 10px 0;
 font-size: 0.9em;
 }
 
-/\* 深色模式 */
-body.dark-mode { /* From new CSS \*/
+/\* 深色模式 \*/
+body.dark-mode {
 background: \#121212;
 color: \#e0e0e0;
 }
 
-body.dark-mode header { /\* From new CSS \*/
+body.dark-mode header {
 background: \#333;
 }
 
-body.dark-mode .controls \#current-room-id { /\* From new CSS \*/
+body.dark-mode .controls \#current-room-id {
 color: \#e0e0e0;
 }
 
-body.dark-mode .controls input[type="text"], /\* From new CSS \*/
+body.dark-mode .controls input[type="text"],
 body.dark-mode footer textarea {
 background: \#444;
 color: \#e0e0e0;
 border-color: \#555;
 }
 
-body.dark-mode .controls button { /\* From new CSS \*/
+body.dark-mode .controls button {
 background: \#444;
 color: \#e0e0e0;
 border-color: \#555;
 }
 
-body.dark-mode .controls button:hover { /\* From new CSS \*/
+body.dark-mode .controls button:hover {
 background: \#555;
 }
 
-body.dark-mode .controls button:disabled { /\* From new CSS \*/
+body.dark-mode .controls button:disabled {
 background: \#666;
 }
 
-body.dark-mode \#chat { /\* From new CSS \*/
+body.dark-mode \#chat {
 background: \#1e1e1e;
 }
 
-body.dark-mode \#userlist { /\* From new CSS */
+body.dark-mode \#userlist {
 background: \#2c2c2c;
-border-right-color: \#444; /* Adjust border color for dark mode \*/
+border-right-color: \#444; /\* 深色模式邊框顏色調整 \*/
 }
 
-body.dark-mode footer { /\* From new CSS \*/
+body.dark-mode footer {
 background: \#333;
 }
 
-body.dark-mode footer label { /\* From new CSS \*/
+body.dark-mode footer label {
 border-color: \#555;
 background-color: \#444;
 color: \#e0e0e0;
 }
 
 body.dark-mode .message-left {
-background: \#2c3e50; /\* Darker blue-grey \*/
+background: \#2c3e50; /\* 深藍灰色 \*/
 color: \#ecf0f1;
 border-bottom-left-radius: 0px;
 }
 
 body.dark-mode .message-right {
-background: \#27ae60; /\* Darker green \*/
+background: \#27ae60; /\* 深綠色 \*/
 color: \#ecf0f1;
 border-bottom-right-radius: 0px;
 }
@@ -343,18 +340,18 @@ border-left-color: \#27ae60;
 }
 
 body.dark-mode .message-right .message-username-display {
-color: \#a6e22e; /\* Brighter green for dark mode */
+color: \#a6e22e; /\* 深色模式下更亮的綠色 */
 }
 body.dark-mode .message-left .message-username-display {
-color: \#bdc3c7; /* Lighter grey for dark mode \*/
+color: \#bdc3c7; /* 深色模式下更淺的灰色 \*/
 }
 body.dark-mode .system-message {
 color: \#aaa;
 }
 
-/\* 移动端适配 */
+/\* 移動端適配 \*/
 @media (max-width: 600px) {
-header { /* From new CSS \*/
+header {
 flex-direction: column;
 align-items: flex-start;
 padding: 8px;
