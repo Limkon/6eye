@@ -1,309 +1,249 @@
-/* 基础布局 */
+/* 基礎佈局 */
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    touch-action: manipulation; /* 避免双击缩放等，提高触摸响应 */
-    -webkit-tap-highlight-color: transparent; /* 移除触摸高亮 */
+    transition: background-color 0.3s, color 0.3s;
 }
 
 #app {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    margin: 0;
 }
 
 header {
     background: #4CAF50;
     color: white;
-    padding: 10px 15px; /* 稍微增加内边距 */
+    padding: 10px 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; /* 防止 header 在 flex 布局中缩小 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 header h1 {
     margin: 0;
-    font-size: 1.5em; /* 调整标题大小 */
-}
-
-.controls {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap; /* 允许控件换行 */
-    gap: 8px; /* 控件之间的间隙 */
-}
-
-.controls #current-room-id {
-    color: white;
-    font-size: 0.9em; /* 调整字体大小 */
-    margin-right: 10px;
-}
-
-.controls input[type="text"] {
-    padding: 8px; /* 增加内边距 */
-    margin: 0 5px; /* 调整外边距 */
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 0.9em;
+    font-size: 1.5em;
 }
 
 .controls button {
-    margin: 0 5px;
-    padding: 8px 12px;
+    margin-left: 10px;
+    padding: 6px 12px;
     background: #fff;
     color: #333;
     border: 1px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
-    pointer-events: auto;
-    touch-action: manipulation;
-    font-size: 0.9em;
-    transition: background-color 0.2s ease; /* 添加过渡效果 */
+    transition: background-color 0.2s;
 }
 
 .controls button:hover {
     background: #f0f0f0;
 }
 
-.controls button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    opacity: 0.7; /* 轻微透明化 */
-}
-
 main {
     flex: 1;
     display: flex;
-    flex-direction: row;
-    overflow: hidden; /* 防止内容溢出导致滚动条 */
-    margin: 0;
+    overflow: hidden;
 }
 
 #chat {
     flex: 3;
-    padding: 10px; /* 增加内边距 */
+    padding: 15px; /* 為外部用戶名保留一些空間，如果用戶名很長，可能需要調整 */
     overflow-y: auto;
     background: #f9f9f9;
-    margin: 0;
-    scroll-behavior: smooth; /* 平滑滚动 */
+    border-right: 1px solid #ddd;
 }
 
 #userlist {
     flex: 1;
-    min-width: 180px; /* 用户列表最小宽度 */
-    max-width: 250px; /* 用户列表最大宽度 */
-    padding: 10px;
-    border-right: 1px solid #ccc;
+    min-width: 180px; /* 使用者列表最小寬度 */
+    padding: 15px;
+    border-left: 1px solid #ccc;
     overflow-y: auto;
     background: #fff;
-    order: -1;
-    transition: transform 0.3s ease, opacity 0.3s ease; /* 平滑过渡 */
 }
 
 #userlist.hidden {
-    /* display: none; */ /* 改用 transform 实现动画隐藏 */
-    transform: translateX(-100%);
-    opacity: 0;
-    min-width: 0; /* 隐藏时无宽度 */
-    width: 0; /* 隐藏时无宽度 */
-    padding: 0;
-    border-right: none;
-    flex: 0;
+    display: none;
 }
+
 #userlist h3 {
     margin-top: 0;
-    font-size: 1.1em;
     color: #333;
 }
-.userlist-entry, .userlist-empty {
-    padding: 6px 0;
-    font-size: 0.95em;
+#userlist div, #userlist p {
+    padding: 4px 0;
     color: #555;
 }
 
 
 footer {
     display: flex;
-    padding: 10px 15px; /* 增加内边距 */
+    padding: 10px 15px;
     background: #eee;
     align-items: center;
-    flex-shrink: 0; /* 防止 footer 在 flex 布局中缩小 */
-    gap: 10px; /* 输入元素之间的间隙 */
-    margin: 0;
+    border-top: 1px solid #ddd;
+    gap: 10px; /* 頁腳項目之間的間距 */
 }
 
 footer label {
-    margin-right: 5px;
-    font-size: 0.9em;
-    /* 移除原先的复杂样式，使其更简洁 */
-    color: #333;
+    margin-right: 5px; /* 減小邊距 */
+    font-size: 14px;
+    white-space: nowrap;
 }
 
-footer input[type="text"],
-footer textarea {
-    padding: 10px; /* 增加内边距 */
-    font-size: 0.95em;
-    box-sizing: border-box;
+footer input[type="text"] {
+    padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
 footer #username {
-    width: 150px; /* 可根据需要调整 */
+    width: 150px;
 }
 
 footer #message {
-    flex: 1;
-    resize: none; /* 通常聊天输入框不允许用户调整大小 */
-    min-height: 42px; /* 基于 padding 和 font-size 调整 */
-    max-height: 100px; /* 限制最大高度 */
-    line-height: 1.4;
+    flex: 1; /* 訊息輸入框佔據剩餘空間 */
 }
 
 footer button {
-    padding: 10px 18px;
-    box-sizing: border-box;
-    cursor: pointer;
-    pointer-events: auto;
-    touch-action: manipulation;
-    background-color: #4CAF50; /* 统一发送按钮颜色 */
+    padding: 8px 12px; /* 統一內邊距 */
+    border: 1px solid #007bff;
+    background-color: #007bff;
     color: white;
-    border: none;
     border-radius: 4px;
-    font-size: 0.95em;
-    transition: background-color 0.2s ease;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 footer button:hover {
-    background-color: #45a049;
+    background-color: #0056b3;
 }
 footer button:disabled {
-    background-color: #ccc;
+    background-color: #aaa;
+    border-color: #aaa;
     cursor: not-allowed;
+}
+footer #image-button {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    padding: 8px 10px;
+}
+footer #image-button:hover:not(:disabled) {
+    background-color: #545b62;
 }
 
 
-/* 消息气泡 */
-.message { /* 通用消息容器 */
-    display: flex; /* 用于处理内部对齐，如果需要头像等 */
-    margin-bottom: 12px;
-    max-width: 75%; /* 气泡最大宽度 */
-    position: relative; /* 为用户名绝对定位提供基准 */
-    padding-bottom: 15px; /* 为下方的用户名留出空间 */
+/* 訊息氣泡 */
+.message-left, .message-right {
+    padding: 10px 15px;
+    margin: 15px 0; /* 增加垂直間距以容納尾巴 */
+    border-radius: 12px; /* 整體圓角 */
+    max-width: 65%; /* 聊天框的最大寬度上限 */
+    width: -webkit-fit-content; /* 讓寬度適應內容 (Chrome/Safari) */
+    width: -moz-fit-content;    /* 讓寬度適應內容 (Firefox) */
+    width: fit-content;         /* 讓寬度適應內容 (標準) */
+    word-wrap: break-word; /* 確保長單詞換行 */
+    line-height: 1.4;
+    position: relative; /* 為偽元素及用戶名定位 */
 }
 
 .message-left {
-    margin-right: auto; /* 气泡靠左 */
+    background: #e0f7fa; /* 接收訊息的淺藍色 */
+    color: #333;
+    text-align: left; /* 其他用戶的內容靠左對齊 */
+    margin-right: auto; /* 推到左邊 */
+    margin-left: 50px; /* 為左側用戶名留出空間 */
+    border-bottom-left-radius: 0px; /* 使左下角變直角以連接尾巴 */
 }
+
 .message-right {
-    margin-left: auto; /* 气泡靠右 */
-}
-
-/* 实际的气泡样式，现在应用到 message-content 上 */
-.message-content {
-    padding: 10px 15px; /* 气泡内边距 */
-    border-radius: 18px; /* 更圆润的边角 */
-    word-wrap: break-word;
-    line-height: 1.4;
-    position: relative; /* 为尾巴提供定位基准 */
-    white-space: pre-wrap;
-    width: -webkit-fit-content;
-    width: -moz-fit-content;
-    width: fit-content;
-    max-width: 100%; /* 相对于 .message 容器 */
-    /* margin-bottom: 0; */ /* 移除这里的外边距，因为父级 .message 会处理 */
-}
-
-.message-left .message-content {
-    background: #e0f7fa;
+    background: #c8e6c9; /* 發送訊息的淺綠色 */
     color: #333;
-    border-bottom-left-radius: 4px; /* 连接尾巴的角变直 */
-    text-align: left;
+    text-align: right; /* 自身用戶的內容靠右對齊 */
+    margin-left: auto; /* 推到右邊 */
+    margin-right: 50px; /* 為右側用戶名留出空間 */
+    border-bottom-right-radius: 0px; /* 使右下角變直角以連接尾巴 */
 }
 
-.message-right .message-content {
-    background: #c8e6c9;
-    color: #333;
-    border-bottom-right-radius: 4px; /* 连接尾巴的角变直 */
-    text-align: right;
-}
-
-/* 气泡尾巴 - 现在相对于 .message-content */
-.message-left .message-content::after {
+/* 語音氣泡尾巴 */
+.message-left::after {
     content: '';
     position: absolute;
-    bottom: 0px;
-    left: -10px; /* 尾巴向左突出10px */
+    bottom: 0px; /* 調整以使其與氣泡底部對齊 */
+    left: -10px; /* 尾巴在氣泡外部 */
     width: 0;
     height: 0;
-    border: 12px solid transparent; /* 调整尾巴大小 */
-    border-right-color: #e0f7fa;
+    border: 12px solid transparent; /* 增加尾巴大小 */
+    border-right-color: #e0f7fa; /* 匹配氣泡顏色 */
     border-left: 0;
-    border-bottom: 0;
-    margin-top: -6px; /* 微调对齐 */
+    border-bottom: 0; /* 調整邊框以形成朝左的尾巴 */
+    margin-top: -6px; /* 垂直居中尾巴 */
 }
 
-.message-right .message-content::after {
+.message-right::after {
     content: '';
     position: absolute;
-    bottom: 0px;
-    right: -10px; /* 尾巴向右突出10px */
+    bottom: 0px; /* 調整以使其与气泡底部对齐 */
+    right: -10px; /* 尾巴在气泡外部 */
     width: 0;
     height: 0;
-    border: 12px solid transparent;
-    border-left-color: #c8e6c9;
+    border: 12px solid transparent; /* 增加尾巴大小 */
+    border-left-color: #c8e6c9; /* 匹配气泡颜色 */
     border-right: 0;
-    border-bottom: 0;
-    margin-top: -6px;
+    border-bottom: 0; /* 调整边框以形成朝右的尾巴 */
+    margin-top: -6px; /* 垂直居中尾巴 */
 }
 
-/* 用户名显示 (气泡外部) - 相对于 .message 容器 */
 .message-username-display {
-    position: absolute; /* 相对于 .message 定位 */
-    font-size: 0.8em;
-    white-space: nowrap;
-    padding: 0 2px; /* 用户名文本左右的微小内边距 */
-    color: #555; /* 默认用户名颜色 */
-    line-height: 1;
-    bottom: 0px; /* 用户名底部与 .message 底部对齐 (因为 .message 有 padding-bottom) */
-}
-
-.message-left .message-username-display {
-    left: -10px; /* 修改：将用户名的左边缘与左侧尾巴尖端对齐 */
-    color: #00796b;
+    position: absolute;
+    bottom: 0px;        /* 與氣泡尾巴底部大致對齊 */
+    font-size: 0.8em;   /* 使字型略小於訊息內文 */
+    /* font-weight: bold; 被移除，根據圖片效果 */
+    white-space: nowrap; /* 防止用戶名換行 */
+    padding: 0 2px;      /* 微調內邊距 */
+    line-height: 1;      /* 調整行高以更好地垂直對齊 */
 }
 
 .message-right .message-username-display {
-    right: -10px; /* 修改：将用户名的右边缘与右侧尾巴尖端对齐 */
+    left: calc(100% + 12px); /* 定位到氣泡右側，尾巴寬度約10-12px，再加一點間隙 */
     color: #387002;
 }
 
+.message-left .message-username-display {
+    right: calc(100% + 12px); /* 定位到氣泡左側，尾巴寬度約10-12px，再加一點間隙 */
+    color: #00796b;
+}
 
-/* 聊天图片样式 */
+
 .chat-image {
-    max-width: 100%;
-    max-height: 200px;
+    max-width: 80%; /* 相对于消息气泡宽度，减小以避免过宽 */
+    max-height: 200px; /* 减小最大高度 */
     border-radius: 8px;
     margin-top: 5px;
-    display: block;
-    object-fit: contain;
+    display: block; /* 确保它遵守边距 */
+    cursor: pointer; /* 可选：以后用于灯箱效果 */
+    object-fit: contain; /* 确保图片在调整大小时保持其纵横比并且不会被裁剪 */
 }
-.message-right .message-content .chat-image {
+
+/* 自身用戶發送的圖片靠右對齊 */
+.message-right .chat-image {
     margin-left: auto;
     margin-right: 0;
 }
-.message-left .message-content .chat-image {
-    margin-left: 0;
+
+/* 其他用戶發送的圖片（默認靠左） */
+.message-left .chat-image {
     margin-right: auto;
+    margin-left: 0;
 }
 
-/* 系统讯息样式 */
+
 .system-message {
     font-style: italic;
     color: #777;
     text-align: center;
-    margin: 12px 0; /* 增加上下边距 */
+    margin: 10px 0;
     font-size: 0.9em;
 }
 
@@ -314,280 +254,181 @@ body.dark-mode {
     color: #e0e0e0;
 }
 body.dark-mode header {
-    background: #1e1e1e; /* 更深的头部背景 */
-    border-bottom: 1px solid #333; /* 添加底部边框 */
-}
-body.dark-mode .controls #current-room-id {
-    color: #e0e0e0;
-}
-body.dark-mode .controls input[type="text"],
-body.dark-mode footer input[type="text"], /* 确保 footer 内的 username input 也应用样式 */
-body.dark-mode footer textarea {
-    background: #2c2c2c; /* 更深的输入框背景 */
-    color: #e0e0e0;
-    border-color: #444; /* 边框颜色调整 */
+    background: #1e1e1e;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 body.dark-mode .controls button {
-    background: #333; /* 按钮背景 */
+    background: #333;
     color: #e0e0e0;
-    border-color: #555;
+    border-color: #444;
 }
 body.dark-mode .controls button:hover {
     background: #444;
 }
-body.dark-mode .controls button:disabled {
-    background: #2a2a2a;
-    color: #666;
-}
 body.dark-mode #chat {
-    background: #181818; /* 聊天区域背景 */
+    background: #1a1a1a;
+    border-right-color: #2c2c2c;
 }
 body.dark-mode #userlist {
     background: #1e1e1e;
-    border-right-color: #333;
+    border-left-color: #2c2c2c;
 }
-body.dark-mode #userlist h3 { color: #ccc; }
-body.dark-mode .userlist-entry, body.dark-mode .userlist-empty { color: #bbb; }
-
+body.dark-mode #userlist h3, body.dark-mode #userlist div, body.dark-mode #userlist p {
+    color: #ccc;
+}
 body.dark-mode footer {
     background: #1e1e1e;
-    border-top: 1px solid #333;
+    border-top-color: #2c2c2c;
 }
-body.dark-mode footer label {
-    color: #bbb; /* 标签颜色 */
+body.dark-mode footer input[type="text"] {
+    background-color: #2c2c2c;
+    border-color: #444;
+    color: #e0e0e0;
 }
 body.dark-mode footer button {
-    background-color: #27ae60; /* 深色模式发送按钮颜色 */
+    background-color: #0056b3;
+    border-color: #0056b3;
 }
-body.dark-mode footer button:hover {
-    background-color: #229954;
+body.dark-mode footer button:hover:not(:disabled) {
+    background-color: #004085;
 }
 body.dark-mode footer button:disabled {
-    background-color: #2a2a2a;
-    color: #666;
+    background-color: #444;
+    border-color: #444;
+}
+body.dark-mode footer #image-button {
+    background-color: #4a4a4a;
+    border-color: #4a4a4a;
+}
+body.dark-mode footer #image-button:hover:not(:disabled) {
+    background-color: #383838;
 }
 
-body.dark-mode .message-left .message-content {
-    background: #2c3e50;
+body.dark-mode .message-left {
+    background: #2c3e50; /* 深色蓝灰色 */
     color: #ecf0f1;
+    text-align: left;
+    border-bottom-left-radius: 0px; /* 同樣，深色模式下也使左下角變直角 */
 }
-body.dark-mode .message-right .message-content {
-    background: #27ae60;
+body.dark-mode .message-right {
+    background: #27ae60; /* 深色绿色 */
     color: #ecf0f1;
+    text-align: right;
+    border-bottom-right-radius: 0px; /* 同樣，深色模式下也使右下角變直角 */
 }
-body.dark-mode .message-left .message-content::after {
+
+/* 深色模式下的语音气泡尾巴 */
+body.dark-mode .message-left::after {
     border-right-color: #2c3e50;
 }
-body.dark-mode .message-right .message-content::after {
+body.dark-mode .message-right::after {
     border-left-color: #27ae60;
 }
-body.dark-mode .message-left .message-username-display {
-    color: #bdc3c7;
-}
+
+
 body.dark-mode .message-right .message-username-display {
-    color: #a6e22e;
+    color: #a6e22e; /* 深色绿上的亮色 */
 }
+body.dark-mode .message-left .message-username-display {
+    color: #bdc3c7; /* 深色模式下其他用戶的用戶名顏色 */
+}
+
 body.dark-mode .system-message {
     color: #aaa;
 }
 
-/* --- Custom Alert/Confirm Styles --- */
-.custom-alert {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 12px 22px; /* 调整内边距 */
-    border-radius: 6px; /* 调整圆角 */
-    z-index: 10000;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.15); /* 调整阴影 */
-    text-align: center;
-    font-size: 0.95em; /* 调整字体大小 */
-    min-width: 280px; /* 最小宽度 */
-    pointer-events: none; /* 允许点击穿透 */
-}
-.custom-alert-info {
-    background-color: #cfe2ff; color: #0c5460; border: 1px solid #b8daff;
-}
-.custom-alert-error {
-    background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;
-}
-.custom-alert-success {
-    background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;
-}
-body.dark-mode .custom-alert-info {
-    background-color: #1a2c45; color: #a6d1ff; border: 1px solid #2a4a75;
-}
-body.dark-mode .custom-alert-error {
-    background-color: #4d1f23; color: #f5c6cb; border: 1px solid #7d3238;
-}
-body.dark-mode .custom-alert-success {
-    background-color: #1c3a23; color: #c3e6cb; border: 1px solid #2a5738;
-}
-
-
-.custom-confirm-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.6); /* 加深遮罩 */
-    z-index: 9998;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 15px; /* 容器内边距，防止对话框紧贴边缘 */
-    box-sizing: border-box;
-}
-
-.custom-confirm-box {
-    background-color: white;
-    padding: 25px 30px; /* 调整内边距 */
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.25); /* 加深阴影 */
-    text-align: center;
-    max-width: 350px; /* 最大宽度 */
-    width: 90%; /* 响应式宽度 */
-}
-body.dark-mode .custom-confirm-box {
-    background-color: #2c2c2c; /* 深色模式对话框背景 */
-    color: #e0e0e0;
-    border: 1px solid #444;
-}
-
-.custom-confirm-box p {
-    margin-top: 0;
-    margin-bottom: 25px; /* 增加与按钮的间距 */
-    font-size: 1.05em; /* 调整字体大小 */
-    line-height: 1.6;
-}
-
-.custom-confirm-button-container {
-    display: flex;
-    justify-content: space-evenly;
-    gap: 15px; /* 按钮间距 */
-}
-
-.custom-confirm-button {
-    padding: 10px 20px; /* 按钮内边距 */
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.95em;
-    font-weight: 500; /* 调整字重 */
-    min-width: 90px; /* 按钮最小宽度 */
-    transition: background-color 0.2s ease, transform 0.1s ease;
-}
-.custom-confirm-button:active {
-    transform: scale(0.97); /* 点击反馈 */
-}
-
-.custom-confirm-ok {
-    background-color: #4CAF50; color: white;
-}
-.custom-confirm-ok:hover {
-    background-color: #45a049;
-}
-body.dark-mode .custom-confirm-ok {
-    background-color: #27ae60;
-}
-body.dark-mode .custom-confirm-ok:hover {
-    background-color: #229954;
-}
-
-.custom-confirm-cancel {
-    background-color: #f44336; color: white;
-}
-.custom-confirm-cancel:hover {
-    background-color: #e53935;
-}
-body.dark-mode .custom-confirm-cancel {
-    background-color: #c0392b;
-}
-body.dark-mode .custom-confirm-cancel:hover {
-    background-color: #a93226;
-}
-/* --- End Custom Alert/Confirm Styles --- */
-
-
 /* 移动端适配 */
-@media (max-width: 768px) { /* 调整断点 */
-    header h1 { font-size: 1.3em; }
-    .controls { gap: 6px; }
-    .controls input[type="text"], .controls button { font-size: 0.85em; padding: 7px 10px;}
-
-    footer { padding: 8px 10px; gap: 8px; }
-    footer input[type="text"], footer textarea, footer button { font-size: 0.9em; padding: 8px;}
-    footer #username { width: 120px; }
-
+@media (max-width: 768px) {
+    main {
+        flex-direction: column;
+    }
+    #chat {
+        flex: 1;
+        height: 60vh;
+        border-right: none;
+    }
     #userlist {
-        position: fixed; /* 改为固定定位，覆盖在聊天内容之上 */
-        left: 0;
-        top: 0; /* 或 header 高度之下 */
-        bottom: 0;
-        height: 100%;
-        z-index: 100; /*确保在聊天内容之上 */
-        transform: translateX(-100%); /* 初始隐藏在左侧 */
-        transition: transform 0.3s ease-in-out;
-        border-right: 1px solid #ccc; /* 保持边框 */
-        max-width: 250px; /* 限制最大宽度 */
-        width: 70%; /* 移动端宽度 */
+        flex: 1;
+        height: 30vh;
+        border-left: none;
+        border-top: 1px solid #ccc;
     }
-    body.dark-mode #userlist { border-right-color: #333; }
-
-    #userlist:not(.hidden) {
-        transform: translateX(0); /* 滑入显示 */
-        opacity: 1;
-        flex: unset; /* 移除 flex 属性，因为它现在是 fixed 定位 */
-        min-width: unset;
-        width: 70%; /* 确保显示时有宽度 */
+    body.dark-mode #userlist {
+        border-top-color: #2c2c2c;
     }
-     /* 当用户列表显示时，可以添加一个遮罩层 */
-    #userlist-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.4);
-        z-index: 99; /* 在用户列表之下，聊天内容之上 */
+    #userlist.hidden {
+        display: none !important;
     }
-    #userlist:not(.hidden) + #userlist-overlay { /* 如果 userlist 可见，显示遮罩 */
-        display: block;
+    .message-left, .message-right {
+        max-width: 85%;
+        margin-left: 35px; /* 移動端調整用戶名空間 */
+        margin-right: 35px;
     }
-
-
-    .message { max-width: 85%; padding-bottom: 14px; } /* 移动端气泡更宽，调整padding */
-    .message-username-display {
-      font-size: 0.75em; /* 移动端微调 */
-      /* left 和 right 的 -10px 会继承，通常是合适的 */
+    .message-right .message-username-display {
+        left: calc(100% + 8px);
+    }
+    .message-left .message-username-display {
+        right: calc(100% + 8px);
     }
 }
-
 
 @media (max-width: 600px) {
-    header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 10px;
+    header h1 {
+        font-size: 1.2em;
     }
-    header h1 { margin-bottom: 8px; }
-    .controls { width: 100%; }
-    .controls #current-room-id { width: 100%; margin: 0 0 5px 0; text-align: left; }
-    .controls input[type="text"] { width: calc(100% - 10px); margin: 5px 0; }
-    .controls button { flex-grow: 1; margin: 5px 2px; }
-
-
-    footer { flex-wrap: wrap; }
-    footer label { width: 100%; margin: 0 0 5px 0; text-align: left; }
-    footer #username { width: calc(100% - 10px); margin: 5px 0; }
-    footer #message { width: calc(100% - 10px); margin: 5px 0; min-height: 40px; }
-    footer button { width: 100%; margin: 5px 0; }
-
-    .message { padding-bottom: 13px; } /* 进一步微调 */
-    .message-username-display {
-        /* 在此断点下，如果需要，可以进一步调整 left/right/bottom */
+    .controls button {
+        padding: 5px 8px;
+        font-size: 0.9em;
     }
+    footer {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    footer label#username-label {
+        width: 100%;
+        margin-right: 0;
+        text-align: left;
+        margin-bottom: -5px;
+    }
+    footer #username {
+        width: calc(70% - 8px);
+    }
+    footer #join {
+        width: calc(30% - 8px);
+    }
+    footer #message {
+        width: calc(100% - 58px - 58px - 16px);
+        order: 1;
+    }
+     footer #image-button, footer #send {
+        padding: 8px;
+        min-width: 45px;
+        order: 2;
+    }
+    .message-left, .message-right {
+        max-width: 90%;
+        margin-left: 30px; /* 更小移動端調整用戶名空間 */
+        margin-right: 30px;
+    }
+}
+
+/* 旧的销毁房间按钮样式（未在HTML中实现，但保留以供参考） */
+.controls .destroy-room {
+    margin-left: 10px;
+    padding: 6px 12px;
+    background: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.controls .destroy-room:hover {
+    background: #c82333;
+}
+body.dark-mode .controls .destroy-room {
+    background: #c82333;
+    border-color: #c82333;
+}
+body.dark-mode .controls .destroy-room:hover {
+    background: #a71d2a;
 }
