@@ -1,4 +1,4 @@
-/* limkon/6eye/6eye-706bad649758b3503c3fd0ca1e1ee11e85b50b5f/public/style.css */
+// limkon/6eye/6eye-706bad649758b3503c3fd0ca1e1ee11e85b50b5f/public/style.css
 /* 基礎佈局 */
 body {
     margin: 0;
@@ -180,6 +180,45 @@ footer #image-button {
 footer #image-button:hover:not(:disabled) {
     background-color: #545b62;
 }
+
+/* --- 表情选择器样式 --- */
+#emoji-picker {
+    position: absolute;
+    bottom: 65px; /* 位于 footer 上方 */
+    right: 15px; /* 靠近右侧或表情按钮 */
+    width: 280px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 8px;
+    z-index: 5; /* 确保在聊天内容和footer之上 */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+#emoji-picker.hidden {
+    display: none;
+}
+.emoji-item {
+    padding: 4px;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    border-radius: 4px;
+    line-height: 1; /* 确保表情符号垂直居中 */
+    width: 28px; /* 确保每个表情符号大小一致 */
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.emoji-item:hover {
+    background-color: #eee;
+}
+/* --- 结束表情选择器样式 --- */
 
 
 /* 訊息氣泡 */
@@ -367,6 +406,16 @@ body.dark-mode footer #image-button {
 }
 body.dark-mode footer #image-button:hover:not(:disabled) {
     background-color: #383838;
+}
+
+/* 深色模式 表情选择器适配 */
+body.dark-mode #emoji-picker {
+    background: #2c2c2c;
+    border-color: #444;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+body.dark-mode .emoji-item:hover {
+    background-color: #444;
 }
 
 body.dark-mode .message-left {
@@ -657,6 +706,12 @@ body.dark-mode .custom-confirm-cancel:hover {
     footer #send {
         flex-grow: 0;
         min-width: 45px;
+    }
+    
+    /* 移动端表情面板位置调整 */
+    #emoji-picker {
+        bottom: 120px; 
+        right: 8px; 
     }
 
     .message-left {
