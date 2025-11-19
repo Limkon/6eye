@@ -5,6 +5,9 @@ let joined = false;
 let roomId = '';
 let roomLocked = false;
 
+// 定义固定的表情符号列表
+const EMOJIS = ['😄', '😂', '👍', '😊', '😍', '🎉', '👋', '🥳', '🔥', '🚀', '💖', '🤔', '😭', '🤯', '😎', '😜', '😩', '😇', '🤫', '👀', '💯', '🙏', '🤯', '😭', '💔', '🌟', '💧', '☀️', '🌙', '🥶', '🥵', '🍔', '🍕', '☕', '🍾', '🎤', '🎧', '💻', '💡', '⏰', '🔑', '❤️'];
+
 const MESSAGE_TYPES = {
     USER_LIST: 'userList',
     MESSAGE: 'message',
@@ -22,7 +25,7 @@ const MESSAGE_TYPES = {
 // DOM Elements (fetched in DOMContentLoaded)
 let roomIdInput, joinRoomButton, currentRoomIdElement, usernameLabel, usernameInput, joinButton,
     messageInput, sendButton, chatElement, userListElement, destroyRoomButton,
-    themeToggleButton, userlistToggleButton, emojiButton;
+    themeToggleButton, userlistToggleButton, emojiButton, emojiPicker; // <-- 新增 emojiPicker
 
 // --- Custom Alert and Confirm ---
 function showCustomAlert(message, type = 'info') {
@@ -126,6 +129,7 @@ function connect() {
                     if (messageInput) messageInput.disabled = true;
                     if (sendButton) sendButton.disabled = true;
                     if (emojiButton) emojiButton.disabled = true; // <--- 禁用表情按钮
+                    if (emojiPicker) emojiPicker.classList.add('hidden'); // <--- 隐藏表情面板
                     break;
                 case MESSAGE_TYPES.ROOM_DESTROYED:
                     showCustomAlert(data.message || '房间已被销毁。', 'info');
@@ -160,6 +164,7 @@ function connect() {
         if (sendButton) sendButton.disabled = true;
         if (destroyRoomButton) destroyRoomButton.disabled = true;
         if (emojiButton) emojiButton.disabled = true; // <--- 禁用表情按钮
+        if (emojiPicker) emojiPicker.classList.add('hidden'); // <--- 隐藏表情面板
 
         if (usernameLabel) usernameLabel.style.display = 'block';
         if (usernameInput) {
@@ -198,6 +203,7 @@ function resetRoom() {
     if (messageInput) messageInput.disabled = true;
     if (sendButton) sendButton.disabled = true;
     if (emojiButton) emojiButton.disabled = true; // <--- 禁用表情按钮
+    if (emojiPicker) emojiPicker.classList.add('hidden'); // <--- 隐藏表情面板
 
     if (usernameLabel && usernameInput && joinButton) {
         if (!joined || (ws && ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING)) {
@@ -206,6 +212,44 @@ function resetRoom() {
              joinButton.style.display = 'block';
         }
     }
+}
+
+// 新增：插入表情符号到输入框
+function insertEmoji(emoji) {
+    if (!messageInput || !joined) return;
+    
+    const start = messageInput.selectionStart;
+    const end = messageInput.selectionEnd;
+    const value = messageInput.value;
+    
+    // 在光标位置插入表情符号
+    messageInput.value = value.substring(0, start) + emoji + value.substring(end);
+    
+    // 移动光标到插入的表情符号之后
+    const newCursorPos = start + emoji.length;
+    messageInput.selectionStart = newCursorPos;
+    messageInput.selectionEnd = newCursorPos;
+    messageInput.focus();
+
+    emojiPicker.classList.add('hidden'); // 插入后隐藏面板
+}
+
+// 新增：动态创建表情符号面板内容
+function createEmojiPicker() {
+    if (!emojiPicker) return;
+
+    EMOJIS.forEach(emoji => {
+        const span = document.createElement('span');
+        span.className = 'emoji-item';
+        span.textContent = emoji;
+        span.title = emoji;
+        // 使用 click 事件监听，调用 insertEmoji
+        span.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到 document 导致面板立即关闭
+            insertEmoji(emoji);
+        });
+        emojiPicker.appendChild(span);
+    });
 }
 
 
@@ -223,14 +267,16 @@ document.addEventListener('DOMContentLoaded', () => {
     destroyRoomButton = document.getElementById('destroy-room');
     themeToggleButton = document.getElementById('theme-toggle');
     userlistToggleButton = document.getElementById('userlist-toggle');
-    emojiButton = document.getElementById('emoji-button'); // <--- 获取表情按钮元素
+    emojiButton = document.getElementById('emoji-button'); 
+    emojiPicker = document.getElementById('emoji-picker'); // <-- 获取新的元素
 
-    const criticalElements = [roomIdInput, joinRoomButton, currentRoomIdElement, usernameInput, joinButton, messageInput, sendButton, chatElement, userListElement, destroyRoomButton, themeToggleButton, userlistToggleButton, emojiButton];
+    const criticalElements = [roomIdInput, joinRoomButton, currentRoomIdElement, usernameInput, joinButton, messageInput, sendButton, chatElement, userListElement, destroyRoomButton, themeToggleButton, userlistToggleButton, emojiButton, emojiPicker];
     if (criticalElements.some(el => !el)) {
         console.error("一个或多个必要的DOM元素未找到。请检查HTML的ID是否正确。");
         showCustomAlert("页面初始化失败，部分功能可能无法使用。请刷新页面或联系管理员。", "error");
     }
     resetRoom();
+    createEmojiPicker(); // <-- 初始化表情面板
 
     const handleJoinRoom = () => {
         if (roomLocked && ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
@@ -321,31 +367,33 @@ document.addEventListener('DOMContentLoaded', () => {
         sendButton.addEventListener('click', handleSend);
     }
 
-    const handleEmoji = () => {
-        if (!messageInput || !joined) {
-            // 理论上如果按钮是禁用的，这不会被调用，但为了防御性，保留此检查
-            console.warn("尝试点击表情按钮，但尚未加入房间。");
+    const handleEmoji = (e) => {
+        e.stopPropagation(); // 阻止事件冒泡到 document 
+        if (!joined) {
             showCustomAlert("请先加入聊天室。", "error");
             return;
         }
-        const emoji = '😄'; // 示例表情符号
-        const start = messageInput.selectionStart;
-        const end = messageInput.selectionEnd;
-        const value = messageInput.value;
-        
-        // 在光标位置插入表情符号
-        messageInput.value = value.substring(0, start) + emoji + value.substring(end);
-        
-        // 移动光标到插入的表情符号之后
-        const newCursorPos = start + emoji.length;
-        messageInput.selectionStart = newCursorPos;
-        messageInput.selectionEnd = newCursorPos;
-        messageInput.focus();
+        if (emojiPicker) {
+            emojiPicker.classList.toggle('hidden');
+        }
     };
 
     if (emojiButton) {
         emojiButton.addEventListener('click', handleEmoji);
     }
+    
+    // 新增：点击非面板区域时隐藏面板
+    document.addEventListener('click', (e) => {
+        // 检查点击目标是否是表情按钮或表情面板本身
+        const isClickedOnPicker = emojiPicker && emojiPicker.contains(e.target);
+        const isClickedOnButton = emojiButton && emojiButton.contains(e.target);
+
+        if (emojiPicker && !emojiPicker.classList.contains('hidden') && 
+            !isClickedOnPicker && !isClickedOnButton) {
+            
+            emojiPicker.classList.add('hidden');
+        }
+    });
 
 
     if (messageInput) {
@@ -353,6 +401,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
+            }
+            // 新增：在输入时隐藏表情面板
+            if (emojiPicker && !emojiPicker.classList.contains('hidden')) {
+                 emojiPicker.classList.add('hidden');
             }
         });
     }
