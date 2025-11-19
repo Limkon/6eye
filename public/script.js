@@ -22,7 +22,7 @@ const MESSAGE_TYPES = {
 // DOM Elements (fetched in DOMContentLoaded)
 let roomIdInput, joinRoomButton, currentRoomIdElement, usernameLabel, usernameInput, joinButton,
     messageInput, sendButton, chatElement, userListElement, destroyRoomButton,
-    themeToggleButton, userlistToggleButton;
+    themeToggleButton, userlistToggleButton, emojiButton;
 
 // --- Custom Alert and Confirm ---
 function showCustomAlert(message, type = 'info') {
@@ -108,6 +108,7 @@ function connect() {
                     joined = true;
                     if (messageInput) messageInput.disabled = false;
                     if (sendButton) sendButton.disabled = false;
+                    if (emojiButton) emojiButton.disabled = false; // <--- 启用表情按钮
                     if (usernameLabel) usernameLabel.style.display = 'none';
                     if (usernameInput) usernameInput.style.display = 'none';
                     if (joinButton) joinButton.style.display = 'none';
@@ -124,6 +125,7 @@ function connect() {
                     if (joinButton) joinButton.style.display = 'block';
                     if (messageInput) messageInput.disabled = true;
                     if (sendButton) sendButton.disabled = true;
+                    if (emojiButton) emojiButton.disabled = true; // <--- 禁用表情按钮
                     break;
                 case MESSAGE_TYPES.ROOM_DESTROYED:
                     showCustomAlert(data.message || '房间已被销毁。', 'info');
@@ -157,6 +159,7 @@ function connect() {
         if (messageInput) messageInput.disabled = true;
         if (sendButton) sendButton.disabled = true;
         if (destroyRoomButton) destroyRoomButton.disabled = true;
+        if (emojiButton) emojiButton.disabled = true; // <--- 禁用表情按钮
 
         if (usernameLabel) usernameLabel.style.display = 'block';
         if (usernameInput) {
@@ -194,6 +197,7 @@ function resetRoom() {
     if (destroyRoomButton) destroyRoomButton.disabled = true;
     if (messageInput) messageInput.disabled = true;
     if (sendButton) sendButton.disabled = true;
+    if (emojiButton) emojiButton.disabled = true; // <--- 禁用表情按钮
 
     if (usernameLabel && usernameInput && joinButton) {
         if (!joined || (ws && ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING)) {
@@ -219,8 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
     destroyRoomButton = document.getElementById('destroy-room');
     themeToggleButton = document.getElementById('theme-toggle');
     userlistToggleButton = document.getElementById('userlist-toggle');
+    emojiButton = document.getElementById('emoji-button'); // <--- 获取表情按钮元素
 
-    const criticalElements = [roomIdInput, joinRoomButton, currentRoomIdElement, usernameInput, joinButton, messageInput, sendButton, chatElement, userListElement, destroyRoomButton, themeToggleButton, userlistToggleButton];
+    const criticalElements = [roomIdInput, joinRoomButton, currentRoomIdElement, usernameInput, joinButton, messageInput, sendButton, chatElement, userListElement, destroyRoomButton, themeToggleButton, userlistToggleButton, emojiButton];
     if (criticalElements.some(el => !el)) {
         console.error("一个或多个必要的DOM元素未找到。请检查HTML的ID是否正确。");
         showCustomAlert("页面初始化失败，部分功能可能无法使用。请刷新页面或联系管理员。", "error");
@@ -245,7 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (joinRoomButton) {
         joinRoomButton.addEventListener('click', handleJoinRoom);
-        // Removed: joinRoomButton.addEventListener('touchstart', ...);
     }
 
     const handleJoin = () => {
@@ -289,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (joinButton) {
         joinButton.addEventListener('click', handleJoin);
-        // Removed: joinButton.addEventListener('touchstart', ...);
     }
 
     const handleSend = () => {
@@ -316,8 +319,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (sendButton) {
         sendButton.addEventListener('click', handleSend);
-        // Removed: sendButton.addEventListener('touchstart', ...);
     }
+
+    const handleEmoji = () => {
+        if (!messageInput || !joined) {
+            // 理论上如果按钮是禁用的，这不会被调用，但为了防御性，保留此检查
+            console.warn("尝试点击表情按钮，但尚未加入房间。");
+            showCustomAlert("请先加入聊天室。", "error");
+            return;
+        }
+        const emoji = '😄'; // 示例表情符号
+        const start = messageInput.selectionStart;
+        const end = messageInput.selectionEnd;
+        const value = messageInput.value;
+        
+        // 在光标位置插入表情符号
+        messageInput.value = value.substring(0, start) + emoji + value.substring(end);
+        
+        // 移动光标到插入的表情符号之后
+        const newCursorPos = start + emoji.length;
+        messageInput.selectionStart = newCursorPos;
+        messageInput.selectionEnd = newCursorPos;
+        messageInput.focus();
+    };
+
+    if (emojiButton) {
+        emojiButton.addEventListener('click', handleEmoji);
+    }
+
 
     if (messageInput) {
         messageInput.addEventListener('keydown', (e) => {
@@ -335,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (themeToggleButton) {
         themeToggleButton.addEventListener('click', handleThemeToggle);
-        // Removed: themeToggleButton.addEventListener('touchstart', ...);
     }
 
     const handleUserlistToggle = () => {
@@ -345,7 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (userlistToggleButton) {
         userlistToggleButton.addEventListener('click', handleUserlistToggle);
-        // Removed: userlistToggleButton.addEventListener('touchstart', ...);
     }
 
     const handleDestroyRoom = () => {
@@ -393,7 +420,7 @@ function addMessage(user, message) {
 
     const messageSpan = document.createElement('span');
     messageSpan.className = 'message-text';
-    messageSpan.textContent = message;
+    messageSpan.textContent = message; // 使用 textContent 确保安全并支持 Unicode 表情
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
