@@ -1,3 +1,4 @@
+// limkon/6eye/6eye-706bad649758b3503c3fd0ca1e1ee11e85b50b5f/public/script.js
 let ws;
 let username = '';
 let joined = false;
@@ -244,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (joinRoomButton) {
         joinRoomButton.addEventListener('click', handleJoinRoom);
-        joinRoomButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleJoinRoom(); });
+        // Removed: joinRoomButton.addEventListener('touchstart', ...);
     }
 
     const handleJoin = () => {
@@ -288,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (joinButton) {
         joinButton.addEventListener('click', handleJoin);
-        joinButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleJoin(); });
+        // Removed: joinButton.addEventListener('touchstart', ...);
     }
 
     const handleSend = () => {
@@ -315,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (sendButton) {
         sendButton.addEventListener('click', handleSend);
-        sendButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleSend(); });
+        // Removed: sendButton.addEventListener('touchstart', ...);
     }
 
     if (messageInput) {
@@ -334,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (themeToggleButton) {
         themeToggleButton.addEventListener('click', handleThemeToggle);
-        themeToggleButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleThemeToggle(); });
+        // Removed: themeToggleButton.addEventListener('touchstart', ...);
     }
 
     const handleUserlistToggle = () => {
@@ -344,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (userlistToggleButton) {
         userlistToggleButton.addEventListener('click', handleUserlistToggle);
-        userlistToggleButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleUserlistToggle(); });
+        // Removed: userlistToggleButton.addEventListener('touchstart', ...);
     }
 
     const handleDestroyRoom = () => {
@@ -377,8 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (destroyRoomButton) {
         destroyRoomButton.addEventListener('click', handleDestroyRoom);
-        // 修改：移除了 destroyRoomButton 的 touchstart 事件监听器
-        // destroyRoomButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleDestroyRoom(); });
     }
 });
 
