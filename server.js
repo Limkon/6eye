@@ -1,3 +1,6 @@
+// limkon/6eye/6eye-706bad649758b3503c3fd0ca1e1ee11e85b50b5f/server.js
+'use strict';
+
 const express = require('express');
 const WebSocket = require('ws');
 const http = require('http');
@@ -456,9 +459,7 @@ async function main() {
         }
         await ensureChatroomDir();
 
-        // --- MODIFIED LINE ---
-        const PORT = 3000; // Forcing port 3000, ignoring process.env.PORT
-        // --- END MODIFIED LINE ---
+        const PORT = 3000;
 
         server.listen(PORT, () => {
             console.log(`服务器已启动，运行在 http://localhost:${PORT}`);
