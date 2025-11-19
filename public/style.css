@@ -1,5 +1,5 @@
 /* limkon/6eye/6eye-706bad649758b3503c3fd0ca1e1ee11e85b50b5f/public/style.css */
-/* 基础佈局 */
+/* 基礎佈局 */
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -145,6 +145,8 @@ footer button { /* This specifically targets footer buttons */
     cursor: pointer;
     transition: background-color 0.2s;
     box-sizing: border-box; /* Added for consistency */
+    position: relative; /* 确保 z-index 生效 */
+    z-index: 2;         /* 确保按钮位于文本区域之上 */
 }
 footer button:hover {
     background-color: #0056b3;
@@ -153,6 +155,7 @@ footer button:disabled {
     background-color: #aaa;
     border-color: #aaa;
     cursor: not-allowed;
+    z-index: 1; /* 确保禁用状态的按钮层级不低于启用状态 */
 }
 
 /* 新增表情按钮样式 */
@@ -637,8 +640,9 @@ body.dark-mode .custom-confirm-cancel:hover {
         width: calc(30% - 8px);
     }
     footer #message {
-        width: calc(100% - 58px - 58px - 16px - 45px - 8px); /* 适应新增的 emoji 按钮 */
+        width: calc(100% - 45px - 45px - 8px - 8px); /* 适应两个 45px 宽的按钮和 8px 间距 */
         order: 1;
+        min-height: 34px;
     }
     footer #emoji-button, footer #send {
         padding: 8px;
@@ -647,6 +651,12 @@ body.dark-mode .custom-confirm-cancel:hover {
     }
     footer #emoji-button {
         width: 45px; /* 固定表情按钮宽度 */
+        flex-grow: 0;
+        min-width: 0;
+    }
+    footer #send {
+        flex-grow: 0;
+        min-width: 45px;
     }
 
     .message-left {
