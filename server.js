@@ -339,10 +339,11 @@ wss.on('connection', async (ws, req) => {
         }
     }
 
-    const decryptedHistory = await loadDecryptedMessagesForClient(roomId);
-    if (decryptedHistory.length > 0) {
-        ws.send(JSON.stringify({ type: 'history', messages: decryptedHistory }));
-    }
+    // 已移除：立即发送历史记录的逻辑。现在历史记录仅在用户成功加入后发送。
+    // const decryptedHistory = await loadDecryptedMessagesForClient(roomId);
+    // if (decryptedHistory.length > 0) {
+    //     ws.send(JSON.stringify({ type: 'history', messages: decryptedHistory }));
+    // }
 
     ws.on('message', (messageData) => {
         ws.lastActive = Date.now();
@@ -378,6 +379,16 @@ wss.on('connection', async (ws, req) => {
                     ws.send(JSON.stringify({ type: 'joinSuccess', username: cleanUsername, message: '加入成功！' }));
                     console.log(`[${new Date().toISOString()}] INFO: User '${cleanUsername}' joined room '${ws.roomId}'`);
                     broadcast(ws.roomId, { type: 'system', message: `用户 ${cleanUsername} 加入了房间。` });
+                    
+                    // --- 新增逻辑: 仅在成功加入房间后发送历史记录 ---
+                    loadDecryptedMessagesForClient(ws.roomId).then(decryptedHistory => {
+                         if (decryptedHistory.length > 0 && ws.readyState === WebSocket.OPEN) {
+                             ws.send(JSON.stringify({ type: 'history', messages: decryptedHistory }));
+                         }
+                    }).catch(error => {
+                        console.error(`错误: 向用户 ${cleanUsername} 发送历史记录失败:`, error);
+                    });
+                    // --- 结束新增逻辑 ---
                 }
 
             } else if (data.type === 'message') {
