@@ -1,12 +1,15 @@
+// limkon/6eye/6eye-706bad649758b3503c3fd0ca1e1ee11e85b50b5f/start.js
+
 // --- 0. Require Modules ---
 const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const { spawn } = require('child_process');
-const fs = require('fs'); // Correctly require fs module
-const path = require('path'); // Require path module
-const crypto = require('crypto'); // Require crypto module
-const { createProxyMiddleware } = require('http-proxy-middleware'); // Require http-proxy-middleware
+const fsPromises = require('fs').promises; // <--- 引入异步 fs
+const fs = require('fs'); // <--- 保留同步 fs 仅用于启动时检查
+const path = require('path');
+const crypto = require('crypto');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // --- 1. 配置和常量 ---
 const PUBLIC_PORT = 8100;
@@ -118,39 +121,39 @@ function decryptUserPassword(text) {
 }
 
 // --- 2b. User Credentials Management ---
-function readUserCredentials() {
-    if (!fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
-        return {};
-    }
+async function readUserCredentials() {
     try {
-        const encryptedData = fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8');
-        if (!encryptedData) return {}; // Handle empty file
+        await fsPromises.access(USER_CREDENTIALS_STORAGE_FILE, fs.constants.F_OK);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return {};
+        }
+         console.error("[AUTH_GATE] 读取用户凭证失败 (Access Check):", error);
+    }
+
+    try {
+        const encryptedData = await fsPromises.readFile(USER_CREDENTIALS_STORAGE_FILE, 'utf8');
+        if (!encryptedData) return {};
         const decryptedData = decryptUserPassword(encryptedData);
-        if (decryptedData === null) { // Handle decryption failure
+        if (decryptedData === null) {
              console.warn("[AUTH_GATE] 用户凭证解密失败，可能文件已损坏或密钥不匹配。返回空用户对象。");
              return {};
         }
         return JSON.parse(decryptedData);
     } catch (error) {
         console.error("[AUTH_GATE] 读取用户凭证失败:", error);
-        if (error instanceof SyntaxError && fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
-            console.warn("[AUTH_GATE] 用户凭证文件可能已损坏。将尝试重置为空。");
-            try {
-                saveUserCredentials({});
-                return {};
-            } catch (resetError) {
-                console.error("[AUTH_GATE] 重置损坏的用户凭证文件失败:", resetError);
-            }
+        if (error instanceof SyntaxError) {
+             console.warn("[AUTH_GATE] 用户凭证文件可能已损坏。不尝试重置，而是返回空对象。");
         }
         return {};
     }
 }
 
-function saveUserCredentials(usersObject) {
+async function saveUserCredentials(usersObject) {
     try {
         const dataToEncrypt = JSON.stringify(usersObject, null, 2);
         const encryptedData = encryptUserPassword(dataToEncrypt);
-        fs.writeFileSync(USER_CREDENTIALS_STORAGE_FILE, encryptedData, 'utf8');
+        await fsPromises.writeFile(USER_CREDENTIALS_STORAGE_FILE, encryptedData, 'utf8');
     } catch (error) {
         console.error("[AUTH_GATE] 保存用户凭证失败:", error);
         throw new Error("Failed to save user credentials.");
@@ -273,7 +276,7 @@ app.get('/setup', (req, res) => {
     `);
 });
 
-app.post('/do_setup', (req, res) => {
+app.post('/do_setup', async (req, res) => {
     if (!isMasterPasswordSetupNeeded) {
         return res.status(403).send("错误：主密码已设置。");
     }
@@ -294,13 +297,22 @@ app.post('/do_setup', (req, res) => {
     }
 
     try {
-        fs.writeFileSync(MASTER_PASSWORD_STORAGE_FILE, encryptedPassword, 'utf8');
-        isMasterPasswordSetupNeeded = false; // Master password is now set
+        await fsPromises.writeFile(MASTER_PASSWORD_STORAGE_FILE, encryptedPassword, 'utf8');
+        isMasterPasswordSetupNeeded = false; 
         console.log("[AUTH_GATE] 主密码已成功设置并加密保存。");
 
-        if (!fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
-            saveUserCredentials({}); // Initialize user credentials file if it doesn't exist
+        try {
+            await fsPromises.access(USER_CREDENTIALS_STORAGE_FILE, fs.constants.F_OK);
+            console.log("[AUTH_GATE] 用户凭证文件已存在。跳过初始化。");
+        } catch (accessError) {
+            if (accessError.code === 'ENOENT') {
+                await saveUserCredentials({}); // 初始化用户凭证文件
+                console.log("[AUTH_GATE] 用户凭证文件不存在。已初始化。");
+            } else {
+                 console.error("[AUTH_GATE] 检查用户凭证文件状态失败:", accessError);
+            }
         }
+        
         startMainApp(); // Start the main application
 
         // Set cookies for automatic master login
@@ -389,7 +401,7 @@ app.get('/login', (req, res) => {
     `);
 });
 
-app.post('/do_login', (req, res) => {
+app.post('/do_login', async (req, res) => {
     if (isMasterPasswordSetupNeeded) {
         return res.redirect('/login?error=master_not_set');
     }
@@ -403,35 +415,45 @@ app.post('/do_login', (req, res) => {
             if (!submittedPassword) { // Master password cannot be empty
                 return res.redirect('/login?error=invalid');
             }
-            if (!fs.existsSync(MASTER_PASSWORD_STORAGE_FILE)) {
-                 console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式。");
-                 isMasterPasswordSetupNeeded = true;
-                 return res.redirect('/setup?error=internal_state');
-            }
-            const encryptedMasterPasswordFromFile = fs.readFileSync(MASTER_PASSWORD_STORAGE_FILE, 'utf8');
-            const storedDecryptedMasterPassword = decryptUserPassword(encryptedMasterPasswordFromFile);
+            try {
+                const encryptedMasterPasswordFromFile = await fsPromises.readFile(MASTER_PASSWORD_STORAGE_FILE, 'utf8');
+                const storedDecryptedMasterPassword = decryptUserPassword(encryptedMasterPasswordFromFile);
 
-            if (storedDecryptedMasterPassword === null) {
-                return res.redirect('/login?error=decrypt_failed');
-            }
-            if (submittedPassword === storedDecryptedMasterPassword) {
-                res.setHeader('Set-Cookie', [
-                    'auth=1; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax',
-                    'is_master=true; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax'
-                ]);
-                console.log("[AUTH_GATE] 主密码登录成功。");
-                return res.redirect('/admin');
-            } else {
-                return res.redirect('/login?error=invalid');
+                if (storedDecryptedMasterPassword === null) {
+                    return res.redirect('/login?error=decrypt_failed');
+                }
+                if (submittedPassword === storedDecryptedMasterPassword) {
+                    res.setHeader('Set-Cookie', [
+                        'auth=1; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax',
+                        'is_master=true; Max-Age=3600; HttpOnly; Path=/; SameSite=Lax'
+                    ]);
+                    console.log("[AUTH_GATE] 主密码登录成功。");
+                    return res.redirect('/admin');
+                } else {
+                    return res.redirect('/login?error=invalid');
+                }
+            } catch (error) {
+                if (error.code === 'ENOENT') {
+                    console.error("[AUTH_GATE] 登录失败：主密码文件未找到，但应用未处于设置模式。");
+                    isMasterPasswordSetupNeeded = true;
+                    return res.redirect('/setup?error=internal_state');
+                }
+                throw error; // Rethrow other errors
             }
         } else { // Attempting regular user login
-            // For regular users, an empty submittedPassword IS allowed.
-            if (!fs.existsSync(USER_CREDENTIALS_STORAGE_FILE)) {
-                 console.warn("[AUTH_GATE] 用户尝试登录，但用户凭证文件不存在。");
-                 return res.redirect('/login?error=no_user_file');
+            try {
+                await fsPromises.access(USER_CREDENTIALS_STORAGE_FILE, fs.constants.F_OK);
+            } catch (error) {
+                if (error.code === 'ENOENT') {
+                     console.warn("[AUTH_GATE] 用户尝试登录，但用户凭证文件不存在。");
+                     return res.redirect('/login?error=no_user_file');
+                }
+                 throw error;
             }
-            const users = readUserCredentials();
-            if (Object.keys(users).length === 0 && fs.existsSync(USER_CREDENTIALS_STORAGE_FILE) && fs.readFileSync(USER_CREDENTIALS_STORAGE_FILE, 'utf8').length > 0) {
+            const users = await readUserCredentials();
+            
+            // Check if file is not empty AND object keys are 0 (indicates corrupted/unreadable)
+            if (Object.keys(users).length === 0 && (await fsPromises.readFile(USER_CREDENTIALS_STORAGE_FILE, 'utf8')).length > 0) {
                 console.warn("[AUTH_GATE] 用户凭证文件存在但无法解析用户数据。可能已损坏。");
                 return res.redirect('/login?error=no_user_file');
             }
@@ -495,8 +517,8 @@ function ensureMasterAdmin(req, res, next) {
         </div>`);
 }
 
-app.get('/admin', ensureMasterAdmin, (req, res) => {
-    const users = readUserCredentials();
+app.get('/admin', ensureMasterAdmin, async (req, res) => {
+    const users = await readUserCredentials();
     const error = req.query.error;
     const success = req.query.success;
     let messageHtml = '';
@@ -572,7 +594,7 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
     `);
 });
 
-app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
+app.post('/admin/add_user', ensureMasterAdmin, async (req, res) => {
     const { newUsername, newUserPassword, confirmNewUserPassword } = req.body;
     // Username is always required
     if (!newUsername) {
@@ -586,7 +608,7 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
         return res.redirect('/admin?error=password_mismatch');
     }
 
-    const users = readUserCredentials();
+    const users = await readUserCredentials();
     if (users[newUsername]) {
         return res.redirect('/admin?error=user_exists');
     }
@@ -597,7 +619,7 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     try {
         // Encrypt an empty string if password is not provided
         users[newUsername] = { passwordHash: encryptUserPassword(actualNewUserPassword) };
-        saveUserCredentials(users);
+        await saveUserCredentials(users);
         console.log(`[AUTH_GATE_ADMIN] 用户 '${newUsername}' 已添加。密码状态: ${actualNewUserPassword ? "已设置" : "为空"}`);
         res.redirect('/admin?success=user_added');
     } catch (error) {
@@ -606,18 +628,18 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     }
 });
 
-app.post('/admin/delete_user', ensureMasterAdmin, (req, res) => {
+app.post('/admin/delete_user', ensureMasterAdmin, async (req, res) => {
     const { usernameToDelete } = req.body;
     if (!usernameToDelete) {
         return res.redirect('/admin?error=unknown');
     }
-    const users = readUserCredentials();
+    const users = await readUserCredentials();
     if (!users[usernameToDelete]) {
         return res.redirect('/admin?error=user_not_found');
     }
     delete users[usernameToDelete];
     try {
-        saveUserCredentials(users);
+        await saveUserCredentials(users);
         console.log(`[AUTH_GATE_ADMIN] 用户 '${usernameToDelete}' 已删除。`);
         res.redirect('/admin?success=user_deleted');
     } catch (error) {
@@ -626,7 +648,7 @@ app.post('/admin/delete_user', ensureMasterAdmin, (req, res) => {
     }
 });
 
-app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
+app.post('/admin/change_password_page', ensureMasterAdmin, async (req, res) => {
     const { usernameToChange } = req.body;
     const error = req.query.error;
     let errorMessageHtml = '';
@@ -637,7 +659,7 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
 
     if (!usernameToChange) return res.redirect('/admin?error=unknown');
     
-    const users = readUserCredentials();
+    const users = await readUserCredentials();
     if (!users[usernameToChange]) {
         return res.redirect('/admin?error=user_not_found');
     }
@@ -665,7 +687,7 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
     `);
 });
 
-app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
+app.post('/admin/perform_change_password', ensureMasterAdmin, async (req, res) => {
     const { username, newPassword, confirmPassword } = req.body;
     // Username is required
     if (!username) {
@@ -680,14 +702,14 @@ app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
         return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=mismatch`);
     }
 
-    const users = readUserCredentials();
+    const users = await readUserCredentials();
     if (!users[username]) {
         return res.redirect('/admin?error=user_not_found');
     }
 
     try {
         users[username].passwordHash = encryptUserPassword(actualNewPassword);
-        saveUserCredentials(users);
+        await saveUserCredentials(users);
         console.log(`[AUTH_GATE_ADMIN] 用户 '${username}' 的密码已修改。新密码状态: ${actualNewPassword ? "已设置" : "为空"}`);
         res.redirect('/admin?success=password_changed');
     } catch (error) {
