@@ -1,4 +1,5 @@
-/* 基礎佈局 */
+/* limkon/6eye/6eye-706bad649758b3503c3fd0ca1e1ee11e85b50b5f/public/style.css */
+/* 基础佈局 */
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -136,7 +137,7 @@ footer #message {
 }
 
 footer button { /* This specifically targets footer buttons */
-    padding: 8px 12px; /* 統一內邊距 */
+    padding: 8px 12px; /* 统一内边距 */
     border: 1px solid #007bff;
     background-color: #007bff;
     color: white;
@@ -153,6 +154,21 @@ footer button:disabled {
     border-color: #aaa;
     cursor: not-allowed;
 }
+
+/* 新增表情按钮样式 */
+footer button#emoji-button {
+    background-color: #ffc107; /* Yellowish for emoji */
+    border-color: #ffc107;
+    color: #333;
+    padding: 8px 12px; 
+    font-size: 1.2em;
+}
+footer button#emoji-button:hover:not(:disabled) {
+    background-color: #e0a800;
+    border-color: #e0a800;
+}
+
+
 footer #image-button {
     background-color: #6c757d;
     border-color: #6c757d;
@@ -332,6 +348,15 @@ body.dark-mode footer button:hover:not(:disabled) {
 body.dark-mode footer button:disabled {
     background-color: #444;
     border-color: #444;
+}
+body.dark-mode footer button#emoji-button {
+    background-color: #b8860b;
+    border-color: #b8860b;
+    color: #e0e0e0;
+}
+body.dark-mode footer button#emoji-button:hover:not(:disabled) {
+    background-color: #a0780a;
+    border-color: #a0780a;
 }
 body.dark-mode footer #image-button {
     background-color: #4a4a4a;
@@ -612,13 +637,16 @@ body.dark-mode .custom-confirm-cancel:hover {
         width: calc(30% - 8px);
     }
     footer #message {
-        width: calc(100% - 58px - 58px - 16px);
+        width: calc(100% - 58px - 58px - 16px - 45px - 8px); /* 适应新增的 emoji 按钮 */
         order: 1;
     }
-     footer #image-button, footer #send {
+    footer #emoji-button, footer #send {
         padding: 8px;
         min-width: 45px;
         order: 2;
+    }
+    footer #emoji-button {
+        width: 45px; /* 固定表情按钮宽度 */
     }
 
     .message-left {
