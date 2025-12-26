@@ -14,7 +14,7 @@ export default {
                 return await handleApiRequest(request, context, url);
             }
 
-            // 2. 首页渲染 (直接返回构建好的 HTML，不依赖静态文件)
+            // 2. 首页渲染
             if (path === '/' || path === '/index.html') {
                 return new Response(generateChatPage(), {
                     headers: { 'Content-Type': 'text/html;charset=utf-8' }
@@ -24,7 +24,13 @@ export default {
             return new Response('404 Not Found', { status: 404 });
 
         } catch (e) {
-            return new Response(e.stack || e.toString(), { status: 500 });
+            // 关键修改：返回 JSON 格式的错误信息，而不是纯文本
+            const errorMsg = e.message || e.toString();
+            console.error('Worker Error:', e.stack); // 在后台日志打印堆栈
+            return new Response(JSON.stringify({ error: errorMsg }), { 
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
         }
     }
 };
