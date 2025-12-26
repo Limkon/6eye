@@ -22,19 +22,19 @@
 ## 项目结构
 
 /
-├── build.js                # (新增) 构建脚本，来自 five-worker
-├── package.json            # (修改) 依赖配置
-├── wrangler.toml           # (修改) Cloudflare 配置文件
-├── src/
+├── build.js                # (新增) 构建脚本，来自 five-worker　　　
+├── package.json            # (修改) 依赖配置　　　
+├── wrangler.toml           # (修改) Cloudflare 配置文件　　　
+├── src/　　　
 │   ├── index.js            # (入口) 路由分发
-│   ├── config.js           # (配置) 环境变量与上下文管理
-│   ├── constants.js        # (常量)
-│   ├── utils/
-│   │   └── helpers.js      # (工具) 加密、响应辅助
-│   ├── handlers/
-│   │   └── api.js          # (核心) 聊天室 API 逻辑 (D1 交互)
+│   ├── config.js           # (配置) 环境变量与上下文管理　　　
+│   ├── constants.js        # (常量)　　　　
+│   ├── utils/　　　
+│   │   └── helpers.js      # (工具) 加密、响应辅助　　　
+│   ├── handlers/　　　
+│   │   └── api.js          # (核心) 聊天室 API 逻辑 (D1 交互)　　　
 │   └── pages/
-│       └── home.js         # (前端) 内联的 HTML/CSS/JS 生成器
+│       └── home.js         # (前端) 内联的 HTML/CSS/JS 生成器　　　
 
 - `index.html`: 客户端代码，提供聊天室界面和 WebSocket 交互。
 - `server.js`: 服务器代码，处理 WebSocket 连接、消息广播和用户管理。
