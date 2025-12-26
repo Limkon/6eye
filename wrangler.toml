@@ -1,0 +1,12 @@
+name = "6eye-chat"
+main = "dist/_worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "chat-db"
+database_id = "你的_DATABASE_ID" # 记得替换
+
+[vars]
+CHAT_ENCRYPTION_KEY = "0000000000000000000000000000000000000000000000000000000000000000"
