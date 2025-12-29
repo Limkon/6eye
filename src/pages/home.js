@@ -1,3 +1,7 @@
+{
+type: uploaded file
+fileName: limkon/6eye/6eye-e75282df500e287b71ccc44cd456c649eea2a1b4/src/pages/home.js
+fullContent:
 export function generateChatPage() {
     const css = `
     /* 全局重置 */
@@ -151,6 +155,7 @@ export function generateChatPage() {
     const Crypto = {
         async deriveKey(password) { 
             const enc = new TextEncoder();
+            if (!crypto.subtle) throw new Error("Crypto API unavailable (Use HTTPS)");
             const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]); 
             return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(state.roomId), iterations: 100000, hash: "SHA-256" }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); 
         },
@@ -160,14 +165,23 @@ export function generateChatPage() {
                 const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(text)); 
                 const comb = new Uint8Array(iv.length + enc.byteLength); comb.set(iv); comb.set(new Uint8Array(enc), iv.length); 
                 return btoa(String.fromCharCode(...comb)); 
-            } catch(e) { return text; }
+            } catch(e) { 
+                console.warn('Encryption failed:', e);
+                return text; 
+            }
         },
         async decrypt(b64, password) { 
             try { 
-                const key = await this.deriveKey(password); const comb = new Uint8Array(atob(b64).split("").map(c => c.charCodeAt(0))); 
+                const key = await this.deriveKey(password); 
+                const binaryStr = atob(b64);
+                const comb = new Uint8Array(binaryStr.split("").map(c => c.charCodeAt(0))); 
+                
                 const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: comb.slice(0, 12) }, key, comb.slice(12)); 
                 return new TextDecoder().decode(dec); 
-            } catch (e) { return "🔒 [密文]"; } 
+            } catch (e) { 
+                // 解密失败（可能是旧数据、密码错误或明文），返回 null 以便上层过滤
+                return null; 
+            } 
         }
     };
 
@@ -227,16 +241,13 @@ export function generateChatPage() {
             setTimeout(() => div.remove(), 2500);
         }
 
-        // --- 核心修复：立即渲染消息 (Optimistic UI) ---
+        // Optimistic UI
         function appendLocalMessage(text) {
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const rendered = (typeof marked !== 'undefined') ? marked.parse(text) : text;
-            
-            // 创建临时消息 DOM
             const div = document.createElement('div');
-            div.className = 'message message-right message-sending'; // 添加发送中状态
+            div.className = 'message message-right message-sending'; 
             div.innerHTML = \`<span class="message-username">\${state.username} \${time}</span><div>\${rendered}</div>\`;
-            
             ui.chatArea.appendChild(div);
             ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
@@ -276,18 +287,13 @@ export function generateChatPage() {
             } catch (e) { showToast(e.message); }
         };
 
-        // 发送消息 - 修复延时问题
         ui.sendBtn.onclick = async () => {
             const rawText = ui.msgInput.value.trim();
             if (!rawText) return;
 
-            // 1. 立即清空输入框
             ui.msgInput.value = '';
-
-            // 2. 立即上屏 (本地显示)
             appendLocalMessage(rawText);
 
-            // 3. 后台发送
             let payloadText = rawText;
             if (state.roomKey) payloadText = await Crypto.encrypt(rawText, state.roomKey);
 
@@ -299,7 +305,6 @@ export function generateChatPage() {
                 if (res.ok) {
                     state.lastActivity = Date.now();
                     refreshTimer();
-                    // 发送成功后，立即拉取一次以确认同步，并消除“发送中”状态(由pollMessages重新渲染覆盖)
                     pollMessages(); 
                 }
             } catch (e) { showToast('发送失败'); }
@@ -343,21 +348,28 @@ export function generateChatPage() {
         async function renderData(data) {
             ui.userListArea.innerHTML = '<h3>在线</h3>' + (data.users.map(u => \`<div><i class="fas fa-user"></i> \${u}</div>\`).join(''));
             
-            const htmls = await Promise.all(data.messages.map(async m => {
+            // 核心修改：如果是加密房间，解密失败的消息会被标记为 null 并被过滤掉
+            const validMessages = (await Promise.all(data.messages.map(async m => {
                 const type = m.username === state.username ? 'message-right' : 'message-left';
                 let content = m.message;
-                if (state.roomKey) content = await Crypto.decrypt(content, state.roomKey);
+                
+                if (state.roomKey) {
+                    const decrypted = await Crypto.decrypt(content, state.roomKey);
+                    // 如果解密返回 null，说明是测试数据/无效数据/其他密码的数据，不显示
+                    if (decrypted === null) return null;
+                    content = decrypted;
+                }
+                
                 const rendered = (typeof marked !== 'undefined') ? marked.parse(content) : content;
                 const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return \`<div class="message \${type}">
                     <span class="message-username">\${m.username} \${time}</span>
                     <div>\${rendered}</div>
                 </div>\`;
-            }));
+            }))).filter(msg => msg !== null); // 过滤掉 null
             
-            // 只有当消息数量变化或处于底部时才更新，防止影响用户阅读历史
             const atBottom = ui.chatArea.scrollTop + ui.chatArea.clientHeight >= ui.chatArea.scrollHeight - 50;
-            ui.chatArea.innerHTML = htmls.length ? htmls.join('') : '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
+            ui.chatArea.innerHTML = validMessages.length ? validMessages.join('') : '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
             if (atBottom) ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
     });
@@ -411,4 +423,6 @@ export function generateChatPage() {
     </body>
     </html>
     `;
+}
+
 }
