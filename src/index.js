@@ -1,7 +1,3 @@
-{
-type: uploaded file
-fileName: limkon/6eye/6eye-e75282df500e287b71ccc44cd456c649eea2a1b4/src/index.js
-fullContent:
 import { initializeContext } from './config.js';
 import { handleApiRequest } from './handlers/api.js';
 import { generateChatPage } from './pages/home.js';
@@ -42,4 +38,3 @@ export default {
     }
 };
 
-}
