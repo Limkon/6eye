@@ -22,7 +22,6 @@ const INIT_SQL = [
 ];
 
 // 全局变量：记录表是否已初始化。
-// Cloudflare Workers 会在内存中保留这个变量，避免每次请求都去运行 create table，极大降低数据库压力。
 let tablesInitialized = false;
 
 // 辅助函数：带重试的数据库执行器
@@ -37,11 +36,10 @@ async function runWithRetry(dbOperation, retries = 3, delay = 150) {
             // 如果错误包含 "locked" (死锁) 或 "busy"，则等待后重试
             const isLockError = e.message && (e.message.includes('locked') || e.message.includes('busy'));
             if (isLockError) {
-                // 增加随机抖动
+                // 增加一点随机抖动
                 const jitter = Math.random() * 50;
                 await new Promise(r => setTimeout(r, delay + jitter));
             } else {
-                // 其他错误直接抛出，不重试
                 throw e;
             }
         }
@@ -52,7 +50,6 @@ async function ensureTables(db) {
     if (tablesInitialized) return;
 
     try {
-        // 使用 runWithRetry 包裹建表操作
         await runWithRetry(async () => {
              const statements = INIT_SQL.map(sql => db.prepare(sql));
              await db.batch(statements);
@@ -60,7 +57,6 @@ async function ensureTables(db) {
         tablesInitialized = true;
     } catch (e) {
         console.error('Table init warning:', e.message);
-        // 即便出错（可能是并发导致其他线程已经创建了），也暂时标记为 true，依靠后续查询验证
         tablesInitialized = true;
     }
 }
@@ -78,12 +74,11 @@ export async function handleApiRequest(request, context, url, ctx) {
         try {
             const currentUser = url.searchParams.get('user');
             
-            // 只有当提供了 username 时才尝试更新状态
-            if (currentUser) {
-                // 确保表存在后再更新
-                if (!tablesInitialized) await ensureTables(db);
+            // 确保表存在
+            if (!tablesInitialized) await ensureTables(db);
 
-                // 核心修复：使用 waitUntil 异步执行心跳更新，避免阻塞读取请求
+            // 核心修复：将心跳更新移出主等待流程，使用 waitUntil 异步执行
+            if (currentUser) {
                 if (ctx && ctx.waitUntil) {
                     ctx.waitUntil((async () => {
                         try {
@@ -94,7 +89,7 @@ export async function handleApiRequest(request, context, url, ctx) {
                         }
                     })());
                 } else {
-                    // 降级处理：如果没有 ctx，不使用 await 阻塞
+                    // 降级处理
                     db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
                         .bind(roomId, currentUser, Date.now(), Date.now()).run().catch(() => {});
                 }
@@ -102,7 +97,6 @@ export async function handleApiRequest(request, context, url, ctx) {
             
             const activeThreshold = Date.now() - (CONSTANTS.USER_TIMEOUT_MS || 30000);
             
-            // 使用 Promise.all 并行查询，提高速度
             const [usersResult, messagesResult] = await Promise.all([
                 db.prepare(`SELECT username FROM users WHERE room_id = ? AND last_seen > ?`).bind(roomId, activeThreshold).all(),
                 db.prepare(`SELECT username, content, iv, timestamp FROM messages WHERE room_id = ? ORDER BY timestamp DESC LIMIT ?`).bind(roomId, 50).all()
@@ -118,7 +112,6 @@ export async function handleApiRequest(request, context, url, ctx) {
             
             return jsonResponse({ messages: decryptedMessages, users: users.map(u => u.username) });
         } catch (e) {
-            // 如果是因为表不存在(no such table)导致的错误，说明房间是新的，直接返回空列表
             if (e.message && e.message.includes('no such table')) {
                 return jsonResponse({ messages: [], users: [] });
             }
@@ -128,14 +121,11 @@ export async function handleApiRequest(request, context, url, ctx) {
 
     // POST /send
     if (request.method === 'POST' && action === 'send') {
-        // 1. 确保表存在
         await ensureTables(db); 
         
-        // 2. 解析 Body
         const { username, message } = await request.json();
         if (!message || !username) return jsonResponse({ error: 'Invalid data' }, 400);
 
-        // 3. 执行插入 (带重试)
         const encrypted = encryptMessage(message, encryptionKey);
         
         await runWithRetry(async () => {
@@ -147,14 +137,11 @@ export async function handleApiRequest(request, context, url, ctx) {
 
     // POST /join
     if (request.method === 'POST' && action === 'join') {
-        // 1. 确保表存在
         await ensureTables(db);
         
-        // 2. 解析 Body
         const { username } = await request.json();
         if (!username) return jsonResponse({ error: 'Missing username' }, 400);
 
-        // 3. 执行插入 (带重试)
         await runWithRetry(async () => {
             await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
                     .bind(roomId, username, Date.now(), Date.now()).run();
@@ -178,7 +165,7 @@ export async function handleApiRequest(request, context, url, ctx) {
     
     // 手动初始化接口
     if (pathParts[2] === 'init') {
-        tablesInitialized = false; // 强制重置标志
+        tablesInitialized = false; 
         try {
             await ensureTables(db);
             return jsonResponse({ success: true, message: '初始化成功' });
