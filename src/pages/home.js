@@ -106,7 +106,7 @@ export function generateChatPage() {
     .message-sending { opacity: 0.7; }
     .message-sending::after { content: ' (发送中...)'; font-size: 0.7em; color: #999; }
     /* 错误消息 */
-    .message-error { color: #d32f2f; font-style: italic; font-size: 0.9em; }
+    .message-error { color: #d32f2f; font-style: italic; font-size: 0.9em; display: flex; align-items: center; gap: 5px; }
 
     /* 底部输入区 */
     footer { 
@@ -157,7 +157,7 @@ export function generateChatPage() {
             const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]); 
             return crypto.subtle.deriveKey({ 
                 name: "PBKDF2", 
-                salt: enc.encode(state.roomId), // 注意：RoomID 必须严格一致
+                salt: enc.encode(state.roomId),
                 iterations: 100000, 
                 hash: "SHA-256" 
             }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); 
@@ -174,13 +174,12 @@ export function generateChatPage() {
                 combined.set(iv);
                 combined.set(new Uint8Array(ciphertext), iv.length);
                 
-                // 手动转 Base64，避免大数组溢出
+                // 手动转 Base64
                 let binary = '';
                 for (let i = 0; i < combined.byteLength; i++) binary += String.fromCharCode(combined[i]);
                 return btoa(binary);
             } catch(e) { 
                 console.warn('Encryption failed:', e);
-                // 加密失败时不发送明文，而是抛出错误，避免误解
                 throw new Error("加密失败");
             }
         },
@@ -188,8 +187,9 @@ export function generateChatPage() {
             try { 
                 const key = await this.deriveKey(password); 
                 
-                // Base64 -> Uint8Array
-                const binaryStr = atob(b64);
+                let binaryStr;
+                try { binaryStr = atob(b64); } catch(e) { return null; }
+
                 const combined = new Uint8Array(binaryStr.length);
                 for (let i = 0; i < binaryStr.length; i++) combined[i] = binaryStr.charCodeAt(i);
                 
@@ -201,7 +201,6 @@ export function generateChatPage() {
                 const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext); 
                 return new TextDecoder().decode(dec); 
             } catch (e) { 
-                // 解密失败返回 null
                 return null; 
             } 
         }
@@ -263,7 +262,6 @@ export function generateChatPage() {
             setTimeout(() => div.remove(), 2500);
         }
 
-        // Optimistic UI
         function appendLocalMessage(text) {
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const rendered = (typeof marked !== 'undefined') ? marked.parse(text) : text;
@@ -380,9 +378,6 @@ export function generateChatPage() {
                 if (state.roomKey) {
                     const decrypted = await Crypto.decrypt(content, state.roomKey);
                     if (decrypted === null) {
-                        // 策略优化：
-                        // 1. 如果是 1 分钟内的消息（可能是刚发的），显示错误提示，防止用户以为丢消息。
-                        // 2. 如果是旧消息（测试数据），返回 null 从而隐藏它。
                         const isRecent = (Date.now() - m.timestamp) < 60000;
                         if (isRecent) {
                             content = '<span class="message-error"><i class="fas fa-exclamation-triangle"></i> 无法解密 (密钥不匹配)</span>';
@@ -394,7 +389,6 @@ export function generateChatPage() {
                     }
                 }
                 
-                // 处理 Markdown，如果是错误提示则保持原样
                 const rendered = content.startsWith('<span') ? content : ((typeof marked !== 'undefined') ? marked.parse(content) : content);
                 
                 const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -404,11 +398,8 @@ export function generateChatPage() {
                 </div>\`;
             }))).filter(msg => msg !== null);
             
-            // 只有当消息内容发生实质变化时才更新 innerHTML，避免输入框闪烁或滚动跳动（虽然这里是替换整个列表）
-            // 简单处理：直接更新
             const html = validMessages.length ? validMessages.join('') : '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
             
-            // 检测是否需要滚动到底部
             const atBottom = ui.chatArea.scrollTop + ui.chatArea.clientHeight >= ui.chatArea.scrollHeight - 50;
             ui.chatArea.innerHTML = html;
             if (atBottom) ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
