@@ -21,25 +21,46 @@ const INIT_SQL = [
     `CREATE INDEX IF NOT EXISTS idx_users_room ON users(room_id, last_seen);`
 ];
 
-// 核心修改：主动初始化数据库，而非出错后重试
-async function ensureTables(db) {
-    // 批量执行建表语句，IF NOT EXISTS 保证了重复执行无副作用且速度快
-    const statements = INIT_SQL.map(sql => db.prepare(sql));
-    await db.batch(statements);
-}
+// 全局变量：记录表是否已初始化。
+// Cloudflare Workers 会在内存中保留这个变量，避免每次请求都去运行 create table，极大降低数据库压力。
+let tablesInitialized = false;
 
-// 辅助函数：带重试的数据库执行
-async function runWithRetry(dbOperation, retries = 3, delay = 100) {
+// 辅助函数：带重试的数据库执行器
+async function runWithRetry(dbOperation, retries = 3, delay = 150) {
     for (let i = 0; i < retries; i++) {
         try {
             return await dbOperation();
         } catch (e) {
-            // 如果是最后一次尝试，或者错误不是数据库锁定/忙碌，则抛出异常
+            // 如果是最后一次尝试，抛出错误
             if (i === retries - 1) throw e;
-            // 简单判断是否因为并发导致的锁问题 (SQLITE_BUSY) 或表尚未就绪
-            console.warn(`DB operation failed, retrying (${i + 1}/${retries})...`, e.message);
-            await new Promise(r => setTimeout(r, delay));
+            
+            // 如果错误包含 "locked" (死锁) 或 "busy"，则等待后重试
+            const isLockError = e.message && (e.message.includes('locked') || e.message.includes('busy'));
+            if (isLockError) {
+                console.warn(`Database locked, retrying (${i + 1}/${retries})...`);
+                await new Promise(r => setTimeout(r, delay));
+            } else {
+                // 其他错误直接抛出，不重试
+                throw e;
+            }
         }
+    }
+}
+
+async function ensureTables(db) {
+    if (tablesInitialized) return;
+
+    try {
+        // 使用 runWithRetry 包裹建表操作
+        await runWithRetry(async () => {
+             const statements = INIT_SQL.map(sql => db.prepare(sql));
+             await db.batch(statements);
+        });
+        tablesInitialized = true;
+    } catch (e) {
+        console.error('Table init warning:', e.message);
+        // 即便出错（可能是并发导致其他线程已经创建了），也暂时标记为 true，依靠后续查询验证
+        tablesInitialized = true;
     }
 }
 
@@ -49,33 +70,38 @@ export async function handleApiRequest(request, context, url) {
     const action = pathParts[4];
     const { db, encryptionKey } = context;
 
-    // 手动初始化接口 (保留)
-    if (pathParts[2] === 'init') {
-        try {
-            await ensureTables(db);
-            return jsonResponse({ success: true, message: '初始化成功' });
-        } catch (e) {
-            return jsonResponse({ error: e.message }, 500);
-        }
-    }
-
     if (!roomId) return jsonResponse({ error: 'Missing Room ID' }, 400);
 
     // GET /messages
     if (request.method === 'GET' && action === 'messages') {
         try {
             const currentUser = url.searchParams.get('user');
+            
+            // 只有当提供了 username 时才尝试更新状态
             if (currentUser) {
-                // 更新用户活跃时间 (如果表不存在这里会报错，catch 会处理)
-                // 这里不需要重试，失败了仅仅是不更新活跃时间，不影响读取
-                await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
+                // 更新活跃时间 (非关键操作，失败可忽略，不阻塞读取)
+                // 确保表存在后再更新
+                if (!tablesInitialized) await ensureTables(db);
+
+                try {
+                    await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
                         .bind(roomId, currentUser, Date.now(), Date.now()).run();
+                } catch(e) {
+                    // 忽略更新活跃时间时的错误
+                }
             }
             
             const activeThreshold = Date.now() - (CONSTANTS.USER_TIMEOUT_MS || 30000);
-            const { results: users } = await db.prepare(`SELECT username FROM users WHERE room_id = ? AND last_seen > ?`).bind(roomId, activeThreshold).all();
-            const { results: messages } = await db.prepare(`SELECT username, content, iv, timestamp FROM messages WHERE room_id = ? ORDER BY timestamp DESC LIMIT ?`).bind(roomId, 50).all();
             
+            // 使用 Promise.all 并行查询，提高速度
+            const [usersResult, messagesResult] = await Promise.all([
+                db.prepare(`SELECT username FROM users WHERE room_id = ? AND last_seen > ?`).bind(roomId, activeThreshold).all(),
+                db.prepare(`SELECT username, content, iv, timestamp FROM messages WHERE room_id = ? ORDER BY timestamp DESC LIMIT ?`).bind(roomId, 50).all()
+            ]);
+            
+            const users = usersResult.results || [];
+            const messages = messagesResult.results || [];
+
             const decryptedMessages = messages.reverse().map(msg => {
                 const content = decryptMessage(msg.content, msg.iv, encryptionKey);
                 return content ? { username: msg.username, message: content, timestamp: msg.timestamp } : null;
@@ -83,7 +109,7 @@ export async function handleApiRequest(request, context, url) {
             
             return jsonResponse({ messages: decryptedMessages, users: users.map(u => u.username) });
         } catch (e) {
-            // 如果是因为表不存在导致的错误，说明房间是新的，直接返回空列表
+            // 如果是因为表不存在(no such table)导致的错误，说明房间是新的，直接返回空列表
             if (e.message && e.message.includes('no such table')) {
                 return jsonResponse({ messages: [], users: [] });
             }
@@ -98,11 +124,13 @@ export async function handleApiRequest(request, context, url) {
         
         // 2. 解析 Body
         const { username, message } = await request.json();
-        
-        // 3. 执行插入
+        if (!message || !username) return jsonResponse({ error: 'Invalid data' }, 400);
+
+        // 3. 执行插入 (带重试)
         const encrypted = encryptMessage(message, encryptionKey);
+        
         await runWithRetry(async () => {
-             await db.prepare(`INSERT INTO messages (room_id, username, content, iv, timestamp) VALUES (?, ?, ?, ?, ?)`).bind(roomId, username, encrypted.encrypted, encrypted.iv, Date.now()).run();
+            await db.prepare(`INSERT INTO messages (room_id, username, content, iv, timestamp) VALUES (?, ?, ?, ?, ?)`).bind(roomId, username, encrypted.encrypted, encrypted.iv, Date.now()).run();
         });
         
         return jsonResponse({ success: true });
@@ -115,8 +143,9 @@ export async function handleApiRequest(request, context, url) {
         
         // 2. 解析 Body
         const { username } = await request.json();
-        
-        // 3. 执行插入 (增加重试机制，解决首次创建表时的并发问题)
+        if (!username) return jsonResponse({ error: 'Missing username' }, 400);
+
+        // 3. 执行插入 (带重试，这是最容易发生死锁的地方)
         await runWithRetry(async () => {
             await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
                     .bind(roomId, username, Date.now(), Date.now()).run();
@@ -134,8 +163,18 @@ export async function handleApiRequest(request, context, url) {
             ]);
             return jsonResponse({ success: true });
         } catch (e) {
-             // 如果表本身就不存在，也算销毁成功
              return jsonResponse({ success: true });
+        }
+    }
+    
+    // 手动初始化接口
+    if (pathParts[2] === 'init') {
+        tablesInitialized = false; // 强制重置标志
+        try {
+            await ensureTables(db);
+            return jsonResponse({ success: true, message: '初始化成功' });
+        } catch (e) {
+            return jsonResponse({ error: e.message }, 500);
         }
     }
 }
