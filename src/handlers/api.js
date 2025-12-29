@@ -28,6 +28,21 @@ async function ensureTables(db) {
     await db.batch(statements);
 }
 
+// 辅助函数：带重试的数据库执行
+async function runWithRetry(dbOperation, retries = 3, delay = 100) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await dbOperation();
+        } catch (e) {
+            // 如果是最后一次尝试，或者错误不是数据库锁定/忙碌，则抛出异常
+            if (i === retries - 1) throw e;
+            // 简单判断是否因为并发导致的锁问题 (SQLITE_BUSY) 或表尚未就绪
+            console.warn(`DB operation failed, retrying (${i + 1}/${retries})...`, e.message);
+            await new Promise(r => setTimeout(r, delay));
+        }
+    }
+}
+
 export async function handleApiRequest(request, context, url) {
     const pathParts = url.pathname.split('/');
     const roomId = pathParts[3];
@@ -52,6 +67,7 @@ export async function handleApiRequest(request, context, url) {
             const currentUser = url.searchParams.get('user');
             if (currentUser) {
                 // 更新用户活跃时间 (如果表不存在这里会报错，catch 会处理)
+                // 这里不需要重试，失败了仅仅是不更新活跃时间，不影响读取
                 await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
                         .bind(roomId, currentUser, Date.now(), Date.now()).run();
             }
@@ -77,7 +93,7 @@ export async function handleApiRequest(request, context, url) {
 
     // POST /send
     if (request.method === 'POST' && action === 'send') {
-        // 1. 确保表存在 (修复：消息发送失败/不可见的问题)
+        // 1. 确保表存在
         await ensureTables(db); 
         
         // 2. 解析 Body
@@ -85,22 +101,26 @@ export async function handleApiRequest(request, context, url) {
         
         // 3. 执行插入
         const encrypted = encryptMessage(message, encryptionKey);
-        await db.prepare(`INSERT INTO messages (room_id, username, content, iv, timestamp) VALUES (?, ?, ?, ?, ?)`).bind(roomId, username, encrypted.encrypted, encrypted.iv, Date.now()).run();
+        await runWithRetry(async () => {
+             await db.prepare(`INSERT INTO messages (room_id, username, content, iv, timestamp) VALUES (?, ?, ?, ?, ?)`).bind(roomId, username, encrypted.encrypted, encrypted.iv, Date.now()).run();
+        });
         
         return jsonResponse({ success: true });
     }
 
     // POST /join
     if (request.method === 'POST' && action === 'join') {
-        // 1. 确保表存在 (修复：首次加入失败的问题)
+        // 1. 确保表存在
         await ensureTables(db);
         
         // 2. 解析 Body
         const { username } = await request.json();
         
-        // 3. 执行插入
-        await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
-                .bind(roomId, username, Date.now(), Date.now()).run();
+        // 3. 执行插入 (增加重试机制，解决首次创建表时的并发问题)
+        await runWithRetry(async () => {
+            await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
+                    .bind(roomId, username, Date.now(), Date.now()).run();
+        });
         
         return jsonResponse({ success: true });
     }
