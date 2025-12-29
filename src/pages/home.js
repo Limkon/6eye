@@ -280,7 +280,6 @@ export function generateChatPage() {
             const id = ui.roomIdInput.value.trim();
             if (!id) return showToast('请输入房间ID');
             
-            // 锁定界面，防止重复点击
             ui.btnJoinRoom.disabled = true;
             ui.btnJoinRoom.innerText = '...';
 
@@ -288,7 +287,6 @@ export function generateChatPage() {
                 state.roomId = id;
                 const password = ui.roomKeyInput.value.trim();
                 
-                // 核心修复：只计算一次密钥！
                 if (password) {
                     try {
                         state.cryptoKeyObj = await Crypto.generateKey(password, state.roomId);
@@ -320,7 +318,7 @@ export function generateChatPage() {
             const name = ui.usernameInput.value.trim();
             if (!name) return showToast('请输入称呼');
             
-            ui.btnJoinChat.disabled = true; // 防止重复点击
+            ui.btnJoinChat.disabled = true;
             
             try {
                 const res = await fetch(\`/api/room/\${encodeURIComponent(state.roomId)}/join\`, {
@@ -352,7 +350,6 @@ export function generateChatPage() {
             try {
                 let payloadText = rawText;
                 if (state.cryptoKeyObj) {
-                    // 使用缓存的 Key 对象加密
                     payloadText = await Crypto.encrypt(rawText, state.cryptoKeyObj);
                 }
 
@@ -392,9 +389,17 @@ export function generateChatPage() {
         async function pollMessages() {
             if (!state.roomId) return;
             try {
+                // 核心修改：手动拼接查询参数，添加时间戳 _t
                 let url = \`/api/room/\${encodeURIComponent(state.roomId)}/messages\`;
-                if (state.username) url += \`?user=\${encodeURIComponent(state.username)}\`;
-                const res = await fetch(url);
+                const params = [];
+                if (state.username) params.push(\`user=\${encodeURIComponent(state.username)}\`);
+                
+                // 强力去缓存：每次请求都加时间戳
+                params.push(\`_t=\${Date.now()}\`);
+
+                const fullUrl = \`\${url}?\${params.join('&')}\`;
+                
+                const res = await fetch(fullUrl);
                 if (!res.ok) return;
                 const data = await res.json();
                 
@@ -414,14 +419,12 @@ export function generateChatPage() {
                 let content = m.message;
                 
                 if (state.cryptoKeyObj) {
-                    // 使用缓存的 Key 对象解密，速度提升 1000 倍
                     const decrypted = await Crypto.decrypt(content, state.cryptoKeyObj);
                     if (decrypted === null) {
                         const isRecent = (Date.now() - m.timestamp) < 60000;
                         if (isRecent) {
                             content = '<span class="message-error"><i class="fas fa-exclamation-triangle"></i> 无法解密 (密钥不匹配)</span>';
                         } else {
-                            // 旧的解密失败消息可能不是发给这个房间的或者密钥确实不对，隐藏处理
                             return null;
                         }
                     } else {
