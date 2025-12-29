@@ -1,3 +1,7 @@
+{
+type: uploaded file
+fileName: limkon/6eye/6eye-e75282df500e287b71ccc44cd456c649eea2a1b4/src/index.js
+fullContent:
 import { initializeContext } from './config.js';
 import { handleApiRequest } from './handlers/api.js';
 import { generateChatPage } from './pages/home.js';
@@ -33,7 +37,9 @@ export default {
     },
 
     async scheduled(event, env, ctx) {
-        // 定时清理旧数据
-        await env.DB.prepare("DELETE FROM messages WHERE timestamp < ?").bind(Date.now() - 86400000).run();
+        // 定时清理旧数据 - 修改为清理 1 小时前的数据 (3600000 ms)
+        await env.DB.prepare("DELETE FROM messages WHERE timestamp < ?").bind(Date.now() - 3600000).run();
     }
 };
+
+}
