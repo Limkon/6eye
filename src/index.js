@@ -38,3 +38,4 @@ export default {
         await env.DB.prepare("DELETE FROM messages WHERE timestamp < ?").bind(Date.now() - 3600000).run();
     }
 };
+`
