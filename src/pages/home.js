@@ -1,5 +1,5 @@
 export function generateChatPage() {
-    // 恢复了完整的关键 CSS，确保布局正常
+    // 恢复了完整的关键 CSS，并添加了 FontAwesome 支持
     const css = `
     /* 基础布局 */
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; height: 100vh; overflow: hidden; }
@@ -12,7 +12,7 @@ export function generateChatPage() {
     
     /* 控件样式 */
     input[type="text"], textarea { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
-    button { padding: 6px 12px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+    button { padding: 6px 12px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; transition: 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
     button:hover { background: #f0f0f0; }
     button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
     button#destroy-room { background-color: #dc3545; border-color: #dc3545; color: white; }
@@ -56,7 +56,6 @@ export function generateChatPage() {
     let roomId = '', username = '', joined = false, pollInterval = null;
     const POLL_RATE = 2000;
     
-    // 简易 Alert
     function showToast(msg) {
         const div = document.createElement('div');
         div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 20px;border-radius:4px;z-index:9999;font-size:14px;';
@@ -71,7 +70,6 @@ export function generateChatPage() {
             els[id] = document.getElementById(id);
         });
 
-        // 绑定 Enter 键
         els['room-id'].onkeydown = (e) => { if(e.key === 'Enter') els['join-room'].click(); };
         els['username'].onkeydown = (e) => { if(e.key === 'Enter') els['join'].click(); };
         els['message'].onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); els['send'].click(); } };
@@ -100,7 +98,6 @@ export function generateChatPage() {
                 username = name; 
                 joined = true;
                 
-                // UI 状态更新
                 els['username'].style.display = 'none';
                 els['join'].style.display = 'none';
                 els['message'].disabled = false;
@@ -151,9 +148,7 @@ export function generateChatPage() {
         
         try {
             const res = await fetch(url);
-            // 增强错误处理：先看状态码
             if(!res.ok) {
-                // 尝试解析 JSON 错误，如果解析失败（后端挂了），则使用默认文本
                 let errText = 'Unknown Error';
                 try { const err = await res.json(); errText = err.error; } catch(e) {}
                 console.warn('Poll failed:', errText);
@@ -166,12 +161,11 @@ export function generateChatPage() {
     }
 
     function renderUsers(users) {
-        els['userlist'].innerHTML = '<h3>在线用户</h3>' + (users.length ? users.map(u => \`<div>\${u}</div>\`).join('') : '<div style="color:#999">暂无其他用户</div>');
+        els['userlist'].innerHTML = '<h3><i class="fas fa-users"></i> 在线用户</h3>' + (users.length ? users.map(u => \`<div><i class="fas fa-user-circle"></i> \${u}</div>\`).join('') : '<div style="color:#999">暂无其他用户</div>');
     }
 
     function renderMessages(msgs) {
         const chat = els['chat'];
-        // 只有当用户接近底部时才自动滚动
         const shouldScroll = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 100;
         
         if (msgs.length === 0) {
@@ -200,23 +194,25 @@ export function generateChatPage() {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>6eye Chat</title>
+        <link rel="stylesheet" href="/src/vendor/fontawesome/css/all.min.css">
         <style>${css}</style>
     </head>
     <body>
         <div id="app">
             <header>
-                <h1>MO留書</h1>
+                <h1><i class="fas fa-eye"></i> 临时聊天室</h1>
                 <div class="controls">
                     <span id="current-room-id" style="font-size:0.9em;margin-right:5px">未加入房间</span>
                     <input type="text" id="room-id" placeholder="房间ID" style="width:100px">
-                    <button id="join-room">进入</button>
-                    <button id="userlist-toggle">👥</button>
-                    <button id="destroy-room" disabled>🗑️</button>
+                    <button id="join-room"><i class="fas fa-sign-in-alt"></i> 进入</button>
+                    <button id="userlist-toggle"><i class="fas fa-users"></i></button>
+                    <button id="destroy-room" title="销毁房间" disabled><i class="fas fa-trash-alt"></i></button>
                 </div>
             </header>
             <main>
                 <section id="chat">
                     <div style="text-align:center;color:#999;margin-top:50px">
+                        <i class="fas fa-info-circle fa-2x"></i><br><br>
                         请先输入房间ID并点击“进入”<br>然后设置称呼加入聊天
                     </div>
                 </section>
@@ -224,9 +220,9 @@ export function generateChatPage() {
             </main>
             <footer>
                 <input type="text" id="username" placeholder="您的称呼">
-                <button id="join">加入</button>
+                <button id="join"><i class="fas fa-user-plus"></i> 加入</button>
                 <textarea id="message" placeholder="输入留言..." disabled></textarea>
-                <button id="send" disabled>发送</button>
+                <button id="send" disabled><i class="fas fa-paper-plane"></i> 发送</button>
             </footer>
         </div>
         <script>${js}</script>
