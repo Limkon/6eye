@@ -12,22 +12,18 @@ export function generateChatPage() {
         box-shadow: 0 2px 4px rgba(0,0,0,0.15); z-index: 100; flex-shrink: 0;
     }
     
-    /* 标题区域 */
     header h1 { 
         margin: 0; font-size: 1.1rem; color: #fff; font-weight: 600; 
         display: flex; align-items: center; gap: 8px; white-space: nowrap; 
     }
 
-    /* 右侧控制区 */
     .controls { display: flex; align-items: center; gap: 8px; height: 100%; }
-
-    /* 面板切换 */
     #join-ui, #room-ui { display: flex; align-items: center; gap: 8px; height: 100%; }
-    #room-ui { display: none; } /* 默认隐藏 */
+    #room-ui { display: none; } 
 
-    /* 倒计时容器 (红底黄字，醒目) */
+    /* 倒计时容器 */
     #timer-wrapper {
-        display: none; /* JS 控制显示 */
+        display: none;
         align-items: center;
         background: rgba(0,0,0,0.2);
         padding: 2px 4px 2px 10px;
@@ -40,7 +36,7 @@ export function generateChatPage() {
         margin-right: 6px; font-variant-numeric: tabular-nums; 
     }
     
-    /* 取消/停止按钮 (强制可见) */
+    /* 停止按钮 */
     button#cancel-cleanup {
         background-color: #ff5252 !important;
         color: white !important;
@@ -51,47 +47,34 @@ export function generateChatPage() {
         font-size: 0.75rem !important;
         line-height: 24px;
         min-width: auto;
-        opacity: 1 !important;
     }
     button#cancel-cleanup:hover { background-color: #d32f2f !important; }
 
-    /* 通用输入框 */
+    /* 输入框 */
     input { 
         padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; 
         font-size: 0.9rem; outline: none; background: #fff; color: #333;
     }
-    input::placeholder { color: #999; }
 
-    /* 通用按钮样式 (高优先级) */
+    /* 按钮通用 */
     button {
         padding: 0 12px; height: 34px;
         border-radius: 4px; border: 1px solid #ccc;
-        font-size: 0.9rem !important; /* 强制字体大小 */
-        font-family: inherit;
+        font-size: 0.9rem !important;
         cursor: pointer;
         display: inline-flex; align-items: center; justify-content: center; gap: 5px;
         white-space: nowrap;
         background-color: #fff;
-        color: #333 !important; /* 强制文字黑色，防止隐形 */
+        color: #333 !important;
         font-weight: 500;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     button:hover { background-color: #f5f5f5; }
-    button:active { transform: translateY(1px); }
 
-    /* 颜色覆盖 */
-    button.primary { background-color: #fff; color: #2e7d32 !important; border-color: #2e7d32; }
-    button.primary:hover { background-color: #e8f5e9; }
-
-    button.danger { background-color: #ffebee; color: #c62828 !important; border-color: #ffcdd2; }
-    button.danger:hover { background-color: #ffcdd2; }
-
-    button.info { background-color: #e3f2fd; color: #1565c0 !important; border-color: #90caf9; }
-    button.info:hover { background-color: #bbdefb; }
-
-    /* 绿色背景下的按钮 (头部) */
-    header button { box-shadow: none; border: none; opacity: 0.95; }
-    header button:hover { opacity: 1; }
+    /* 按钮颜色覆盖 */
+    header button { opacity: 0.95; border: none; }
+    button#destroy-room { background-color: #ffebee; color: #c62828 !important; }
+    button#leave-room { background-color: #e3f2fd; color: #1565c0 !important; }
+    button#join-room { background-color: #fff; color: #2e7d32 !important; }
 
     /* 状态徽章 */
     .e2ee-badge { 
@@ -102,13 +85,12 @@ export function generateChatPage() {
 
     /* 主体布局 */
     main { flex: 1; display: flex; overflow: hidden; position: relative; width: 100%; }
-    
     #chat { 
         flex: 1; padding: 15px; overflow-y: auto; 
         display: flex; flex-direction: column; gap: 10px; 
         background: #f0f2f5;
+        scroll-behavior: smooth;
     }
-    
     #userlist { 
         width: 200px; background: #fff; border-left: 1px solid #ddd; 
         padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; 
@@ -120,17 +102,26 @@ export function generateChatPage() {
     .message-left { align-self: flex-start; background: #fff; border: 1px solid #e5e5e5; }
     .message-right { align-self: flex-end; background: #dcf8c6; border: 1px solid #d4eac2; }
     .message-username { font-size: 0.75rem; color: #888; margin-bottom: 2px; display: block; }
+    /* 正在发送状态 */
+    .message-sending { opacity: 0.7; }
+    .message-sending::after { content: ' (发送中...)'; font-size: 0.7em; color: #999; }
 
-    /* 底部 */
+    /* 底部输入区 */
     footer { 
         background: #fff; padding: 10px 15px; border-top: 1px solid #ddd; 
         display: flex; gap: 10px; align-items: center; flex-shrink: 0; 
     }
-    #message { flex: 1; height: 38px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 19px; resize: none; outline: none; }
+    #message { flex: 1; height: 38px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; resize: none; outline: none; }
     #message:focus { border-color: #4CAF50; }
+    
+    /* 修复发送按钮样式 */
     #send { 
-        background-color: #4CAF50 !important; color: white !important; 
-        border-radius: 19px; border: none; padding: 0 20px; 
+        background-color: #4CAF50 !important; 
+        color: white !important; 
+        border: none; 
+        border-radius: 4px;
+        padding: 0 20px;
+        font-weight: bold;
     }
     #send:hover { background-color: #43a047 !important; }
     #send:disabled { background-color: #ccc !important; cursor: not-allowed; }
@@ -140,10 +131,7 @@ export function generateChatPage() {
         header { flex-wrap: wrap; height: auto; padding: 8px 10px; gap: 8px; }
         .controls { width: 100%; justify-content: center; }
         #join-ui, #room-ui { width: 100%; justify-content: space-between; flex-wrap: wrap; }
-        
-        /* 移动端倒计时位置调整 */
         #timer-wrapper { order: -1; width: 100%; justify-content: center; margin-bottom: 5px; }
-        
         footer { padding: 8px; }
         #username { width: 80px; }
     }
@@ -159,7 +147,7 @@ export function generateChatPage() {
 
     if (typeof marked !== 'undefined') { marked.setOptions({ breaks: true, gfm: true }); }
 
-    // --- Crypto ---
+    // --- 加密模块 ---
     const Crypto = {
         async deriveKey(password) { 
             const enc = new TextEncoder();
@@ -185,7 +173,6 @@ export function generateChatPage() {
 
     document.addEventListener('DOMContentLoaded', () => {
         const ui = {
-            app: document.getElementById('app'),
             joinUi: document.getElementById('join-ui'),
             roomUi: document.getElementById('room-ui'),
             roomIdInput: document.getElementById('room-id'),
@@ -198,7 +185,6 @@ export function generateChatPage() {
             msgInput: document.getElementById('message'),
             sendBtn: document.getElementById('send'),
             usernameInput: document.getElementById('username'),
-            // Buttons
             btnJoinRoom: document.getElementById('join-room'),
             btnJoinChat: document.getElementById('join'),
             btnLeave: document.getElementById('leave-room'),
@@ -207,7 +193,6 @@ export function generateChatPage() {
             currentRoomDisplay: document.getElementById('current-room-id')
         };
 
-        // 刷新倒计时
         function refreshTimer() {
             if (!state.roomId || !state.cleanupEnabled) {
                 ui.timerWrapper.style.display = 'none';
@@ -217,30 +202,22 @@ export function generateChatPage() {
             const mins = Math.floor(remaining / 60000);
             const secs = Math.floor((remaining % 60000) / 1000);
             ui.timerText.innerText = remaining <= 0 ? "建议清理" : \`\${mins}:\${secs.toString().padStart(2, '0')} 后清理\`;
-            ui.timerWrapper.style.display = 'flex'; // 强制显示
+            ui.timerWrapper.style.display = 'flex';
         }
         setInterval(refreshTimer, 1000);
 
-        // 重置界面 (返回主页)
         function resetUI() {
             if (state.pollInterval) clearInterval(state.pollInterval);
             state.roomId = ''; state.username = ''; state.roomKey = ''; state.cleanupEnabled = true;
-
-            // 切换回登录界面
             ui.roomUi.style.display = 'none';
             ui.joinUi.style.display = 'flex';
-            
-            // 清空数据
             ui.chatArea.innerHTML = '<div style="text-align:center;color:#999;margin-top:50px"><i class="fas fa-shield-alt fa-3x"></i><br><br>请输入房间ID进入</div>';
             ui.userListArea.innerHTML = '';
-            
-            // 重置控件
             ui.msgInput.disabled = true; ui.msgInput.value = '';
             ui.sendBtn.disabled = true;
             ui.btnJoinChat.style.display = 'inline-flex';
             ui.usernameInput.disabled = false;
-            ui.roomIdInput.value = ''; 
-            ui.roomKeyInput.value = '';
+            ui.roomIdInput.value = ''; ui.roomKeyInput.value = '';
         }
 
         function showToast(msg) {
@@ -250,28 +227,36 @@ export function generateChatPage() {
             setTimeout(() => div.remove(), 2500);
         }
 
+        // --- 核心修复：立即渲染消息 (Optimistic UI) ---
+        function appendLocalMessage(text) {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const rendered = (typeof marked !== 'undefined') ? marked.parse(text) : text;
+            
+            // 创建临时消息 DOM
+            const div = document.createElement('div');
+            div.className = 'message message-right message-sending'; // 添加发送中状态
+            div.innerHTML = \`<span class="message-username">\${state.username} \${time}</span><div>\${rendered}</div>\`;
+            
+            ui.chatArea.appendChild(div);
+            ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
+        }
+
         // --- 事件绑定 ---
 
-        // 1. 进入房间
         ui.btnJoinRoom.onclick = () => {
             const id = ui.roomIdInput.value.trim();
             if (!id) return showToast('请输入房间ID');
-
             state.roomId = id;
             state.roomKey = ui.roomKeyInput.value.trim();
             state.lastActivity = Date.now();
             state.cleanupEnabled = true;
-
-            // 界面切换
             ui.joinUi.style.display = 'none';
             ui.roomUi.style.display = 'flex';
             ui.currentRoomDisplay.innerHTML = \`<strong>#\${state.roomId}</strong> \${state.roomKey ? '<span class="e2ee-badge">密</span>' : ''}\`;
-
-            refreshTimer(); // 立即调用，不要等待
+            refreshTimer();
             startPolling();
         };
 
-        // 2. 加入聊天
         ui.btnJoinChat.onclick = async () => {
             const name = ui.usernameInput.value.trim();
             if (!name) return showToast('请输入称呼');
@@ -280,7 +265,6 @@ export function generateChatPage() {
                     method: 'POST', body: JSON.stringify({ username: name }), headers: { 'Content-Type': 'application/json' }
                 });
                 if (!res.ok) throw new Error('加入失败');
-
                 state.username = name;
                 ui.usernameInput.disabled = true;
                 ui.btnJoinChat.style.display = 'none';
@@ -292,53 +276,47 @@ export function generateChatPage() {
             } catch (e) { showToast(e.message); }
         };
 
-        // 3. 发送消息
+        // 发送消息 - 修复延时问题
         ui.sendBtn.onclick = async () => {
-            let text = ui.msgInput.value.trim();
-            if (!text) return;
-            if (state.roomKey) text = await Crypto.encrypt(text, state.roomKey);
+            const rawText = ui.msgInput.value.trim();
+            if (!rawText) return;
+
+            // 1. 立即清空输入框
+            ui.msgInput.value = '';
+
+            // 2. 立即上屏 (本地显示)
+            appendLocalMessage(rawText);
+
+            // 3. 后台发送
+            let payloadText = rawText;
+            if (state.roomKey) payloadText = await Crypto.encrypt(rawText, state.roomKey);
+
             try {
                 const res = await fetch(\`/api/room/\${encodeURIComponent(state.roomId)}/send\`, {
-                    method: 'POST', body: JSON.stringify({ username: state.username, message: text }), headers: { 'Content-Type': 'application/json' }
+                    method: 'POST', body: JSON.stringify({ username: state.username, message: payloadText }), headers: { 'Content-Type': 'application/json' }
                 });
+                
                 if (res.ok) {
-                    ui.msgInput.value = '';
                     state.lastActivity = Date.now();
                     refreshTimer();
-                    pollMessages();
+                    // 发送成功后，立即拉取一次以确认同步，并消除“发送中”状态(由pollMessages重新渲染覆盖)
+                    pollMessages(); 
                 }
             } catch (e) { showToast('发送失败'); }
         };
 
-        // 4. 销毁房间 (解决 Too Fast)
         ui.btnDestroy.onclick = async () => {
             if (!confirm('确定永久销毁房间记录吗？')) return;
             try {
                 const res = await fetch(\`/api/room/\${encodeURIComponent(state.roomId)}/destroy\`, { method: 'POST' });
-                if (res.ok) {
-                    showToast('房间已销毁');
-                    resetUI(); // 不刷新页面，直接重置
-                } else {
-                    showToast('销毁请求失败');
-                }
+                if (res.ok) { showToast('房间已销毁'); resetUI(); } else { showToast('销毁失败'); }
             } catch (e) { showToast('网络错误'); }
         };
 
-        // 5. 离开房间
-        ui.btnLeave.onclick = () => {
-            if (confirm('确定离开房间吗？')) resetUI();
-        };
-
-        // 6. 取消/停止 倒计时
-        ui.cancelTimerBtn.onclick = () => {
-            state.cleanupEnabled = false;
-            refreshTimer(); // 立即更新
-            showToast('已停止自动清理提示');
-        };
-
+        ui.btnLeave.onclick = () => { if (confirm('确定离开房间吗？')) resetUI(); };
+        ui.cancelTimerBtn.onclick = () => { state.cleanupEnabled = false; refreshTimer(); showToast('已停止自动清理提示'); };
         ui.btnUserList.onclick = () => ui.userListArea.classList.toggle('hidden');
 
-        // 轮询
         function startPolling() {
             pollMessages();
             if (state.pollInterval) clearInterval(state.pollInterval);
@@ -350,7 +328,6 @@ export function generateChatPage() {
             try {
                 let url = \`/api/room/\${encodeURIComponent(state.roomId)}/messages\`;
                 if (state.username) url += \`?user=\${encodeURIComponent(state.username)}\`;
-                
                 const res = await fetch(url);
                 if (!res.ok) return;
                 const data = await res.json();
@@ -359,8 +336,6 @@ export function generateChatPage() {
                     const latest = Math.max(...data.messages.map(m => m.timestamp));
                     state.lastActivity = Math.max(state.lastActivity, latest);
                 }
-                
-                // 只有当有新消息或首次加载时才重新渲染，避免闪烁(这里简化为每次渲染)
                 renderData(data);
             } catch (e) {}
         }
@@ -380,6 +355,7 @@ export function generateChatPage() {
                 </div>\`;
             }));
             
+            // 只有当消息数量变化或处于底部时才更新，防止影响用户阅读历史
             const atBottom = ui.chatArea.scrollTop + ui.chatArea.clientHeight >= ui.chatArea.scrollHeight - 50;
             ui.chatArea.innerHTML = htmls.length ? htmls.join('') : '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
             if (atBottom) ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
@@ -428,7 +404,7 @@ export function generateChatPage() {
                 <input type="text" id="username" placeholder="您的称呼">
                 <button id="join" class="primary">加入聊天</button>
                 <textarea id="message" placeholder="输入消息 (Markdown)" disabled></textarea>
-                <button id="send" disabled><i class="fas fa-paper-plane"></i></button>
+                <button id="send" disabled><i class="fas fa-paper-plane"></i> 发送</button>
             </footer>
         </div>
         <script>${js}</script>
