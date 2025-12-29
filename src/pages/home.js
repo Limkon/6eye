@@ -1,5 +1,5 @@
 export function generateChatPage() {
-    // 恢复了完整的关键 CSS，并添加了 FontAwesome 支持
+    // 关键 CSS：增加了 FontAwesome 图标对齐样式及布局优化
     const css = `
     /* 基础布局 */
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; height: 100vh; overflow: hidden; }
@@ -7,24 +7,39 @@ export function generateChatPage() {
 
     /* 头部 */
     header { background: #4CAF50; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; flex-shrink: 0; }
-    header h1 { margin: 0; font-size: 1.5em; }
+    header h1 { margin: 0; font-size: 1.5em; display: flex; align-items: center; gap: 8px; }
     header .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     
     /* 控件样式 */
     input[type="text"], textarea { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
-    button { padding: 6px 12px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; transition: 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+    button { 
+        padding: 6px 12px; 
+        background: #fff; 
+        color: #333; 
+        border: 1px solid #ccc; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        transition: 0.2s; 
+        white-space: nowrap; 
+        display: inline-flex; 
+        align-items: center; 
+        gap: 6px; 
+        font-size: 0.9em;
+    }
     button:hover { background: #f0f0f0; }
     button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
     button#destroy-room { background-color: #dc3545; border-color: #dc3545; color: white; }
     button#destroy-room:hover:not(:disabled) { background-color: #c82333; }
     
-    /* 主体区域 - 关键 Flex 设置 */
+    /* 主体区域 */
     main { flex: 1; display: flex; overflow: hidden; position: relative; }
     #chat { flex: 3; padding: 15px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; }
     #userlist { flex: 1; min-width: 180px; max-width: 250px; padding: 15px; border-left: 1px solid #ddd; overflow-y: auto; background: #fff; }
     #userlist.hidden { display: none; }
+    #userlist h3 { margin-top: 0; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
+    .user-item { padding: 4px 0; display: flex; align-items: center; gap: 8px; color: #555; }
     
-    /* 底部 */
+    /* 底部输入栏 */
     footer { display: flex; padding: 10px 15px; background: #eee; align-items: center; border-top: 1px solid #ddd; gap: 10px; flex-shrink: 0; }
     footer #username { width: 120px; }
     footer #message { flex: 1; height: 36px; resize: none; line-height: 24px; }
@@ -40,15 +55,15 @@ export function generateChatPage() {
     /* 移动端适配 */
     @media (max-width: 600px) {
         header { flex-direction: column; align-items: stretch; gap: 10px; }
-        header h1 { text-align: center; }
-        header .controls { justify-content: space-between; }
+        header h1 { text-align: center; justify-content: center; }
+        header .controls { justify-content: center; }
         header .controls input { flex: 1; }
         #userlist { position: absolute; right: 0; top: 0; bottom: 0; z-index: 20; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }
         footer { flex-wrap: wrap; }
-        footer #username { width: 30%; }
-        footer #join { width: 20%; }
+        footer #username { width: 40%; }
+        footer #join { width: 30%; }
         footer #message { width: 100%; order: 3; margin-top: 5px; }
-        footer #send { width: 20%; order: 2; margin-left: auto; }
+        footer #send { width: 30%; order: 2; margin-left: auto; }
     }
     `;
 
@@ -78,7 +93,7 @@ export function generateChatPage() {
             const id = els['room-id'].value.trim();
             if(!id) return showToast('请输入房间ID');
             roomId = id;
-            els['current-room-id'].innerText = '房间: ' + roomId;
+            els['current-room-id'].innerHTML = '<i class="fas fa-door-open"></i> 房间: ' + roomId;
             els['room-id'].value = '';
             connect();
         };
@@ -148,12 +163,7 @@ export function generateChatPage() {
         
         try {
             const res = await fetch(url);
-            if(!res.ok) {
-                let errText = 'Unknown Error';
-                try { const err = await res.json(); errText = err.error; } catch(e) {}
-                console.warn('Poll failed:', errText);
-                return;
-            }
+            if(!res.ok) return;
             const data = await res.json();
             renderUsers(data.users);
             renderMessages(data.messages);
@@ -161,7 +171,11 @@ export function generateChatPage() {
     }
 
     function renderUsers(users) {
-        els['userlist'].innerHTML = '<h3><i class="fas fa-users"></i> 在线用户</h3>' + (users.length ? users.map(u => \`<div><i class="fas fa-user-circle"></i> \${u}</div>\`).join('') : '<div style="color:#999">暂无其他用户</div>');
+        const title = '<h3><i class="fas fa-users"></i> 在线用户</h3>';
+        const list = users.length 
+            ? users.map(u => \`<div class="user-item"><i class="fas fa-user-circle"></i> \${u}</div>\`).join('') 
+            : '<div style="color:#999;font-size:0.9em;">暂无其他用户</div>';
+        els['userlist'].innerHTML = title + list;
     }
 
     function renderMessages(msgs) {
@@ -169,7 +183,7 @@ export function generateChatPage() {
         const shouldScroll = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 100;
         
         if (msgs.length === 0) {
-            chat.innerHTML = '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
+            chat.innerHTML = '<div style="text-align:center;color:#999;margin-top:20px;"><i class="fas fa-comment-slash"></i> 暂无消息</div>';
             return;
         }
 
@@ -200,19 +214,19 @@ export function generateChatPage() {
     <body>
         <div id="app">
             <header>
-                <h1><i class="fas fa-eye"></i> 临时聊天室</h1>
+                <h1><i class="fas fa-eye"></i> MO留書</h1>
                 <div class="controls">
-                    <span id="current-room-id" style="font-size:0.9em;margin-right:5px">未加入房间</span>
+                    <span id="current-room-id" style="font-size:0.9em;margin-right:5px"><i class="fas fa-ghost"></i> 未加入房间</span>
                     <input type="text" id="room-id" placeholder="房间ID" style="width:100px">
                     <button id="join-room"><i class="fas fa-sign-in-alt"></i> 进入</button>
-                    <button id="userlist-toggle"><i class="fas fa-users"></i></button>
-                    <button id="destroy-room" title="销毁房间" disabled><i class="fas fa-trash-alt"></i></button>
+                    <button id="userlist-toggle"><i class="fas fa-users"></i> 用户</button>
+                    <button id="destroy-room" disabled><i class="fas fa-trash-alt"></i> 销毁</button>
                 </div>
             </header>
             <main>
                 <section id="chat">
                     <div style="text-align:center;color:#999;margin-top:50px">
-                        <i class="fas fa-info-circle fa-2x"></i><br><br>
+                        <i class="fas fa-door-closed fa-3x"></i><br><br>
                         请先输入房间ID并点击“进入”<br>然后设置称呼加入聊天
                     </div>
                 </section>
