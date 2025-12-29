@@ -105,6 +105,8 @@ export function generateChatPage() {
     /* 正在发送状态 */
     .message-sending { opacity: 0.7; }
     .message-sending::after { content: ' (发送中...)'; font-size: 0.7em; color: #999; }
+    /* 错误消息 */
+    .message-error { color: #d32f2f; font-style: italic; font-size: 0.9em; }
 
     /* 底部输入区 */
     footer { 
@@ -147,35 +149,59 @@ export function generateChatPage() {
 
     if (typeof marked !== 'undefined') { marked.setOptions({ breaks: true, gfm: true }); }
 
-    // --- 加密模块 ---
+    // --- 加密模块 (修复版：使用更稳健的 Buffer 转换) ---
     const Crypto = {
         async deriveKey(password) { 
             const enc = new TextEncoder();
-            if (!crypto.subtle) throw new Error("Crypto API unavailable (Use HTTPS)");
+            if (!crypto.subtle) throw new Error("Crypto API unavailable");
             const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]); 
-            return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(state.roomId), iterations: 100000, hash: "SHA-256" }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); 
+            return crypto.subtle.deriveKey({ 
+                name: "PBKDF2", 
+                salt: enc.encode(state.roomId), // 注意：RoomID 必须严格一致
+                iterations: 100000, 
+                hash: "SHA-256" 
+            }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); 
         },
         async encrypt(text, password) { 
             try {
-                const key = await this.deriveKey(password); const iv = crypto.getRandomValues(new Uint8Array(12)); 
-                const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(text)); 
-                const comb = new Uint8Array(iv.length + enc.byteLength); comb.set(iv); comb.set(new Uint8Array(enc), iv.length); 
-                return btoa(String.fromCharCode(...comb)); 
+                const key = await this.deriveKey(password); 
+                const iv = crypto.getRandomValues(new Uint8Array(12)); 
+                const encoded = new TextEncoder().encode(text);
+                const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+                
+                // 手动拼接 IV + Ciphertext
+                const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+                combined.set(iv);
+                combined.set(new Uint8Array(ciphertext), iv.length);
+                
+                // 手动转 Base64，避免大数组溢出
+                let binary = '';
+                for (let i = 0; i < combined.byteLength; i++) binary += String.fromCharCode(combined[i]);
+                return btoa(binary);
             } catch(e) { 
                 console.warn('Encryption failed:', e);
-                return text; 
+                // 加密失败时不发送明文，而是抛出错误，避免误解
+                throw new Error("加密失败");
             }
         },
         async decrypt(b64, password) { 
             try { 
                 const key = await this.deriveKey(password); 
-                const binaryStr = atob(b64);
-                const comb = new Uint8Array(binaryStr.split("").map(c => c.charCodeAt(0))); 
                 
-                const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: comb.slice(0, 12) }, key, comb.slice(12)); 
+                // Base64 -> Uint8Array
+                const binaryStr = atob(b64);
+                const combined = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) combined[i] = binaryStr.charCodeAt(i);
+                
+                if (combined.length < 12) return null;
+
+                const iv = combined.slice(0, 12);
+                const ciphertext = combined.slice(12);
+                
+                const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext); 
                 return new TextDecoder().decode(dec); 
             } catch (e) { 
-                // 解密失败（可能是旧数据、密码错误或明文），返回 null 以便上层过滤
+                // 解密失败返回 null
                 return null; 
             } 
         }
@@ -248,8 +274,6 @@ export function generateChatPage() {
             ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
 
-        // --- 事件绑定 ---
-
         ui.btnJoinRoom.onclick = () => {
             const id = ui.roomIdInput.value.trim();
             if (!id) return showToast('请输入房间ID');
@@ -290,10 +314,12 @@ export function generateChatPage() {
             ui.msgInput.value = '';
             appendLocalMessage(rawText);
 
-            let payloadText = rawText;
-            if (state.roomKey) payloadText = await Crypto.encrypt(rawText, state.roomKey);
-
             try {
+                let payloadText = rawText;
+                if (state.roomKey) {
+                    payloadText = await Crypto.encrypt(rawText, state.roomKey);
+                }
+
                 const res = await fetch(\`/api/room/\${encodeURIComponent(state.roomId)}/send\`, {
                     method: 'POST', body: JSON.stringify({ username: state.username, message: payloadText }), headers: { 'Content-Type': 'application/json' }
                 });
@@ -303,7 +329,10 @@ export function generateChatPage() {
                     refreshTimer();
                     pollMessages(); 
                 }
-            } catch (e) { showToast('发送失败'); }
+            } catch (e) { 
+                console.error(e);
+                showToast('发送失败: ' + e.message); 
+            }
         };
 
         ui.btnDestroy.onclick = async () => {
@@ -344,28 +373,44 @@ export function generateChatPage() {
         async function renderData(data) {
             ui.userListArea.innerHTML = '<h3>在线</h3>' + (data.users.map(u => \`<div><i class="fas fa-user"></i> \${u}</div>\`).join(''));
             
-            // 核心修改：如果是加密房间，解密失败的消息会被标记为 null 并被过滤掉
             const validMessages = (await Promise.all(data.messages.map(async m => {
                 const type = m.username === state.username ? 'message-right' : 'message-left';
                 let content = m.message;
                 
                 if (state.roomKey) {
                     const decrypted = await Crypto.decrypt(content, state.roomKey);
-                    // 如果解密返回 null，说明是测试数据/无效数据/其他密码的数据，不显示
-                    if (decrypted === null) return null;
-                    content = decrypted;
+                    if (decrypted === null) {
+                        // 策略优化：
+                        // 1. 如果是 1 分钟内的消息（可能是刚发的），显示错误提示，防止用户以为丢消息。
+                        // 2. 如果是旧消息（测试数据），返回 null 从而隐藏它。
+                        const isRecent = (Date.now() - m.timestamp) < 60000;
+                        if (isRecent) {
+                            content = '<span class="message-error"><i class="fas fa-exclamation-triangle"></i> 无法解密 (密钥不匹配)</span>';
+                        } else {
+                            return null;
+                        }
+                    } else {
+                        content = decrypted;
+                    }
                 }
                 
-                const rendered = (typeof marked !== 'undefined') ? marked.parse(content) : content;
+                // 处理 Markdown，如果是错误提示则保持原样
+                const rendered = content.startsWith('<span') ? content : ((typeof marked !== 'undefined') ? marked.parse(content) : content);
+                
                 const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return \`<div class="message \${type}">
                     <span class="message-username">\${m.username} \${time}</span>
                     <div>\${rendered}</div>
                 </div>\`;
-            }))).filter(msg => msg !== null); // 过滤掉 null
+            }))).filter(msg => msg !== null);
             
+            // 只有当消息内容发生实质变化时才更新 innerHTML，避免输入框闪烁或滚动跳动（虽然这里是替换整个列表）
+            // 简单处理：直接更新
+            const html = validMessages.length ? validMessages.join('') : '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
+            
+            // 检测是否需要滚动到底部
             const atBottom = ui.chatArea.scrollTop + ui.chatArea.clientHeight >= ui.chatArea.scrollHeight - 50;
-            ui.chatArea.innerHTML = validMessages.length ? validMessages.join('') : '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
+            ui.chatArea.innerHTML = html;
             if (atBottom) ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
     });
@@ -419,4 +464,6 @@ export function generateChatPage() {
     </body>
     </html>
     `;
+
+
 }
