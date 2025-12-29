@@ -1,3 +1,7 @@
+{
+type: uploaded file
+fileName: limkon/6eye/6eye-e75282df500e287b71ccc44cd456c649eea2a1b4/src/handlers/api.js
+fullContent:
 import { encryptMessage, decryptMessage, jsonResponse } from '../utils/helpers.js';
 import { CONSTANTS } from '../constants.js';
 
@@ -75,8 +79,10 @@ export async function handleApiRequest(request, context, url) {
 
     // POST /send
     if (request.method === 'POST' && action === 'send') {
+        // 修复：先解析 JSON，避免在 withAutoInit 重试时重复读取流导致报错
+        const body = await request.json();
         return await withAutoInit(db, async () => {
-            const { username, message } = await request.json();
+            const { username, message } = body;
             const encrypted = encryptMessage(message, encryptionKey);
             await db.prepare(`INSERT INTO messages (room_id, username, content, iv, timestamp) VALUES (?, ?, ?, ?, ?)`).bind(roomId, username, encrypted.encrypted, encrypted.iv, Date.now()).run();
             return jsonResponse({ success: true });
@@ -85,8 +91,10 @@ export async function handleApiRequest(request, context, url) {
 
     // POST /join
     if (request.method === 'POST' && action === 'join') {
+        // 修复：先解析 JSON，避免在 withAutoInit 重试时重复读取流导致报错
+        const body = await request.json();
         return await withAutoInit(db, async () => {
-            const { username } = await request.json();
+            const { username } = body;
             await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
                     .bind(roomId, username, Date.now(), Date.now()).run();
             return jsonResponse({ success: true });
@@ -100,4 +108,6 @@ export async function handleApiRequest(request, context, url) {
             return jsonResponse({ success: true });
         });
     }
+}
+
 }
