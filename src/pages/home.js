@@ -1,30 +1,17 @@
 export function generateChatPage() {
-    // 关键 CSS：增加了 FontAwesome 图标对齐样式及布局优化
     const css = `
-    /* 基础布局 */
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; height: 100vh; overflow: hidden; }
     #app { display: flex; flex-direction: column; height: 100%; }
 
-    /* 头部 */
+    /* 头部样式 */
     header { background: #4CAF50; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; flex-shrink: 0; }
     header h1 { margin: 0; font-size: 1.5em; display: flex; align-items: center; gap: 8px; }
     header .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     
-    /* 控件样式 */
     input[type="text"], textarea { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
     button { 
-        padding: 6px 12px; 
-        background: #fff; 
-        color: #333; 
-        border: 1px solid #ccc; 
-        border-radius: 4px; 
-        cursor: pointer; 
-        transition: 0.2s; 
-        white-space: nowrap; 
-        display: inline-flex; 
-        align-items: center; 
-        gap: 6px; 
-        font-size: 0.9em;
+        padding: 6px 12px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; 
+        transition: 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em;
     }
     button:hover { background: #f0f0f0; }
     button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
@@ -39,7 +26,7 @@ export function generateChatPage() {
     #userlist h3 { margin-top: 0; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
     .user-item { padding: 4px 0; display: flex; align-items: center; gap: 8px; color: #555; }
     
-    /* 底部输入栏 */
+    /* 底部区域 */
     footer { display: flex; padding: 10px 15px; background: #eee; align-items: center; border-top: 1px solid #ddd; gap: 10px; flex-shrink: 0; }
     footer #username { width: 120px; }
     footer #message { flex: 1; height: 36px; resize: none; line-height: 24px; }
@@ -48,18 +35,15 @@ export function generateChatPage() {
 
     /* 消息气泡 */
     .message { margin: 10px 0; padding: 10px 15px; border-radius: 12px; max-width: 70%; word-wrap: break-word; position: relative; line-height: 1.4; }
-    .message-left { align-self: flex-start; background: #e0f7fa; color: #333; margin-left: 10px; border-bottom-left-radius: 0; }
-    .message-right { align-self: flex-end; background: #c8e6c9; color: #333; margin-right: 10px; border-bottom-right-radius: 0; }
+    .message-left { align-self: flex-start; background: #e0f7fa; color: #333; border-bottom-left-radius: 0; }
+    .message-right { align-self: flex-end; background: #c8e6c9; color: #333; border-bottom-right-radius: 0; }
     .message-username { font-size: 0.75em; color: #666; margin-bottom: 4px; font-weight: bold; }
     
-    /* 移动端适配 */
     @media (max-width: 600px) {
         header { flex-direction: column; align-items: stretch; gap: 10px; }
         header h1 { text-align: center; justify-content: center; }
-        header .controls { justify-content: center; }
-        header .controls input { flex: 1; }
+        header .controls { justify-content: space-between; }
         #userlist { position: absolute; right: 0; top: 0; bottom: 0; z-index: 20; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }
-        footer { flex-wrap: wrap; }
         footer #username { width: 40%; }
         footer #join { width: 30%; }
         footer #message { width: 100%; order: 3; margin-top: 5px; }
@@ -107,23 +91,16 @@ export function generateChatPage() {
                 const res = await fetch(\`/api/room/\${encodeURIComponent(roomId)}/join\`, {
                     method: 'POST', body: JSON.stringify({username: name}), headers: {'Content-Type': 'application/json'}
                 });
-                const data = await res.json();
-                if(!res.ok) throw new Error(data.error || '加入失败');
-                
-                username = name; 
-                joined = true;
-                
+                if(!res.ok) throw new Error('加入失败');
+                username = name; joined = true;
                 els['username'].style.display = 'none';
                 els['join'].style.display = 'none';
                 els['message'].disabled = false;
                 els['send'].disabled = false;
                 els['message'].focus();
-                
                 showToast('加入成功');
                 pollMessages();
-            } catch(e) { 
-                showToast(e.message); 
-            }
+            } catch(e) { showToast(e.message); }
         };
 
         els['send'].onclick = async () => {
@@ -133,10 +110,10 @@ export function generateChatPage() {
                 const res = await fetch(\`/api/room/\${encodeURIComponent(roomId)}/send\`, {
                     method: 'POST', body: JSON.stringify({username, message: msg}), headers: {'Content-Type': 'application/json'}
                 });
-                if(!res.ok) throw new Error((await res.json()).error);
+                if(!res.ok) throw new Error('发送失败');
                 els['message'].value = '';
                 pollMessages();
-            } catch(e) { showToast('发送失败: ' + e.message); }
+            } catch(e) { showToast(e.message); }
         };
 
         els['destroy-room'].onclick = async () => {
@@ -158,35 +135,30 @@ export function generateChatPage() {
 
     async function pollMessages() {
         if(!roomId) return;
-        let url = \`/api/room/\${encodeURIComponent(roomId)}/messages\`;
-        if(joined && username) url += \`?user=\${encodeURIComponent(username)}\`;
-        
         try {
-            const res = await fetch(url);
+            const res = await fetch(\`/api/room/\${encodeURIComponent(roomId)}/messages\`);
             if(!res.ok) return;
             const data = await res.json();
             renderUsers(data.users);
             renderMessages(data.messages);
-        } catch(e) { console.error('Poll network error', e); }
+        } catch(e) { console.error('轮询错误', e); }
     }
 
     function renderUsers(users) {
         const title = '<h3><i class="fas fa-users"></i> 在线用户</h3>';
         const list = users.length 
             ? users.map(u => \`<div class="user-item"><i class="fas fa-user-circle"></i> \${u}</div>\`).join('') 
-            : '<div style="color:#999;font-size:0.9em;">暂无其他用户</div>';
+            : '<div style="color:#999;font-size:0.9em;">暂无活跃用户</div>';
         els['userlist'].innerHTML = title + list;
     }
 
     function renderMessages(msgs) {
         const chat = els['chat'];
         const shouldScroll = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 100;
-        
         if (msgs.length === 0) {
             chat.innerHTML = '<div style="text-align:center;color:#999;margin-top:20px;"><i class="fas fa-comment-slash"></i> 暂无消息</div>';
             return;
         }
-
         chat.innerHTML = msgs.map(m => {
             const isMe = m.username === username;
             const type = isMe ? 'message-right' : 'message-left';
@@ -196,7 +168,6 @@ export function generateChatPage() {
                 <div>\${m.message}</div>
             </div>\`;
         }).join('');
-        
         if(shouldScroll) chat.scrollTop = chat.scrollHeight;
     }
     `;
@@ -216,7 +187,7 @@ export function generateChatPage() {
             <header>
                 <h1><i class="fas fa-eye"></i> MO留書</h1>
                 <div class="controls">
-                    <span id="current-room-id" style="font-size:0.9em;margin-right:5px"><i class="fas fa-ghost"></i> 未加入房间</span>
+                    <span id="current-room-id" style="font-size:0.9em;margin-right:5px"><i class="fas fa-door-closed"></i> 未入房间</span>
                     <input type="text" id="room-id" placeholder="房间ID" style="width:100px">
                     <button id="join-room"><i class="fas fa-sign-in-alt"></i> 进入</button>
                     <button id="userlist-toggle"><i class="fas fa-users"></i> 用户</button>
@@ -226,8 +197,8 @@ export function generateChatPage() {
             <main>
                 <section id="chat">
                     <div style="text-align:center;color:#999;margin-top:50px">
-                        <i class="fas fa-door-closed fa-3x"></i><br><br>
-                        请先输入房间ID并点击“进入”<br>然后设置称呼加入聊天
+                        <i class="fas fa-info-circle fa-3x"></i><br><br>
+                        请输入房间ID进入，然后加入聊天
                     </div>
                 </section>
                 <section id="userlist" class="hidden"></section>
