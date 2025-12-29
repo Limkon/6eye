@@ -1,4 +1,4 @@
-fullContent: `import { initializeContext } from './config.js';
+import { initializeContext } from './config.js';
 import { handleApiRequest } from './handlers/api.js';
 import { generateChatPage } from './pages/home.js';
 
@@ -20,7 +20,7 @@ export default {
             }
             ipRateMap.set(clientIP, now);
 
-            // 修复：将 ctx 传递给处理函数，用于处理异步任务(waitUntil)
+            // 核心修改：将 ctx 传递给处理函数
             if (path.startsWith('/api/')) return await handleApiRequest(request, context, url, ctx);
             if (path.startsWith('/src/vendor/')) return (env.ASSETS) ? await env.ASSETS.fetch(request) : new Response('Not Found', { status: 404 });
 
@@ -38,4 +38,3 @@ export default {
         await env.DB.prepare("DELETE FROM messages WHERE timestamp < ?").bind(Date.now() - 3600000).run();
     }
 };
-`
