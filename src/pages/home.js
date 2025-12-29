@@ -1,4 +1,5 @@
 export function generateChatPage() {
+    // 增加 Markdown 相关的 CSS 样式
     const css = `
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; height: 100vh; overflow: hidden; }
     #app { display: flex; flex-direction: column; height: 100%; }
@@ -39,6 +40,13 @@ export function generateChatPage() {
     .message-right { align-self: flex-end; background: #c8e6c9; color: #333; border-bottom-right-radius: 0; }
     .message-username { font-size: 0.75em; color: #666; margin-bottom: 4px; font-weight: bold; }
     
+    /* Markdown 元素样式微调 */
+    .message-content p { margin: 4px 0; }
+    .message-content code { background: rgba(0,0,0,0.08); padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+    .message-content pre { background: rgba(0,0,0,0.05); padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; border: 1px solid rgba(0,0,0,0.1); }
+    .message-content blockquote { border-left: 3px solid #ccc; margin: 5px 0; padding-left: 10px; color: #666; }
+    .message-content ul, .message-content ol { padding-left: 20px; margin: 5px 0; }
+
     @media (max-width: 600px) {
         header { flex-direction: column; align-items: stretch; gap: 10px; }
         header h1 { text-align: center; justify-content: center; }
@@ -55,6 +63,14 @@ export function generateChatPage() {
     let roomId = '', username = '', joined = false, pollInterval = null;
     const POLL_RATE = 2000;
     
+    // 初始化 Marked 配置
+    if (typeof marked !== 'undefined') {
+        marked.setOptions({
+            breaks: true, // 允许回车换行
+            gfm: true     // 启用 GitHub 风格的 Markdown
+        });
+    }
+
     function showToast(msg) {
         const div = document.createElement('div');
         div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 20px;border-radius:4px;z-index:9999;font-size:14px;';
@@ -136,7 +152,7 @@ export function generateChatPage() {
     async function pollMessages() {
         if(!roomId) return;
         try {
-            const res = await fetch(\`/api/room/\${encodeURIComponent(roomId)}/messages\`);
+            const res = await fetch(\`/api/room/\${encodeURIComponent(roomId)}/messages\?user=\${encodeURIComponent(username)}\`);
             if(!res.ok) return;
             const data = await res.json();
             renderUsers(data.users);
@@ -163,9 +179,13 @@ export function generateChatPage() {
             const isMe = m.username === username;
             const type = isMe ? 'message-right' : 'message-left';
             const time = new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            // 使用 marked 渲染 Markdown
+            const htmlContent = (typeof marked !== 'undefined') ? marked.parse(m.message || '') : (m.message || '');
+
             return \`<div class="message \${type}">
                 <div class="message-username">\${m.username} <span style="font-weight:normal;font-size:0.8em;color:#999;margin-left:5px">\${time}</span></div>
-                <div>\${m.message}</div>
+                <div class="message-content">\${htmlContent}</div>
             </div>\`;
         }).join('');
         if(shouldScroll) chat.scrollTop = chat.scrollHeight;
@@ -180,6 +200,7 @@ export function generateChatPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>6eye Chat</title>
         <link rel="stylesheet" href="/src/vendor/fontawesome/css/all.min.css">
+        <script src="/src/vendor/marked/marked.min.js"></script>
         <style>${css}</style>
     </head>
     <body>
@@ -206,7 +227,7 @@ export function generateChatPage() {
             <footer>
                 <input type="text" id="username" placeholder="您的称呼">
                 <button id="join"><i class="fas fa-user-plus"></i> 加入</button>
-                <textarea id="message" placeholder="输入留言..." disabled></textarea>
+                <textarea id="message" placeholder="输入留言... (支持 Markdown)" disabled></textarea>
                 <button id="send" disabled><i class="fas fa-paper-plane"></i> 发送</button>
             </footer>
         </div>
