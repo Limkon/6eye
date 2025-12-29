@@ -1,7 +1,3 @@
-{
-type: uploaded file
-fileName: limkon/6eye/6eye-e75282df500e287b71ccc44cd456c649eea2a1b4/src/handlers/api.js
-fullContent:
 import { encryptMessage, decryptMessage, jsonResponse } from '../utils/helpers.js';
 import { CONSTANTS } from '../constants.js';
 
@@ -107,7 +103,6 @@ export async function handleApiRequest(request, context, url) {
             await db.batch([db.prepare(`DELETE FROM messages WHERE room_id = ?`).bind(roomId), db.prepare(`DELETE FROM users WHERE room_id = ?`).bind(roomId)]);
             return jsonResponse({ success: true });
         });
-    }
 }
 
 }
