@@ -1,5 +1,5 @@
 export function generateChatPage() {
-    // 样式表：确保倒计时容器和按钮可见性
+    // 样式表
     const css = `
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; overflow: hidden; }
     #app { display: flex; flex-direction: column; height: 100%; }
@@ -9,21 +9,50 @@ export function generateChatPage() {
     header h1 { margin: 0; font-size: 1.4em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
     header .controls { display: flex; align-items: center; gap: 10px; }
     
-    /* 两个状态面板：进入前(join-ui) 和 进入后(room-ui) */
+    /* 两个状态面板 */
     #join-ui { display: flex; align-items: center; gap: 8px; }
     #room-ui { display: none; align-items: center; gap: 10px; }
     
-    /* 倒计时条 (修复可见性) */
-    #timer-wrapper { display: flex; align-items: center; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 20px; gap: 8px; font-size: 0.85em; }
-    #cleanup-timer { color: #ffeb3b; font-weight: bold; min-width: 60px; text-align: center; }
-    #cancel-cleanup { background: transparent; border: none; color: #fff; cursor: pointer; padding: 0; font-size: 1.1em; opacity: 0.8; display: flex; align-items: center; }
-    #cancel-cleanup:hover { opacity: 1; color: #ff5252; }
+    /* 倒计时条 (增强可见性) */
+    #timer-wrapper { display: flex; align-items: center; background: rgba(0,0,0,0.15); padding: 4px 12px; border-radius: 20px; gap: 10px; font-size: 0.9em; border: 1px solid rgba(255,255,255,0.2); }
+    #cleanup-timer { color: #fff; font-weight: bold; min-width: 80px; text-align: center; font-variant-numeric: tabular-nums; } /* 等宽数字防止抖动 */
+    
+    /* 取消按钮 (使用 Unicode 替代图标，确保可见) */
+    #cancel-cleanup { 
+        background: rgba(255,255,255,0.2) !important; 
+        border: 1px solid rgba(255,255,255,0.4) !important; 
+        color: #fff !important; 
+        cursor: pointer; 
+        padding: 0; 
+        width: 20px; 
+        height: 20px; 
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 12px;
+        line-height: 1;
+    }
+    #cancel-cleanup:hover { background: #ff5252 !important; border-color: #ff5252 !important; }
 
-    /* 输入框与按钮 */
+    /* 输入框与按钮通用样式 */
     input[type="text"], input[type="password"], textarea { padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.9em; }
+    
     button { 
-        padding: 6px 12px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; 
-        transition: 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em;
+        padding: 6px 12px; 
+        background: #fff; 
+        color: #333; 
+        border: 1px solid #ccc; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        transition: 0.2s; 
+        white-space: nowrap; 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; /* 修复：确保标签居中 */
+        gap: 6px; 
+        font-size: 0.9em;
+        min-width: 60px; /* 修复：防止按钮过窄 */
     }
     button:hover { background: #f0f0f0; }
     
@@ -70,10 +99,9 @@ export function generateChatPage() {
     const CLEANUP_TIMEOUT = 30 * 60 * 1000; 
     let lastActivity = Date.now();
 
-    // Markdown 配置
     if (typeof marked !== 'undefined') { marked.setOptions({ breaks: true, gfm: true }); }
 
-    // --- E2EE 加密模块 ---
+    // --- 加密模块 ---
     async function deriveKey(p) { 
         const enc = new TextEncoder(); const salt = enc.encode(roomId); 
         const bk = await crypto.subtle.importKey("raw", enc.encode(p), "PBKDF2", false, ["deriveKey"]); 
@@ -93,10 +121,9 @@ export function generateChatPage() {
         } catch (e) { return "<i>[解密失败]</i>"; } 
     }
 
-    // --- 核心逻辑 ---
+    // --- 逻辑初始化 ---
     document.addEventListener('DOMContentLoaded', () => {
         try {
-            // 获取 UI 元素
             const ui = {
                 roomId: document.getElementById('room-id'),
                 roomKey: document.getElementById('room-key'),
@@ -118,18 +145,16 @@ export function generateChatPage() {
                 sendBtn: document.getElementById('send')
             };
 
-            // 辅助：重置 UI 状态 (返回主页)
+            // 1. 重置 UI (返回主页)
             function resetUI() {
                 if(pollInterval) clearInterval(pollInterval);
                 roomId = ''; username = ''; joined = false; roomPassword = ''; cleanupEnabled = true;
 
-                // 恢复显示
                 ui.joinUi.style.display = 'flex';
                 ui.roomUi.style.display = 'none';
                 ui.chat.innerHTML = '<div style="text-align:center;color:#999;margin-top:50px"><i class="fas fa-shield-alt fa-3x"></i><br><br>请输入房间ID进入。<br>支持端到端加密与Markdown。</div>';
                 ui.userList.innerHTML = '';
                 
-                // 重置表单
                 ui.message.disabled = true; ui.message.value = '';
                 ui.sendBtn.disabled = true;
                 ui.joinBtn.style.display = 'inline-block';
@@ -138,8 +163,9 @@ export function generateChatPage() {
                 ui.currentRoomId.innerHTML = '';
             }
 
-            // 辅助：更新倒计时 (提取为独立函数以便立即调用)
+            // 2. 刷新倒计时 (独立函数)
             function refreshTimer() {
+                // 如果开关关闭或未进入房间，强制隐藏
                 if (!cleanupEnabled || !roomId) { 
                     if(ui.timerWrapper) ui.timerWrapper.style.display = 'none'; 
                     return; 
@@ -148,7 +174,8 @@ export function generateChatPage() {
                 const mins = Math.floor(remaining / 60000);
                 const secs = Math.floor((remaining % 60000) / 1000);
                 
-                if(ui.cleanupTimer) ui.cleanupTimer.innerText = remaining <= 0 ? "建议清理" : \`清理倒数 \${mins}:\${secs.toString().padStart(2, '0')}\`;
+                if(ui.cleanupTimer) ui.cleanupTimer.innerText = remaining <= 0 ? "建议清理" : \`清理 \${mins}:\${secs.toString().padStart(2, '0')}\`;
+                // 确保显示
                 if(ui.timerWrapper) ui.timerWrapper.style.display = 'flex';
             }
 
@@ -164,16 +191,14 @@ export function generateChatPage() {
 
             // --- 事件绑定 ---
 
-            // 1. 取消倒计时
             if(ui.cancelCleanupBtn) {
                 ui.cancelCleanupBtn.onclick = () => {
                     cleanupEnabled = false;
-                    refreshTimer(); // 立即更新 UI
+                    refreshTimer(); // 立即触发隐藏
                     showToast('已取消自动清理提示');
                 };
             }
 
-            // 2. 进入房间
             if(ui.joinRoomBtn) {
                 ui.joinRoomBtn.onclick = () => {
                     const id = ui.roomId.value.trim();
@@ -182,18 +207,16 @@ export function generateChatPage() {
                     roomId = id;
                     roomPassword = ui.roomKey.value.trim();
                     
-                    // 切换 UI
                     ui.joinUi.style.display = 'none';
                     ui.roomUi.style.display = 'flex';
                     ui.currentRoomId.innerHTML = \`<i class="fas fa-hashtag"></i> \${roomId} \${roomPassword ? '<span class="e2ee-badge">E2EE</span>' : ''}\`;
                     
                     lastActivity = Date.now();
-                    refreshTimer(); // 立即显示倒计时，不要等1秒
+                    refreshTimer(); // 立即显示
                     connect(); 
                 };
             }
 
-            // 3. 加入聊天
             if(ui.joinBtn) {
                 ui.joinBtn.onclick = async () => {
                     const name = ui.username.value.trim();
@@ -217,14 +240,11 @@ export function generateChatPage() {
                 };
             }
 
-            // 4. 发送消息
             if(ui.sendBtn) {
                 ui.sendBtn.onclick = async () => {
                     let text = ui.message.value.trim();
                     if(!text) return;
-                    
                     if (roomPassword) text = await e2eeEncrypt(text, roomPassword);
-                    
                     try {
                         const res = await fetch(\`/api/room/\${encodeURIComponent(roomId)}/send\`, {
                             method: 'POST', body: JSON.stringify({username, message: text}), headers: {'Content-Type': 'application/json'}
@@ -232,31 +252,28 @@ export function generateChatPage() {
                         if(res.ok) { 
                             ui.message.value = ''; 
                             lastActivity = Date.now(); 
-                            refreshTimer();
+                            refreshTimer(); // 活跃后重置倒计时显示
                             pollMessages(); 
                         }
                     } catch(e) { showToast('发送失败'); }
                 };
             }
 
-            // 5. 离开房间 (前端操作，不请求 API)
             if(ui.leaveRoomBtn) {
                 ui.leaveRoomBtn.onclick = () => {
-                    if(confirm('确定离开房间吗？本地记录将被清空。')) {
+                    if(confirm('确定离开房间吗？')) {
                         resetUI();
                         showToast('已退出房间');
                     }
                 };
             }
 
-            // 6. 销毁房间 (后端操作 + UI重置)
             if(ui.destroyRoomBtn) {
                 ui.destroyRoomBtn.onclick = async () => {
-                    if(confirm('警告：此操作将永久删除云端所有记录！')) {
+                    if(confirm('警告：永久销毁所有记录？')) {
                         try {
                             await fetch(\`/api/room/\${encodeURIComponent(roomId)}/destroy\`, { method: 'POST' });
                             showToast('房间已销毁');
-                            // 修复：不使用 location.reload()，避免 "Too Fast"
                             resetUI(); 
                         } catch(e) {
                             showToast('销毁失败');
@@ -265,7 +282,6 @@ export function generateChatPage() {
                 };
             }
 
-            // 7. 用户列表切换
             if(ui.userListToggle) {
                 ui.userListToggle.onclick = () => ui.userList.classList.toggle('hidden');
             }
@@ -310,7 +326,7 @@ export function generateChatPage() {
 
         } catch (err) {
             console.error(err);
-            alert('初始化异常，请刷新页面');
+            alert('初始化异常: ' + err.message);
         }
     });
     `;
@@ -339,7 +355,7 @@ export function generateChatPage() {
                     <div id="room-ui">
                         <div id="timer-wrapper">
                             <span id="cleanup-timer"></span>
-                            <button id="cancel-cleanup" title="取消倒计时"><i class="fas fa-times-circle"></i></button>
+                            <button id="cancel-cleanup" title="取消倒计时">✕</button>
                         </div>
                         <span id="current-room-id"></span>
                         <button id="userlist-toggle"><i class="fas fa-users"></i> 用户</button>
