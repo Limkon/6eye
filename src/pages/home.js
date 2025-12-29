@@ -1,5 +1,5 @@
-fullContent: `export function generateChatPage() {
-    const css = \`
+export function generateChatPage() {
+    const css = `
     /* 全局重置 */
     * { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif; height: 100vh; overflow: hidden; background-color: #f0f2f5; }
@@ -137,9 +137,9 @@ fullContent: `export function generateChatPage() {
         footer { padding: 8px; }
         #username { width: 80px; }
     }
-    \`;
+    `;
 
-    const js = \`
+    const js = `
     const state = {
         roomId: '', 
         cryptoKeyObj: null, 
@@ -417,9 +417,9 @@ fullContent: `export function generateChatPage() {
             if (atBottom || data.messages.length <= 1) ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
     });
-    \`;
+    `;
 
-    return \`
+    return `
     <!DOCTYPE html>
     <html lang="zh-CN">
     <head>
@@ -428,7 +428,7 @@ fullContent: `export function generateChatPage() {
         <title>6eye Chat</title>
         <link rel="stylesheet" href="/src/vendor/fontawesome/css/all.min.css">
         <script src="/src/vendor/marked/marked.min.js"></script>
-        <style>\${css}</style>
+        <style>${css}</style>
     </head>
     <body>
         <div id="app">
@@ -463,8 +463,8 @@ fullContent: `export function generateChatPage() {
                 <button id="send" disabled><i class="fas fa-paper-plane"></i> 发送</button>
             </footer>
         </div>
-        <script>\${js}</script>
+        <script>${js}</script>
     </body>
     </html>
-    \`;
+    `;
 }
