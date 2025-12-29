@@ -32,6 +32,12 @@ export function decryptMessage(encryptedHex, ivHex, key) {
 export function jsonResponse(data, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+            'Content-Type': 'application/json',
+            // 添加禁止缓存的 Header，解决消息延时和不显示的问题
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
     });
 }
