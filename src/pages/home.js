@@ -1,5 +1,5 @@
-export function generateChatPage() {
-    const css = `
+fullContent: `export function generateChatPage() {
+    const css = \`
     /* 全局重置 */
     * { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif; height: 100vh; overflow: hidden; background-color: #f0f2f5; }
@@ -137,12 +137,12 @@ export function generateChatPage() {
         footer { padding: 8px; }
         #username { width: 80px; }
     }
-    `;
+    \`;
 
-    const js = `
+    const js = \`
     const state = {
         roomId: '', 
-        cryptoKeyObj: null, // 缓存生成的密钥对象
+        cryptoKeyObj: null, 
         username: '',
         pollInterval: null, 
         cleanupEnabled: true, 
@@ -153,14 +153,12 @@ export function generateChatPage() {
 
     if (typeof marked !== 'undefined') { marked.setOptions({ breaks: true, gfm: true }); }
 
-    // --- 加密模块 (性能优化版) ---
+    // --- 加密模块 ---
     const Crypto = {
-        // 仅生成密钥，不进行加密解密
         async generateKey(password, saltString) { 
             const enc = new TextEncoder();
             if (!crypto.subtle) throw new Error("Crypto API unavailable");
             const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]); 
-            // 返回 CryptoKey 对象
             return crypto.subtle.deriveKey({ 
                 name: "PBKDF2", 
                 salt: enc.encode(saltString),
@@ -190,23 +188,16 @@ export function generateChatPage() {
         async decrypt(b64, keyObj) { 
             try { 
                 if (!keyObj) return null;
-                
                 let binaryStr;
                 try { binaryStr = atob(b64); } catch(e) { return null; }
-
                 const combined = new Uint8Array(binaryStr.length);
                 for (let i = 0; i < binaryStr.length; i++) combined[i] = binaryStr.charCodeAt(i);
-                
                 if (combined.length < 12) return null;
-
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
-                
                 const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, keyObj, ciphertext); 
                 return new TextDecoder().decode(dec); 
-            } catch (e) { 
-                return null; 
-            } 
+            } catch (e) { return null; } 
         }
     };
 
@@ -279,53 +270,40 @@ export function generateChatPage() {
         ui.btnJoinRoom.onclick = async () => {
             const id = ui.roomIdInput.value.trim();
             if (!id) return showToast('请输入房间ID');
-            
             ui.btnJoinRoom.disabled = true;
             ui.btnJoinRoom.innerText = '...';
-
             try {
                 state.roomId = id;
                 const password = ui.roomKeyInput.value.trim();
-                
                 if (password) {
                     try {
                         state.cryptoKeyObj = await Crypto.generateKey(password, state.roomId);
                     } catch (e) {
-                        console.error(e);
-                        showToast('密钥生成失败，请检查浏览器兼容性');
-                        state.roomId = '';
-                        return;
+                        showToast('密钥生成失败'); state.roomId = ''; return;
                     }
-                } else {
-                    state.cryptoKeyObj = null;
-                }
+                } else { state.cryptoKeyObj = null; }
 
                 state.lastActivity = Date.now();
                 state.cleanupEnabled = true;
-                
                 ui.joinUi.style.display = 'none';
                 ui.roomUi.style.display = 'flex';
                 ui.currentRoomDisplay.innerHTML = \`<strong>#\${state.roomId}</strong> \${state.cryptoKeyObj ? '<span class="e2ee-badge">密</span>' : ''}\`;
                 refreshTimer();
                 startPolling();
             } finally {
-                ui.btnJoinRoom.disabled = false;
-                ui.btnJoinRoom.innerText = '进入';
+                ui.btnJoinRoom.disabled = false; ui.btnJoinRoom.innerText = '进入';
             }
         };
 
         ui.btnJoinChat.onclick = async () => {
             const name = ui.usernameInput.value.trim();
             if (!name) return showToast('请输入称呼');
-            
             ui.btnJoinChat.disabled = true;
-            
             try {
                 const res = await fetch(\`/api/room/\${encodeURIComponent(state.roomId)}/join\`, {
                     method: 'POST', body: JSON.stringify({ username: name }), headers: { 'Content-Type': 'application/json' }
                 });
                 if (!res.ok) throw new Error('加入失败');
-                
                 state.username = name;
                 ui.usernameInput.disabled = true;
                 ui.btnJoinChat.style.display = 'none';
@@ -333,11 +311,9 @@ export function generateChatPage() {
                 ui.sendBtn.disabled = false;
                 ui.msgInput.focus();
                 showToast('已加入');
-                pollMessages();
-            } catch (e) { 
-                showToast(e.message); 
-                ui.btnJoinChat.disabled = false;
-            }
+                // 加入后也稍微等一下再拉取
+                setTimeout(pollMessages, 300);
+            } catch (e) { showToast(e.message); ui.btnJoinChat.disabled = false; }
         };
 
         ui.sendBtn.onclick = async () => {
@@ -360,12 +336,10 @@ export function generateChatPage() {
                 if (res.ok) {
                     state.lastActivity = Date.now();
                     refreshTimer();
-                    pollMessages(); 
+                    // 核心修复：延迟 500ms 再拉取，防止数据库写入未完成导致消息被旧列表覆盖消失
+                    setTimeout(pollMessages, 500); 
                 }
-            } catch (e) { 
-                console.error(e);
-                showToast('发送失败: ' + e.message); 
-            }
+            } catch (e) { showToast('发送失败: ' + e.message); }
         };
 
         ui.btnDestroy.onclick = async () => {
@@ -389,14 +363,10 @@ export function generateChatPage() {
         async function pollMessages() {
             if (!state.roomId) return;
             try {
-                // 核心修改：手动拼接查询参数，添加时间戳 _t
                 let url = \`/api/room/\${encodeURIComponent(state.roomId)}/messages\`;
                 const params = [];
                 if (state.username) params.push(\`user=\${encodeURIComponent(state.username)}\`);
-                
-                // 强力去缓存：每次请求都加时间戳
-                params.push(\`_t=\${Date.now()}\`);
-
+                params.push(\`_t=\${Date.now()}\`); // 防止缓存
                 const fullUrl = \`\${url}?\${params.join('&')}\`;
                 
                 const res = await fetch(fullUrl);
@@ -421,9 +391,8 @@ export function generateChatPage() {
                 if (state.cryptoKeyObj) {
                     const decrypted = await Crypto.decrypt(content, state.cryptoKeyObj);
                     if (decrypted === null) {
-                        const isRecent = (Date.now() - m.timestamp) < 60000;
-                        if (isRecent) {
-                            content = '<span class="message-error"><i class="fas fa-exclamation-triangle"></i> 无法解密 (密钥不匹配)</span>';
+                        if ((Date.now() - m.timestamp) < 60000) {
+                            content = '<span class="message-error"><i class="fas fa-exclamation-triangle"></i> 解密中...</span>';
                         } else {
                             return null;
                         }
@@ -433,7 +402,6 @@ export function generateChatPage() {
                 }
                 
                 const rendered = content.startsWith('<span') ? content : ((typeof marked !== 'undefined') ? marked.parse(content) : content);
-                
                 const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return \`<div class="message \${type}">
                     <span class="message-username">\${m.username} \${time}</span>
@@ -443,14 +411,15 @@ export function generateChatPage() {
             
             const html = validMessages.length ? validMessages.join('') : '<div style="text-align:center;color:#999;margin-top:20px;">暂无消息</div>';
             
+            // 简单判断是否需要滚动到底部（防止影响用户看历史消息）
             const atBottom = ui.chatArea.scrollTop + ui.chatArea.clientHeight >= ui.chatArea.scrollHeight - 50;
             ui.chatArea.innerHTML = html;
-            if (atBottom) ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
+            if (atBottom || data.messages.length <= 1) ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
     });
-    `;
+    \`;
 
-    return `
+    return \`
     <!DOCTYPE html>
     <html lang="zh-CN">
     <head>
@@ -459,7 +428,7 @@ export function generateChatPage() {
         <title>6eye Chat</title>
         <link rel="stylesheet" href="/src/vendor/fontawesome/css/all.min.css">
         <script src="/src/vendor/marked/marked.min.js"></script>
-        <style>${css}</style>
+        <style>\${css}</style>
     </head>
     <body>
         <div id="app">
@@ -494,8 +463,8 @@ export function generateChatPage() {
                 <button id="send" disabled><i class="fas fa-paper-plane"></i> 发送</button>
             </footer>
         </div>
-        <script>${js}</script>
+        <script>\${js}</script>
     </body>
     </html>
-    `;
+    \`;
 }
