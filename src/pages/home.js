@@ -141,40 +141,44 @@ export function generateChatPage() {
 
     const js = `
     const state = {
-        roomId: '', roomKey: '', username: '',
-        pollInterval: null, cleanupEnabled: true, lastActivity: Date.now()
+        roomId: '', 
+        cryptoKeyObj: null, // 缓存生成的密钥对象
+        username: '',
+        pollInterval: null, 
+        cleanupEnabled: true, 
+        lastActivity: Date.now()
     };
     
     const CONSTANTS = { POLL_RATE: 2000, CLEANUP_TIMEOUT: 30 * 60 * 1000 };
 
     if (typeof marked !== 'undefined') { marked.setOptions({ breaks: true, gfm: true }); }
 
-    // --- 加密模块 (修复版：使用更稳健的 Buffer 转换) ---
+    // --- 加密模块 (性能优化版) ---
     const Crypto = {
-        async deriveKey(password) { 
+        // 仅生成密钥，不进行加密解密
+        async generateKey(password, saltString) { 
             const enc = new TextEncoder();
             if (!crypto.subtle) throw new Error("Crypto API unavailable");
             const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]); 
+            // 返回 CryptoKey 对象
             return crypto.subtle.deriveKey({ 
                 name: "PBKDF2", 
-                salt: enc.encode(state.roomId),
+                salt: enc.encode(saltString),
                 iterations: 100000, 
                 hash: "SHA-256" 
             }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); 
         },
-        async encrypt(text, password) { 
+        async encrypt(text, keyObj) { 
             try {
-                const key = await this.deriveKey(password); 
+                if (!keyObj) return text;
                 const iv = crypto.getRandomValues(new Uint8Array(12)); 
                 const encoded = new TextEncoder().encode(text);
-                const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+                const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, keyObj, encoded);
                 
-                // 手动拼接 IV + Ciphertext
                 const combined = new Uint8Array(iv.length + ciphertext.byteLength);
                 combined.set(iv);
                 combined.set(new Uint8Array(ciphertext), iv.length);
                 
-                // 手动转 Base64
                 let binary = '';
                 for (let i = 0; i < combined.byteLength; i++) binary += String.fromCharCode(combined[i]);
                 return btoa(binary);
@@ -183,9 +187,9 @@ export function generateChatPage() {
                 throw new Error("加密失败");
             }
         },
-        async decrypt(b64, password) { 
+        async decrypt(b64, keyObj) { 
             try { 
-                const key = await this.deriveKey(password); 
+                if (!keyObj) return null;
                 
                 let binaryStr;
                 try { binaryStr = atob(b64); } catch(e) { return null; }
@@ -198,7 +202,7 @@ export function generateChatPage() {
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
                 
-                const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext); 
+                const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, keyObj, ciphertext); 
                 return new TextDecoder().decode(dec); 
             } catch (e) { 
                 return null; 
@@ -243,7 +247,7 @@ export function generateChatPage() {
 
         function resetUI() {
             if (state.pollInterval) clearInterval(state.pollInterval);
-            state.roomId = ''; state.username = ''; state.roomKey = ''; state.cleanupEnabled = true;
+            state.roomId = ''; state.username = ''; state.cryptoKeyObj = null; state.cleanupEnabled = true;
             ui.roomUi.style.display = 'none';
             ui.joinUi.style.display = 'flex';
             ui.chatArea.innerHTML = '<div style="text-align:center;color:#999;margin-top:50px"><i class="fas fa-shield-alt fa-3x"></i><br><br>请输入房间ID进入</div>';
@@ -272,28 +276,58 @@ export function generateChatPage() {
             ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
 
-        ui.btnJoinRoom.onclick = () => {
+        ui.btnJoinRoom.onclick = async () => {
             const id = ui.roomIdInput.value.trim();
             if (!id) return showToast('请输入房间ID');
-            state.roomId = id;
-            state.roomKey = ui.roomKeyInput.value.trim();
-            state.lastActivity = Date.now();
-            state.cleanupEnabled = true;
-            ui.joinUi.style.display = 'none';
-            ui.roomUi.style.display = 'flex';
-            ui.currentRoomDisplay.innerHTML = \`<strong>#\${state.roomId}</strong> \${state.roomKey ? '<span class="e2ee-badge">密</span>' : ''}\`;
-            refreshTimer();
-            startPolling();
+            
+            // 锁定界面，防止重复点击
+            ui.btnJoinRoom.disabled = true;
+            ui.btnJoinRoom.innerText = '...';
+
+            try {
+                state.roomId = id;
+                const password = ui.roomKeyInput.value.trim();
+                
+                // 核心修复：只计算一次密钥！
+                if (password) {
+                    try {
+                        state.cryptoKeyObj = await Crypto.generateKey(password, state.roomId);
+                    } catch (e) {
+                        console.error(e);
+                        showToast('密钥生成失败，请检查浏览器兼容性');
+                        state.roomId = '';
+                        return;
+                    }
+                } else {
+                    state.cryptoKeyObj = null;
+                }
+
+                state.lastActivity = Date.now();
+                state.cleanupEnabled = true;
+                
+                ui.joinUi.style.display = 'none';
+                ui.roomUi.style.display = 'flex';
+                ui.currentRoomDisplay.innerHTML = \`<strong>#\${state.roomId}</strong> \${state.cryptoKeyObj ? '<span class="e2ee-badge">密</span>' : ''}\`;
+                refreshTimer();
+                startPolling();
+            } finally {
+                ui.btnJoinRoom.disabled = false;
+                ui.btnJoinRoom.innerText = '进入';
+            }
         };
 
         ui.btnJoinChat.onclick = async () => {
             const name = ui.usernameInput.value.trim();
             if (!name) return showToast('请输入称呼');
+            
+            ui.btnJoinChat.disabled = true; // 防止重复点击
+            
             try {
                 const res = await fetch(\`/api/room/\${encodeURIComponent(state.roomId)}/join\`, {
                     method: 'POST', body: JSON.stringify({ username: name }), headers: { 'Content-Type': 'application/json' }
                 });
                 if (!res.ok) throw new Error('加入失败');
+                
                 state.username = name;
                 ui.usernameInput.disabled = true;
                 ui.btnJoinChat.style.display = 'none';
@@ -302,7 +336,10 @@ export function generateChatPage() {
                 ui.msgInput.focus();
                 showToast('已加入');
                 pollMessages();
-            } catch (e) { showToast(e.message); }
+            } catch (e) { 
+                showToast(e.message); 
+                ui.btnJoinChat.disabled = false;
+            }
         };
 
         ui.sendBtn.onclick = async () => {
@@ -314,8 +351,9 @@ export function generateChatPage() {
 
             try {
                 let payloadText = rawText;
-                if (state.roomKey) {
-                    payloadText = await Crypto.encrypt(rawText, state.roomKey);
+                if (state.cryptoKeyObj) {
+                    // 使用缓存的 Key 对象加密
+                    payloadText = await Crypto.encrypt(rawText, state.cryptoKeyObj);
                 }
 
                 const res = await fetch(\`/api/room/\${encodeURIComponent(state.roomId)}/send\`, {
@@ -375,13 +413,15 @@ export function generateChatPage() {
                 const type = m.username === state.username ? 'message-right' : 'message-left';
                 let content = m.message;
                 
-                if (state.roomKey) {
-                    const decrypted = await Crypto.decrypt(content, state.roomKey);
+                if (state.cryptoKeyObj) {
+                    // 使用缓存的 Key 对象解密，速度提升 1000 倍
+                    const decrypted = await Crypto.decrypt(content, state.cryptoKeyObj);
                     if (decrypted === null) {
                         const isRecent = (Date.now() - m.timestamp) < 60000;
                         if (isRecent) {
                             content = '<span class="message-error"><i class="fas fa-exclamation-triangle"></i> 无法解密 (密钥不匹配)</span>';
                         } else {
+                            // 旧的解密失败消息可能不是发给这个房间的或者密钥确实不对，隐藏处理
                             return null;
                         }
                     } else {
