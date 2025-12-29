@@ -1,7 +1,3 @@
-{
-type: uploaded file
-fileName: limkon/6eye/6eye-e75282df500e287b71ccc44cd456c649eea2a1b4/src/pages/home.js
-fullContent:
 export function generateChatPage() {
     const css = `
     /* 全局重置 */
@@ -423,6 +419,4 @@ export function generateChatPage() {
     </body>
     </html>
     `;
-}
-
 }
