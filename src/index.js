@@ -12,44 +12,28 @@ export default {
             const url = new URL(request.url);
             const path = url.pathname;
 
-            // 速率限制逻辑
+            // 速率限制
             const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
             const now = Date.now();
             if (ipRateMap.has(clientIP) && (now - ipRateMap.get(clientIP) < RATE_LIMIT_MS)) {
-                return new Response(JSON.stringify({ error: '请求太快了，请稍候' }), { status: 429 });
+                return new Response('Too Fast', { status: 429 });
             }
             ipRateMap.set(clientIP, now);
-            if (ipRateMap.size > 1000) ipRateMap.clear();
 
-            // API 路由
-            if (path.startsWith('/api/')) {
-                return await handleApiRequest(request, context, url);
-            }
+            if (path.startsWith('/api/')) return await handleApiRequest(request, context, url);
+            if (path.startsWith('/src/vendor/')) return (env.ASSETS) ? await env.ASSETS.fetch(request) : new Response('Not Found', { status: 404 });
 
-            // 静态资源分发
-            if (path.startsWith('/src/vendor/')) {
-                if (env.ASSETS) return await env.ASSETS.fetch(request);
-            }
-
-            // 首页
             if (path === '/' || path === '/index.html') {
-                return new Response(generateChatPage(), {
-                    headers: { 'Content-Type': 'text/html;charset=utf-8' }
-                });
+                return new Response(generateChatPage(), { headers: { 'Content-Type': 'text/html;charset=utf-8' } });
             }
-
-            return new Response('404 Not Found', { status: 404 });
+            return new Response('Not Found', { status: 404 });
         } catch (e) {
             return new Response(e.message, { status: 500 });
         }
     },
 
-    // Cron 定时任务处理
     async scheduled(event, env, ctx) {
-        const db = env.DB;
-        // 自动清理 24 小时前的旧消息
-        await db.prepare("DELETE FROM messages WHERE timestamp < ?")
-                .bind(Date.now() - (24 * 60 * 60 * 1000)).run();
-        console.log('自动清理任务已执行');
+        // 定时清理旧数据
+        await env.DB.prepare("DELETE FROM messages WHERE timestamp < ?").bind(Date.now() - 86400000).run();
     }
 };
