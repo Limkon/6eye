@@ -34,8 +34,8 @@ export function jsonResponse(data, status = 200) {
         status,
         headers: { 
             'Content-Type': 'application/json',
-            // 添加禁止缓存的 Header，解决消息延时和不显示的问题
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            // 核心修复：添加禁止缓存的 Header，解决消息延时和不显示的问题
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
             'Pragma': 'no-cache',
             'Expires': '0'
         }
