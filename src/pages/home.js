@@ -464,6 +464,4 @@ export function generateChatPage() {
     </body>
     </html>
     `;
-
-
 }
