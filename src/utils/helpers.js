@@ -29,12 +29,13 @@ export function decryptMessage(encryptedHex, ivHex, key) {
     }
 }
 
+// 核心修改在这里
 export function jsonResponse(data, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
         headers: { 
             'Content-Type': 'application/json',
-            // 解决消息不显示的核心
+            // 禁止任何形式的缓存
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
             'Pragma': 'no-cache',
             'Expires': '0'
