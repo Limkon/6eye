@@ -1,7 +1,7 @@
 import { encryptMessage, decryptMessage, jsonResponse } from '../utils/helpers.js';
 import { CONSTANTS } from '../constants.js';
 
-// 1. 定义完整的数据库初始化语句
+// 定义完整的建表语句
 const INIT_SQL = [
     `CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +23,7 @@ const INIT_SQL = [
 
 /**
  * 核心修复：数据库操作包装器
- * 如果检测到表不存在，自动初始化并重试
+ * 遇到"无表"错误时自动尝试修复，实现零配置部署
  */
 async function withAutoInit(db, operation) {
     try {
@@ -45,12 +45,11 @@ async function withAutoInit(db, operation) {
 
 export async function handleApiRequest(request, context, url) {
     const pathParts = url.pathname.split('/');
-    // 路由格式: /api/room/:roomId/:action
     const roomId = pathParts[3];
     const action = pathParts[4];
     const { db, encryptionKey } = context;
 
-    // 手动初始化接口 (备用)
+    // 恢复：手动初始化接口 (保留用于强制重置环境)
     if (pathParts[2] === 'init') {
         try {
             const statements = INIT_SQL.map(sql => db.prepare(sql));
@@ -61,14 +60,14 @@ export async function handleApiRequest(request, context, url) {
         }
     }
 
-    if (!roomId) return jsonResponse({ error: '缺少房间ID' }, 400);
+    if (!roomId) return jsonResponse({ error: 'Missing Room ID' }, 400);
 
-    // --- GET /messages (轮询消息和在线用户) ---
+    // --- GET /messages (轮询消息与同步在线列表) ---
     if (request.method === 'GET' && action === 'messages') {
         return await withAutoInit(db, async () => {
             const currentUser = url.searchParams.get('user');
             
-            // 更新当前用户的心跳
+            // 1. 更新用户最后活跃时间 (心跳)
             if (currentUser) {
                 await db.prepare(
                     `INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?)
@@ -76,22 +75,22 @@ export async function handleApiRequest(request, context, url) {
                 ).bind(roomId, currentUser, Date.now(), Date.now()).run();
             }
 
-            // 获取活跃用户列表
+            // 2. 获取当前活跃用户列表
             const activeThreshold = Date.now() - (CONSTANTS.USER_TIMEOUT_MS || 30000);
             const { results: users } = await db.prepare(
                 `SELECT username FROM users WHERE room_id = ? AND last_seen > ?`
             ).bind(roomId, activeThreshold).all();
 
-            // 获取历史消息
+            // 3. 获取历史消息 (按需解密)
             const { results: messages } = await db.prepare(
                 `SELECT username, content, iv, timestamp FROM messages 
                  WHERE room_id = ? ORDER BY timestamp DESC LIMIT ?`
             ).bind(roomId, CONSTANTS.MAX_MESSAGES_RETRIEVE || 50).all();
 
-            // 解密消息并转换字段名给前端
+            // 4. 服务端层解密 (支持 Double Encryption 架构)
             const decryptedMessages = messages.reverse().map(msg => {
-                const text = decryptMessage(msg.content, msg.iv, encryptionKey);
-                return text ? { username: msg.username, message: text, timestamp: msg.timestamp } : null;
+                const content = decryptMessage(msg.content, msg.iv, encryptionKey);
+                return content ? { username: msg.username, message: content, timestamp: msg.timestamp } : null;
             }).filter(Boolean);
 
             return jsonResponse({
@@ -102,20 +101,21 @@ export async function handleApiRequest(request, context, url) {
         });
     }
 
-    // --- POST /send (发送加密消息) ---
+    // --- POST /send (发送消息) ---
     if (request.method === 'POST' && action === 'send') {
         return await withAutoInit(db, async () => {
             const { username, message } = await request.json();
-            if (!username || !message) return jsonResponse({ error: '数据不完整' }, 400);
+            if (!username || !message) return jsonResponse({ error: 'Invalid data' }, 400);
 
+            // 服务端层加密
             const encrypted = encryptMessage(message, encryptionKey);
-            if (!encrypted) return jsonResponse({ error: '加密失败' }, 500);
+            if (!encrypted) return jsonResponse({ error: 'Encryption failed' }, 500);
 
             await db.prepare(
                 `INSERT INTO messages (room_id, username, content, iv, timestamp) VALUES (?, ?, ?, ?, ?)`
             ).bind(roomId, username, encrypted.encrypted, encrypted.iv, Date.now()).run();
 
-            // 更新发送者心跳
+            // 同步更新发送者活跃时间
             await db.prepare(
                 `INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?)
                  ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`
@@ -125,24 +125,22 @@ export async function handleApiRequest(request, context, url) {
         });
     }
 
-    // --- POST /join (加入房间 - 核心修复) ---
+    // --- POST /join (加入房间) ---
     if (request.method === 'POST' && action === 'join') {
         return await withAutoInit(db, async () => {
             const { username } = await request.json();
-            if (!username) return jsonResponse({ error: '请输入用户名' }, 400);
-
             const activeThreshold = Date.now() - (CONSTANTS.USER_TIMEOUT_MS || 30000);
             
-            // 检查用户名是否被其他活跃用户占用
+            // 校验同名用户活跃状态
             const { results } = await db.prepare(
                 `SELECT username FROM users WHERE room_id = ? AND username = ? AND last_seen > ?`
             ).bind(roomId, username, activeThreshold).all();
 
             if (results.length > 0) {
-                return jsonResponse({ error: '该称呼在房间内正活跃，请更换' }, 409);
+                return jsonResponse({ error: '该称呼已被占用' }, 409);
             }
 
-            // 注册用户：使用 ON CONFLICT 处理“已存在但已离线”的旧记录冲突
+            // 使用心跳机制注册用户
             await db.prepare(
                 `INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?)
                  ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`
@@ -152,16 +150,16 @@ export async function handleApiRequest(request, context, url) {
         });
     }
 
-    // --- POST /destroy (销毁记录) ---
+    // --- POST /destroy (彻底销毁) ---
     if (request.method === 'POST' && action === 'destroy') {
         return await withAutoInit(db, async () => {
             await db.batch([
                 db.prepare(`DELETE FROM messages WHERE room_id = ?`).bind(roomId),
                 db.prepare(`DELETE FROM users WHERE room_id = ?`).bind(roomId)
             ]);
-            return jsonResponse({ success: true, message: '房间记录已清除' });
+            return jsonResponse({ success: true, message: 'Room destroyed' });
         });
     }
 
-    return jsonResponse({ error: '方法不允许' }, 405);
+    return jsonResponse({ error: 'Method not allowed' }, 405);
 }
