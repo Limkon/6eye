@@ -8,6 +8,11 @@ const RATE_LIMIT_MS = 1000;
 export default {
     async fetch(request, env, ctx) {
         try {
+            // 核心安全修复：防止由于持续请求造成的内存泄漏
+            if (ipRateMap.size > 2000) {
+                ipRateMap.clear();
+            }
+
             const context = await initializeContext(request, env);
             const url = new URL(request.url);
             const path = url.pathname;
@@ -20,7 +25,7 @@ export default {
             }
             ipRateMap.set(clientIP, now);
 
-            // 核心修改：将 ctx 传递给处理函数
+            // 将 ctx 传递给处理函数
             if (path.startsWith('/api/')) return await handleApiRequest(request, context, url, ctx);
             if (path.startsWith('/src/vendor/')) return (env.ASSETS) ? await env.ASSETS.fetch(request) : new Response('Not Found', { status: 404 });
 
@@ -34,7 +39,10 @@ export default {
     },
 
     async scheduled(event, env, ctx) {
-        // 定时清理旧数据 - 修改为清理 1 小时前的数据 (3600000 ms)
-        await env.DB.prepare("DELETE FROM messages WHERE timestamp < ?").bind(Date.now() - 3600000).run();
+        // 容错处理，防止环境变量未绑定时报错
+        if (!env.DB) return; 
+        
+        // 核心修改：将定时清理旧数据时间与前端倒计时对齐 (30分钟 = 1800000 ms)
+        await env.DB.prepare("DELETE FROM messages WHERE timestamp < ?").bind(Date.now() - 1800000).run();
     }
 };
