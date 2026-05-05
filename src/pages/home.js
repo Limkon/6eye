@@ -151,6 +151,16 @@ export function generateChatPage() {
     
     const CONSTANTS = { POLL_RATE: 2000, CLEANUP_TIMEOUT: 30 * 60 * 1000 };
 
+    // 核心安全修复：防御 XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
     if (typeof marked !== 'undefined') { marked.setOptions({ breaks: true, gfm: true }); }
 
     // --- 加密模块 ---
@@ -259,10 +269,12 @@ export function generateChatPage() {
 
         function appendLocalMessage(text) {
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const rendered = (typeof marked !== 'undefined') ? marked.parse(text) : text;
+            // 安全过滤输入内容
+            const safeText = escapeHtml(text);
+            const rendered = (typeof marked !== 'undefined') ? marked.parse(safeText) : safeText;
             const div = document.createElement('div');
             div.className = 'message message-right message-sending'; 
-            div.innerHTML = \`<span class="message-username">\${state.username} \${time}</span><div>\${rendered}</div>\`;
+            div.innerHTML = \`<span class="message-username">\${escapeHtml(state.username)} \${time}</span><div>\${rendered}</div>\`;
             ui.chatArea.appendChild(div);
             ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
@@ -287,7 +299,8 @@ export function generateChatPage() {
                 state.cleanupEnabled = true;
                 ui.joinUi.style.display = 'none';
                 ui.roomUi.style.display = 'flex';
-                ui.currentRoomDisplay.innerHTML = \`<strong>#\${state.roomId}</strong> \${state.cryptoKeyObj ? '<span class="e2ee-badge">密</span>' : ''}\`;
+                // 房间 ID 渲染过滤
+                ui.currentRoomDisplay.innerHTML = \`<strong>#\${escapeHtml(state.roomId)}</strong> \${state.cryptoKeyObj ? '<span class="e2ee-badge">密</span>' : ''}\`;
                 refreshTimer();
                 startPolling();
             } finally {
@@ -382,7 +395,8 @@ export function generateChatPage() {
         }
 
         async function renderData(data) {
-            ui.userListArea.innerHTML = '<h3>在线</h3>' + (data.users.map(u => \`<div><i class="fas fa-user"></i> \${u}</div>\`).join(''));
+            // 安全过滤在线用户列表
+            ui.userListArea.innerHTML = '<h3>在线</h3>' + (data.users.map(u => \`<div><i class="fas fa-user"></i> \${escapeHtml(u)}</div>\`).join(''));
             
             const validMessages = (await Promise.all(data.messages.map(async m => {
                 const type = m.username === state.username ? 'message-right' : 'message-left';
@@ -401,10 +415,11 @@ export function generateChatPage() {
                     }
                 }
                 
-                const rendered = content.startsWith('<span') ? content : ((typeof marked !== 'undefined') ? marked.parse(content) : content);
+                // 安全过滤消息内容和用户名
+                const rendered = content.startsWith('<span') ? content : ((typeof marked !== 'undefined') ? marked.parse(escapeHtml(content)) : escapeHtml(content));
                 const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return \`<div class="message \${type}">
-                    <span class="message-username">\${m.username} \${time}</span>
+                    <span class="message-username">\${escapeHtml(m.username)} \${time}</span>
                     <div>\${rendered}</div>
                 </div>\`;
             }))).filter(msg => msg !== null);
