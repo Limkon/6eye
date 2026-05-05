@@ -49,6 +49,10 @@ async function runWithRetry(dbOperation, retries = 3, delay = 150) {
 async function ensureTables(db) {
     if (tablesInitialized) return;
 
+    // 核心修复：使用简单的自旋锁思想，避免高并发冷启动时多次触发建表
+    if (globalThis.isInitializing) return; 
+    globalThis.isInitializing = true;
+
     try {
         await runWithRetry(async () => {
              const statements = INIT_SQL.map(sql => db.prepare(sql));
@@ -58,6 +62,8 @@ async function ensureTables(db) {
     } catch (e) {
         console.error('Table init warning:', e.message);
         tablesInitialized = true;
+    } finally {
+        globalThis.isInitializing = false;
     }
 }
 
@@ -124,7 +130,11 @@ export async function handleApiRequest(request, context, url, ctx) {
         await ensureTables(db); 
         
         const { username, message } = await request.json();
-        if (!message || !username) return jsonResponse({ error: 'Invalid data' }, 400);
+        
+        // 核心修复：增加输入安全长度拦截
+        if (!message || !username || username.length > 50 || message.length > 20000) {
+            return jsonResponse({ error: 'Invalid or oversized data' }, 400);
+        }
 
         const encrypted = encryptMessage(message, encryptionKey);
         
@@ -140,7 +150,9 @@ export async function handleApiRequest(request, context, url, ctx) {
         await ensureTables(db);
         
         const { username } = await request.json();
-        if (!username) return jsonResponse({ error: 'Missing username' }, 400);
+        
+        // 核心修复：增加用户名长度校验
+        if (!username || username.length > 50) return jsonResponse({ error: 'Invalid username' }, 400);
 
         await runWithRetry(async () => {
             await db.prepare(`INSERT INTO users (room_id, username, last_seen) VALUES (?, ?, ?) ON CONFLICT(room_id, username) DO UPDATE SET last_seen = ?`)
@@ -159,7 +171,9 @@ export async function handleApiRequest(request, context, url, ctx) {
             ]);
             return jsonResponse({ success: true });
         } catch (e) {
-             return jsonResponse({ success: true });
+             // 核心修复：禁止吞没销毁失败的数据库错误
+             console.error('Destroy error:', e);
+             return jsonResponse({ error: 'Destroy failed', details: e.message }, 500);
         }
     }
     
