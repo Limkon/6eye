@@ -1,5 +1,4 @@
 import { Buffer } from 'node:buffer';
-// import { CONSTANTS } from './constants.js'; // 如果没用到 CONSTANTS 可以注释掉
 
 export async function initializeContext(request, env) {
     const ctx = {
@@ -8,23 +7,25 @@ export async function initializeContext(request, env) {
         startTime: Date.now()
     };
     
-    // 1. 尝试从环境变量获取
-    let keyHex = env.CHAT_ENCRYPTION_KEY;
+    const keyHex = env.CHAT_ENCRYPTION_KEY;
     
-    // 2. 检查环境变量是否有效。如果无效，使用“兜底密钥”
-    if (!keyHex || typeof keyHex !== 'string' || keyHex.length !== 64) {
-        console.warn('⚠️ 未检测到有效的环境变量密钥，已切换为代码内置的兜底密钥。');
-        
-        // 【第一处替换】将默认值改为你的密钥
-        keyHex = 'e8f1c9d2a3b4e5f678901234567890abcdef1234567890abcdef1234567890ab';
+    // 核心安全修复：实施强校验，废除硬编码兜底密钥
+    // 必须是恰好 64 位的合法十六进制字符串 (对应 32 字节 / 256 bit)
+    const hexRegex = /^[0-9a-fA-F]{64}$/;
+
+    if (!keyHex || typeof keyHex !== 'string' || !hexRegex.test(keyHex)) {
+        // 遇到非法密钥直接抛出严重错误（快速失败），禁止服务端继续运行并记录不安全的未加密数据
+        console.error('🚨 [FATAL ERROR] 环境变量 CHAT_ENCRYPTION_KEY 缺失或格式错误。');
+        console.error('请确保已通过 wrangler secret put CHAT_ENCRYPTION_KEY 注入了 64 位 Hex 字符串的密钥。');
+        throw new Error('Server Configuration Error: Invalid Encryption Key');
     }
 
     try {
         ctx.encryptionKey = Buffer.from(keyHex, 'hex');
     } catch (e) {
-        console.error('密钥转换失败:', e);
-        // 【第二处替换】最后的防线，防止 Buffer 转换出错
-        ctx.encryptionKey = Buffer.from('e8f1c9d2a3b4e5f678901234567890abcdef1234567890abcdef1234567890ab', 'hex');
+        // 由于上面已经做了正则校验，这里极难被触发，仅作最后防线
+        console.error('密钥 Buffer 转换失败:', e);
+        throw new Error('Server Configuration Error: Key Parse Failed');
     }
 
     return ctx;
